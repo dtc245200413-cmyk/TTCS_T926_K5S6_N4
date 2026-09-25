@@ -1,12 +1,15 @@
 HỆ THỐNG TUYỂN DỤNG NỘI BỘ
 
 1.Tổng quan dự án (Project Overview)
+
 Hệ thống Tuyển dụng Nội bộ là một nền tảng quản lý quy trình tuyển dụng toàn diện, được thiết kế để tối ưu hóa và tự động hóa các khâu từ tạo yêu cầu tuyển dụng, đăng tin, quản lý hồ sơ ứng viên, lên lịch phỏng vấn, đánh giá, cho đến khi gửi thư mời nhận việc (Offer). Hệ thống hỗ trợ đa nền tảng và cung cấp luồng quy trình làm việc (workflow) minh bạch cho nhiều vai trò khác nhau trong doanh nghiệp.
+
 - Nhóm thực hiện: TTCS_T926_K5S6_N4
 - Quy mô dự án: 76 User Stories/350 Points
 - Thời gian triển khai: 8 tuần (8 Sprints)
   
 2.Đối tượng người dùng (User Roles)
+
 Hệ thống được thiết kế để phục vụ 7 nhóm người dùng chính, mỗi người dùng được phân quyền truy cập chức năng riêng biệt:
 - Ứng viên (Candidate): Nộp CV, theo dõi trạng thái hồ sơ, xác nhận lịch phỏng vấn và phản hồi offer.
 - Nhân viên tuyển dụng (Recruiter): Sàng lọc CV, điều phối pipeline, đặt lịch phỏng vấn, soạn offer.
@@ -17,6 +20,7 @@ Hệ thống được thiết kế để phục vụ 7 nhóm người dùng chí
 - Quản trị hệ thống (Admin): Quản lý tài khoản, phân quyền, thiết lập các danh mục dùng chung toàn hệ thống.
   
 3.Các phân hệ chức năng chính (Key Epics)
+
 Hệ thống được chia thành 9 phân hệ (Epics) bám sát theo vòng đời tuyển dụng:
 - EP-01: Tài khoản, Phân quyền & Hồ sơ: Quản lý đăng nhập, phân quyền chặt chẽ theo vai trò và quản lý hồ sơ cá nhân.
 - EP-02: Danh mục Tổ chức & Vị trí: Quản lý phòng ban, chức danh, dải lương, khung năng lực và ngân hàng câu hỏi.
@@ -29,6 +33,7 @@ Hệ thống được chia thành 9 phân hệ (Epics) bám sát theo vòng đ�
 - EP-09: Báo cáo & Dashboard: Bảng điều khiển tuyển dụng, báo cáo phễu ứng viên và chỉ số thời gian tuyển dụng (Time-to-hire).
   
 4.Lộ trình phát triển (Roadmap)
+
 Dự án được chia thành 8 Sprints (mỗi Sprint kéo dài 1 tuần):
 - Sprint 1:Tài khoản & phân quyền (Setup hệ thống, phân quyền 7 vai trò).
 - Sprint 2: Danh mục tổ chức, vị trí & tạo yêu cầu tuyển dụng.
