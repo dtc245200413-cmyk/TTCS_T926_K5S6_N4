@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Quản lý tài khoản nội bộ</title>
+
+    <link rel="stylesheet" href="../css/users.css">
+</head>
+
+<body>
+
+    <h1>Quản lý tài khoản nội bộ</h1>
+
+    <!-- Tìm kiếm và bộ lọc -->
+    <div class="search-container">
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Tìm kiếm tài khoản..."
+        >
+
+        <select id="statusFilter">
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Không hoạt động</option>
+        </select>
+
+        <button id="searchButton">
+            Tìm kiếm
+        </button>
+
+        <button id="resetButton">
+            Đặt lại
+        </button>
+
+    </div>
+
+    <!-- Nút tạo tài khoản -->
+    <button id="createButton">
+        + Tạo tài khoản
+    </button>
+
+    <!-- Danh sách tài khoản -->
+    <table>
+
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Họ và tên</th>
+                <th>Tên đăng nhập</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+
+        <tbody id="userTableBody">
+
+            <tr>
+                <td>1</td>
+                <td>Nguyễn Văn A</td>
+                <td>nguyenvana</td>
+                <td>nguyenvana@gmail.com</td>
+                <td>Người phỏng vấn</td>
+                <td class="status-active">
+                    Đang hoạt động
+                </td>
+                <td>
+                    <button>Sửa</button>
+                </td>
+            </tr>
+
+            <tr>
+                <td>2</td>
+                <td>Trần Thị B</td>
+                <td>tranthib</td>
+                <td>tranthib@gmail.com</td>
+                <td>Nhân sự</td>
+                <td class="status-active">
+                    Đang hoạt động
+                </td>
+                <td>
+                    <button>Sửa</button>
+                </td>
+            </tr>
+
+            <tr>
+                <td>3</td>
+                <td>Lê Văn C</td>
+                <td>levanc</td>
+                <td>levanc@gmail.com</td>
+                <td>Người phỏng vấn</td>
+                <td class="status-inactive">
+                    Không hoạt động
+                </td>
+                <td>
+                    <button>Sửa</button>
+                </td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+    <!-- Phân trang -->
+    <div class="pagination">
+
+        <button id="previousButton">
+            ← Trước
+        </button>
+
+        <span id="pageInfo">
+            Trang 1 / 1
+        </span>
+
+        <button id="nextButton">
+            Sau →
+        </button>
+
+    </div>
+<!-- Form Tạo / Sửa tài khoản -->
+<div id="userModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h2 id="formTitle">Tạo tài khoản</h2>
+
+            <button
+                type="button"
+                id="closeFormButton"
+                class="close-button">
+                ×
+            </button>
+        </div>
+
+        <form id="userForm">
+
+            <div class="form-group">
+                <label for="fullName">
+                    Họ và tên
+                </label>
+
+                <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    placeholder="Nhập họ và tên"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="username">
+                    Tên đăng nhập
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Nhập tên đăng nhập"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Nhập email"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="role">
+                    Vai trò
+                </label>
+
+                <select id="role" name="role" required>
+                    <option value="">
+                        -- Chọn vai trò --
+                    </option>
+
+                    <option value="ADMIN">
+                        Quản trị viên
+                    </option>
+
+                    <option value="HR">
+                        Nhân sự
+                    </option>
+
+                    <option value="INTERVIEWER">
+                        Người phỏng vấn
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="status">
+                    Trạng thái
+                </label>
+
+                <select id="status" name="status">
+                    <option value="active">
+                        Đang hoạt động
+                    </option>
+
+                    <option value="inactive">
+                        Không hoạt động
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+
+                <button
+                    type="button"
+                    id="cancelFormButton">
+                    Hủy
+                </button>
+
+                <button
+                    type="submit"
+                    id="saveButton">
+                    Lưu
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script src="../js/users.js"></script>
+    <!-- JavaScript -->
+    <script src="../js/users.js"></script>
+
+</body>
+</html>
