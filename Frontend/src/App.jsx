@@ -1,0 +1,63 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import { Outlet } from 'react-router-dom';
+
+// Pages
+import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Home from './pages/Home';
+import Unauthorized from './pages/Unauthorized';
+import NotFound from './pages/NotFound';
+import ChangePassword from './pages/ChangePassword';
+
+// User Pages
+import UserList from './pages/users/UserList';
+import UserDetail from './pages/users/UserDetail';
+import UserCreate from './pages/users/UserCreate';
+import UserEdit from './pages/users/UserEdit';
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* Protected Routes inside Main Layout */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/change-password" element={<ChangePassword />} />
+            
+            {/* User Management Routes (Requires USER_VIEW) */}
+            <Route path="/users" element={<ProtectedRoute requiredPermission="USER_VIEW"><Outlet /></ProtectedRoute>}>
+              <Route index element={<UserList />} />
+              <Route path=":id" element={<UserDetail />} />
+            </Route>
+
+            {/* User Creation Route (Requires USER_CREATE) */}
+            <Route path="/users/create" element={<ProtectedRoute requiredPermission="USER_CREATE"><Outlet /></ProtectedRoute>}>
+              <Route index element={<UserCreate />} />
+            </Route>
+
+            {/* User Edit Route (Requires USER_UPDATE) */}
+            <Route path="/users/:id/edit" element={<ProtectedRoute requiredPermission="USER_UPDATE"><Outlet /></ProtectedRoute>}>
+              <Route index element={<UserEdit />} />
+            </Route>
+          </Route>
+
+          {/* Error Pages */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;
