@@ -218,7 +218,7 @@ async function forgotPassword(email, ipAddress) {
   if (user.status === 'INACTIVE') return safeResponse;
 
   // Generate the raw token (sent to user) and its hash (stored in DB)
-  const rawToken   = crypto.randomBytes(32).toString('hex'); // 64-char hex string
+  const rawToken   = crypto.randomInt(10000000, 100000000).toString(); // 8-digit number string
   const tokenHash  = crypto.createHash('sha256').update(rawToken).digest('hex');
 
   // Token expires in 30 minutes
