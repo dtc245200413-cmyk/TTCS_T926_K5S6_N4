@@ -161,43 +161,7 @@ const Login = () => {
             <Link to="/forgot-password">Quên mật khẩu?</Link>
           </div>
 
-          <div style={{ marginTop: '30px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-            <h4 style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '15px', fontWeight: '600' }}>Đăng nhập nhanh (Demo)</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button 
-                type="button" 
-                onClick={() => { setEmail('nhung.nguyen@company.com'); setPassword('123456'); }}
-                style={{ textAlign: 'left', padding: '10px 15px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div>
-                  <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.9rem' }}>Quản trị viên (Admin) - Nhung</strong>
-                  <span style={{ color: '#64748b', fontSize: '0.85rem' }}>nhung.nguyen@company.com</span>
-                </div>
-              </button>
-              
-              <button 
-                type="button" 
-                onClick={() => { setEmail('minh.ha@company.com'); setPassword('123456'); }}
-                style={{ textAlign: 'left', padding: '10px 15px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div>
-                  <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.9rem' }}>Quản lý Nhân sự (HR) - Minh</strong>
-                  <span style={{ color: '#64748b', fontSize: '0.85rem' }}>minh.ha@company.com</span>
-                </div>
-              </button>
 
-              <button 
-                type="button" 
-                onClick={() => { setEmail('son.nguyen@company.com'); setPassword('123456'); }}
-                style={{ textAlign: 'left', padding: '10px 15px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div>
-                  <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.9rem' }}>Nhân viên Tuyển dụng - Sơn</strong>
-                  <span style={{ color: '#64748b', fontSize: '0.85rem' }}>son.nguyen@company.com</span>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
