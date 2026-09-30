@@ -1,0 +1,242 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 30px;
+    font-family: Arial, sans-serif;
+    background-color: #f5f6fa;
+    color: #333;
+}
+
+h1 {
+    margin-bottom: 25px;
+}
+
+/* Thanh tìm kiếm */
+.search-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+input,
+select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+#searchInput {
+    width: 300px;
+}
+
+/* Button */
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#searchButton,
+#createButton {
+    background-color: #2563eb;
+    color: white;
+}
+
+#resetButton {
+    background-color: #e5e7eb;
+    color: #333;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+/* Nút tạo */
+#createButton {
+    margin-bottom: 20px;
+}
+
+/* Bảng */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+thead {
+    background-color: #1f2937;
+    color: white;
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+tbody tr:hover {
+    background-color: #f3f4f6;
+}
+
+/* Trạng thái */
+.status-active {
+    color: #16a34a;
+    font-weight: bold;
+}
+
+.status-inactive {
+    color: #dc2626;
+    font-weight: bold;
+}
+
+/* Phân trang */
+.pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Form Tạo / Sửa tài khoản */
+#userForm {
+    background-color: white;
+    margin-top: 30px;
+    padding: 25px;
+    border-radius: 8px;
+    max-width: 600px;
+}
+
+#userForm h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#userForm form > div {
+    margin-bottom: 15px;
+}
+
+#userForm label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+#userForm input,
+#userForm select {
+    width: 100%;
+    padding: 10px;
+}
+
+#userForm button {
+    margin-right: 10px;
+}
+
+#userForm button[type="submit"] {
+    background-color: #2563eb;
+    color: white;
+}
+
+#userForm button[type="reset"] {
+    background-color: #e5e7eb;
+    color: #333;
+}
+
+/* =========================
+   FORM TẠO / SỬA
+   ========================= */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.45);
+
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    width: 500px;
+    max-width: 90%;
+    background-color: white;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+}
+
+.close-button {
+    padding: 4px 10px;
+    font-size: 24px;
+    background-color: transparent;
+    color: #555;
+}
+
+.close-button:hover {
+    background-color: #eee;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+#cancelFormButton {
+    background-color: #e5e7eb;
+    color: #333;
+}
+
+#saveButton {
+    background-color: #2563eb;
+    color: white;
+}
