@@ -1,7 +1,6 @@
 /**
  * app.js
  * Creates and configures the Express application.
- * UPDATED in Part 2: added /api/users routes.
  */
 
 const express = require('express');
@@ -9,7 +8,8 @@ const cors    = require('cors');
 require('dotenv').config();
 
 const authRoutes     = require('./routes/authRoutes');
-const userRoutes     = require('./routes/userRoutes');      // NEW in Part 2
+const userRoutes     = require('./routes/userRoutes');
+const roleRoutes     = require('./routes/roleRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -19,9 +19,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// SPRINT 1 FINAL: Configure CORS strictly for the frontend
 app.use(cors({
-  origin:         '*',  // In production: change to your frontend URL
-  methods:        ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  origin: ['http://localhost:5173', 'http://localhost:5174'], // Restrict to the React frontend running on Vite ports
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -31,14 +32,15 @@ app.get('/', (req, res) => {
   res.json({
     success: true,
     message: 'Internal Recruitment System API is running.',
-    version: 'Sprint 1 - Part 2',
+    version: 'Sprint 1 - Final',
   });
 });
 
 // ── API Routes ────────────────────────────────────────────────
 
-app.use('/api/auth',  authRoutes);   // Authentication endpoints
-app.use('/api/users', userRoutes);   // User management endpoints (NEW)
+app.use('/api/auth',  authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/roles', roleRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────
 
