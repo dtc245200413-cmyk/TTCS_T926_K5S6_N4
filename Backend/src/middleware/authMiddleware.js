@@ -1,4 +1,5 @@
 /**
+ * // Updated by dtc245200935
  * authMiddleware.js
  * Middleware to protect routes that require authentication.
  *
