@@ -12,6 +12,7 @@ import Home from './pages/Home';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import ChangePassword from './pages/ChangePassword';
+import Reports from './pages/Reports';
 
 // User Pages
 import UserList from './pages/users/UserList';
@@ -32,6 +33,7 @@ function App() {
           {/* Protected Routes inside Main Layout */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Home />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/change-password" element={<ChangePassword />} />
             
             {/* User Management Routes (Requires USER_VIEW) */}

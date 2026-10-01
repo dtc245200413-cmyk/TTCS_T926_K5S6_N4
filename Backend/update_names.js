@@ -6,7 +6,7 @@ async function updateData() {
     const hash = await bcrypt.hash('123456', 12);
     
     const updates = [
-      { id: 1, name: 'Nguyễn Thị Hồng Nhung', email: 'nhung.nguyen@company.com' },
+      { id: 1, name: 'Nguyễn Thị Hồng Nhung', email: 'dtc245200413@ictu.edu.vn' },
       { id: 2, name: 'Hà Đức Minh', email: 'minh.ha@company.com' },
       { id: 3, name: 'Nguyễn Anh Sơn', email: 'son.nguyen@company.com' },
       { id: 4, name: 'Nguyễn Xuân Phú', email: 'phu.nguyen@company.com' },
@@ -15,7 +15,7 @@ async function updateData() {
     ];
 
     for (const u of updates) {
-      await pool.execute('UPDATE users SET full_name = ?, company_email = ? WHERE user_id = ?', [u.name, u.email, u.id]);
+      await pool.execute('UPDATE users SET full_name = ?, company_email = ?, password_hash = ? WHERE user_id = ?', [u.name, u.email, hash, u.id]);
     }
 
     const inserts = [

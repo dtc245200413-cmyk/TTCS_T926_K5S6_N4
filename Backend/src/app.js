@@ -36,11 +36,14 @@ app.get('/', (req, res) => {
   });
 });
 
+const statsRoutes    = require('./routes/statsRoutes');
+
 // ── API Routes ────────────────────────────────────────────────
 
 app.use('/api/auth',  authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/stats', statsRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────
 
