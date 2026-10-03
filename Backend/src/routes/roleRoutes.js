@@ -12,7 +12,15 @@ const roleController          = require('../controllers/roleController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 
 // GET /api/roles
-// Return all system roles. Requires authentication + ROLE_VIEW permission.
 router.get('/', authenticate, authorize('ROLE_VIEW'), roleController.getAllRoles);
+
+// POST /api/roles
+router.post('/', authenticate, authorize('ROLE_VIEW'), roleController.createRole);
+
+// PUT /api/roles/:id
+router.put('/:id', authenticate, authorize('ROLE_VIEW'), roleController.updateRole);
+
+// DELETE /api/roles/:id
+router.delete('/:id', authenticate, authorize('ROLE_VIEW'), roleController.deleteRole);
 
 module.exports = router;

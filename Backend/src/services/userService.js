@@ -237,7 +237,7 @@ async function updateUser(userId, data, performedByUserId, ipAddress) {
  * @param {number}      performedByUserId
  * @param {string}      ipAddress
  */
-async function lockUser(targetUserId, reason, performedByUserId, ipAddress) {
+async function lockUser(targetUserId, reason, performedByUserId, ipAddress, handoverUserId = null) {
   // Step 1: Verify user exists
   const user = await userRepository.findById(targetUserId);
   if (!user) throw createError('User not found.', 404);
@@ -286,7 +286,32 @@ async function lockUser(targetUserId, reason, performedByUserId, ipAddress) {
     ipAddress,
   });
 
-  return getUserById(targetUserId);
+  // Step 5: Check for active job requisitions to warn about handover
+  let handoverWarning = null;
+  let handoverMessage = null;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT COUNT(*) as active_count FROM job_requisitions WHERE created_by = ? AND status IN ('DRAFT', 'PENDING', 'APPROVED')`,
+      [targetUserId]
+    );
+    if (rows[0] && rows[0].active_count > 0) {
+      if (handoverUserId) {
+        // Handover the jobs
+        await pool.execute(
+          `UPDATE job_requisitions SET created_by = ? WHERE created_by = ? AND status IN ('DRAFT', 'PENDING', 'APPROVED')`,
+          [handoverUserId, targetUserId]
+        );
+        handoverMessage = `Đã tự động bàn giao ${rows[0].active_count} công việc đang mở.`;
+      } else {
+        handoverWarning = `Cảnh báo: Nhân viên này đang phụ trách ${rows[0].active_count} vị trí tuyển dụng đang mở. Vui lòng tiến hành bàn giao!`;
+      }
+    }
+  } catch (e) {
+    // Ignore if table doesn't exist yet
+  }
+
+  const updatedUser = await getUserById(targetUserId);
+  return { ...updatedUser, handoverWarning, handoverMessage };
 }
 
 // ─────────────────────────────────────────────

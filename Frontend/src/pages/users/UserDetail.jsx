@@ -19,6 +19,8 @@ const UserDetail = () => {
   // Lock Modal state
   const [showLockModal, setShowLockModal] = useState(false);
   const [lockReason, setLockReason] = useState('');
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [handoverUserId, setHandoverUserId] = useState('');
 
   const { user: currentUser, hasPermission, refreshUser } = useContext(AuthContext);
 
@@ -49,30 +51,45 @@ const UserDetail = () => {
   const handleLockAccount = async (e) => {
     e.preventDefault();
     try {
-      const response = await userApi.lockAccount(id, lockReason);
+      const response = await userApi.lockAccount(id, lockReason, handoverUserId);
       if (response.data.success) {
-        setStatusMsg({ type: 'success', message: 'User account locked successfully.' });
+        setStatusMsg({ type: 'success', message: response.data.message || 'Khoá tài khoản thành công.' });
         setShowLockModal(false);
         setLockReason('');
+        setHandoverUserId('');
         fetchUser();
       }
     } catch (err) {
-      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Failed to lock account.' });
+      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Lỗi khi khoá tài khoản.' });
       setShowLockModal(false);
     }
   };
 
-  // Handle Unlock Account
+  const openLockModal = async () => {
+    setShowLockModal(true);
+    setLockReason('');
+    setHandoverUserId('');
+    try {
+      const res = await userApi.getAll({ status: 'ACTIVE' });
+      if (res.data.success) {
+        // Exclude the current user from the handover list
+        setActiveUsers(res.data.data.users.filter(u => u.user_id !== parseInt(id, 10)));
+      }
+    } catch (error) {
+      console.error("Failed to fetch active users for handover", error);
+    }
+  };
+
   const handleUnlockAccount = async () => {
-    if (!window.confirm('Are you sure you want to unlock this account?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn mở khoá tài khoản này không?')) return;
     try {
       const response = await userApi.unlockAccount(id);
       if (response.data.success) {
-        setStatusMsg({ type: 'success', message: 'User account unlocked successfully.' });
+        setStatusMsg({ type: 'success', message: response.data.message || 'Mở khoá tài khoản thành công.' });
         fetchUser();
       }
     } catch (err) {
-      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Failed to unlock account.' });
+      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Lỗi khi mở khoá tài khoản.' });
     }
   };
 
@@ -89,7 +106,7 @@ const UserDetail = () => {
         setSelectedRoleId('');
       }
     } catch (err) {
-      setStatusMsg({ type: 'error', message: 'Failed to fetch available roles.' });
+      setStatusMsg({ type: 'error', message: 'Lỗi khi tải danh sách vai trò.' });
     }
   };
 
@@ -100,7 +117,7 @@ const UserDetail = () => {
     try {
       const response = await userApi.assignRole(id, selectedRoleId);
       if (response.data.success) {
-        setStatusMsg({ type: 'success', message: 'Role assigned successfully.' });
+        setStatusMsg({ type: 'success', message: response.data.message || 'Gán vai trò thành công.' });
         setShowRoleModal(false);
         fetchUser();
         // If assigning role to self, refresh global context
@@ -109,18 +126,19 @@ const UserDetail = () => {
         }
       }
     } catch (err) {
-      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Failed to assign role.' });
+      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Lỗi khi gán vai trò.' });
       setShowRoleModal(false);
     }
   };
 
   // Handle Revoke Role
-  const handleRevokeRole = async (roleId) => {
-    if (!window.confirm('Are you sure you want to revoke this role?')) return;
+  const handleRevokeRole = async (e, roleId) => {
+    e.preventDefault();
+    if (!window.confirm('Bạn có chắc chắn muốn thu hồi vai trò này không?')) return;
     try {
       const response = await userApi.revokeRole(id, roleId);
       if (response.data.success) {
-        setStatusMsg({ type: 'success', message: 'Role revoked successfully.' });
+        setStatusMsg({ type: 'success', message: response.data.message || 'Thu hồi vai trò thành công.' });
         fetchUser();
         // If revoking role from self, refresh global context
         if (currentUser && currentUser.user_id === parseInt(id, 10)) {
@@ -128,7 +146,7 @@ const UserDetail = () => {
         }
       }
     } catch (err) {
-      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Failed to revoke role.' });
+      setStatusMsg({ type: 'error', message: err.response?.data?.message || 'Lỗi khi thu hồi vai trò.' });
     }
   };
 
@@ -151,7 +169,7 @@ const UserDetail = () => {
 
           {/* S1-10: Lock/Unlock UI logic */}
           {user.status !== 'LOCKED' && hasPermission('USER_LOCK') && (
-            <button onClick={() => setShowLockModal(true)} className="btn-danger" style={{ marginRight: '10px' }}>
+            <button onClick={openLockModal} className="btn-danger" style={{ marginRight: '10px' }}>
               Khoá tài khoản
             </button>
           )}
@@ -240,7 +258,8 @@ const UserDetail = () => {
                   {hasPermission('ROLE_REVOKE') && (
                     <td style={{ textAlign: 'right' }}>
                       <button 
-                        onClick={() => handleRevokeRole(role.role_id)} 
+                        type="button"
+                        onClick={(e) => handleRevokeRole(e, role.role_id)} 
                         className="action-link danger"
                       >
                         [Thu hồi]
@@ -264,18 +283,35 @@ const UserDetail = () => {
             </p>
             <form onSubmit={handleLockAccount}>
               <div className="form-group">
-                <label>Lý do khoá (Không bắt buộc)</label>
+                <label>Lý do khoá <span style={{color: 'red'}}>*</span></label>
                 <input 
                   type="text" 
                   className="form-control" 
                   value={lockReason}
                   onChange={(e) => setLockReason(e.target.value)}
                   placeholder="VD: Nghỉ việc, vi phạm quy định..."
+                  required
                 />
+              </div>
+              <div className="form-group">
+                <label>Người nhận bàn giao công việc (Tuỳ chọn)</label>
+                <select 
+                  className="form-control" 
+                  value={handoverUserId}
+                  onChange={(e) => setHandoverUserId(e.target.value)}
+                >
+                  <option value="">-- Không bàn giao ngay --</option>
+                  {activeUsers.map(u => (
+                    <option key={u.user_id} value={u.user_id}>{u.full_name} ({u.employee_code})</option>
+                  ))}
+                </select>
+                <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '5px' }}>
+                  Nếu chọn, hệ thống sẽ tự động chuyển tất cả Vị trí tuyển dụng đang mở của nhân viên này sang cho người được chọn.
+                </p>
               </div>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn-secondary" onClick={() => setShowLockModal(false)}>Hủy</button>
-                <button type="submit" className="btn-danger">Xác nhận Khoá</button>
+                <button type="submit" className="btn-danger" disabled={!lockReason.trim()}>Xác nhận Khoá</button>
               </div>
             </form>
           </div>

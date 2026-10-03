@@ -13,6 +13,7 @@ const sessionRepository      = require('../repositories/sessionRepository');
 const auditRepository        = require('../repositories/auditRepository');
 const passwordResetRepository = require('../repositories/passwordResetRepository');
 const { pool }               = require('../config/database');
+const sendEmail              = require('../utils/email');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const BCRYPT_ROUNDS       = 12; // cost factor for bcrypt
@@ -90,9 +91,13 @@ async function login(email, password, ipAddress) {
     throw createError('Your account is inactive. Please contact an administrator.', 403);
   }
 
-  const isTimeLocked = user.locked_until && new Date(user.locked_until) > new Date();
-  if (user.status === 'LOCKED' || isTimeLocked) {
+  if (user.status === 'LOCKED') {
     throw createError('Your account is locked. Please contact an administrator.', 403);
+  }
+
+  const isTimeLocked = user.locked_until && new Date(user.locked_until) > new Date();
+  if (isTimeLocked) {
+    throw createError('Bạn đã nhập sai 5 lần. Vui lòng đợi 30 giây mới được đăng nhập lại.', 429);
   }
 
   const passwordMatch = await bcrypt.compare(password, user.password_hash);
@@ -113,7 +118,7 @@ async function login(email, password, ipAddress) {
         ipAddress,
       });
 
-      throw createError('Your account has been locked due to too many failed attempts.', 403);
+      throw createError('Bạn đã nhập sai 5 lần. Vui lòng đợi 30 giây mới được đăng nhập lại.', 429);
     }
 
     await auditRepository.createLog({
@@ -124,7 +129,8 @@ async function login(email, password, ipAddress) {
       ipAddress,
     });
 
-    throw createError('Invalid email or password.', 401);
+    const remaining = MAX_FAILED_ATTEMPTS - newCount;
+    throw createError(`Sai mật khẩu. Bạn còn ${remaining} lần đăng nhập.`, 401);
   }
 
   const rolesAndPermissions = await userRepository.getRolesAndPermissions(user.user_id);
@@ -235,15 +241,29 @@ async function forgotPassword(email, ipAddress) {
   });
 
   // In a real application, send rawToken via email here.
-  // For this university project, we return the raw token ONLY in development
-  // so testers can use it directly in Postman.
-  const isDev = (process.env.NODE_ENV || 'development') === 'development';
+  const resetURL = `http://localhost:5173/reset-password?token=${rawToken}`;
+  const message = `
+    <h2>Quên mật khẩu?</h2>
+    <p>Nhấn vào đường dẫn bên dưới để đặt lại mật khẩu của bạn (có hiệu lực trong 30 phút):</p>
+    <a href="${resetURL}" target="_blank">Đặt lại mật khẩu</a>
+    <p>Hoặc copy đường dẫn này: ${resetURL}</p>
+    <p>Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này.</p>
+  `;
 
-  const result = { ...safeResponse };
-  if (isDev) {
-    result.devToken = rawToken; // Remove this in production!
-    result.devNote  = 'DEV ONLY: Use this token in POST /api/auth/reset-password';
+  try {
+    await sendEmail({
+      email: user.company_email,
+      subject: 'Yêu cầu đặt lại mật khẩu (Hệ Thống Tuyển Dụng Nội Bộ)',
+      html: message,
+    });
+  } catch (error) {
+    console.error('Lỗi khi gửi email:', error);
+    // Even if email fails, we shouldn't reveal if the user exists or not, but for UX we might want to tell the user the service is down. 
+    // For now we'll stick to safeResponse to avoid revealing emails.
   }
+
+  // We no longer return the devToken
+  const result = { ...safeResponse };
 
   return result;
 }

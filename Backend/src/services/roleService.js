@@ -163,4 +163,75 @@ async function revokeRole(targetUserId, roleId, performedByUserId, ipAddress) {
   return roleRepository.getUserRoles(targetUserId);
 }
 
-module.exports = { getAllRoles, getUserRoles, assignRole, revokeRole };
+// ─────────────────────────────────────────────
+//  CRUD ROLES
+// ─────────────────────────────────────────────
+
+async function createRole(roleCode, roleName, description, performedByUserId, ipAddress) {
+  if (!roleCode || !roleName) {
+    throw createError('Role code and role name are required.', 400);
+  }
+  
+  const existing = await roleRepository.findByCode(roleCode);
+  if (existing) {
+    throw createError(`Role code '${roleCode}' already exists.`, 409);
+  }
+  
+  const newRole = await roleRepository.createRole(roleCode, roleName, description);
+  
+  await auditRepository.createLog({
+    userId:      performedByUserId,
+    performedBy: performedByUserId,
+    action:      'ROLE_CREATED',
+    entityType:  'roles',
+    entityId:    newRole.role_id,
+    description: `Created role '${roleCode}'.`,
+    ipAddress,
+  });
+  
+  return newRole;
+}
+
+async function updateRole(roleId, roleName, description, performedByUserId, ipAddress) {
+  const existing = await roleRepository.findById(roleId);
+  if (!existing) {
+    throw createError('Role not found.', 404);
+  }
+  
+  const updatedRole = await roleRepository.updateRole(roleId, roleName, description);
+  
+  await auditRepository.createLog({
+    userId:      performedByUserId,
+    performedBy: performedByUserId,
+    action:      'ROLE_UPDATED',
+    entityType:  'roles',
+    entityId:    roleId,
+    description: `Updated role '${existing.role_code}'.`,
+    ipAddress,
+  });
+  
+  return updatedRole;
+}
+
+async function deleteRole(roleId, performedByUserId, ipAddress) {
+  const existing = await roleRepository.findById(roleId);
+  if (!existing) {
+    throw createError('Role not found.', 404);
+  }
+  
+  await roleRepository.deleteRole(roleId);
+  
+  await auditRepository.createLog({
+    userId:      performedByUserId,
+    performedBy: performedByUserId,
+    action:      'ROLE_DELETED',
+    entityType:  'roles',
+    entityId:    roleId,
+    description: `Deleted role '${existing.role_code}'.`,
+    ipAddress,
+  });
+  
+  return true;
+}
+
+module.exports = { getAllRoles, getUserRoles, assignRole, revokeRole, createRole, updateRole, deleteRole };
