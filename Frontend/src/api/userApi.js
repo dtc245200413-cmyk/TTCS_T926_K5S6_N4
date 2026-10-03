@@ -30,8 +30,8 @@ const userApi = {
     return axiosClient.delete(`/users/${id}/roles/${roleId}`);
   },
 
-  lockAccount: (id, reason) => {
-    return axiosClient.patch(`/users/${id}/lock`, { reason });
+  lockAccount: (id, reason, handoverUserId) => {
+    return axiosClient.patch(`/users/${id}/lock`, { reason, handoverUserId });
   },
 
   unlockAccount: (id) => {

@@ -122,7 +122,7 @@ const authorize = (requiredPermission) => {
     if (!req.user.permissions.includes(requiredPermission)) {
       return sendError(
         res,
-        `Access denied. You need the '${requiredPermission}' permission.`,
+        'Bạn không có quyền truy cập chức năng này. Vui lòng liên hệ quản trị viên.',
         403
       );
     }

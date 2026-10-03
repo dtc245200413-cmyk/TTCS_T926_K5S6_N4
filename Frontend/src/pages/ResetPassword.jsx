@@ -16,17 +16,17 @@ const ResetPassword = () => {
     setStatus({ type: '', message: '' });
     
     if (!token || !newPassword || !confirmPassword) {
-      setStatus({ type: 'error', message: 'All fields are required.' });
+      setStatus({ type: 'error', message: 'Vui lòng điền đầy đủ các trường.' });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setStatus({ type: 'error', message: 'Passwords do not match.' });
+      setStatus({ type: 'error', message: 'Mật khẩu xác nhận không khớp.' });
       return;
     }
 
     if (newPassword.length < 6) {
-      setStatus({ type: 'error', message: 'Password must be at least 6 characters long.' });
+      setStatus({ type: 'error', message: 'Mật khẩu phải có ít nhất 6 ký tự.' });
       return;
     }
 
@@ -34,15 +34,14 @@ const ResetPassword = () => {
     try {
       const response = await authApi.resetPassword(token, newPassword);
       if (response.data.success) {
-        setStatus({ type: 'success', message: response.data.message });
-        // Optional: redirect to login after a few seconds
-        setTimeout(() => navigate('/login'), 3000);
+        setStatus({ type: 'success', message: 'Đổi mật khẩu thành công! Đang tự động quay lại trang đăng nhập...' });
+        setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
       if (err.response && err.response.data && err.response.data.message) {
         setStatus({ type: 'error', message: err.response.data.message });
       } else {
-        setStatus({ type: 'error', message: 'Failed to reset password. Token may be invalid or expired.' });
+        setStatus({ type: 'error', message: 'Đổi mật khẩu thất bại. Mã xác nhận có thể đã hết hạn hoặc không hợp lệ.' });
       }
     } finally {
       setLoading(false);

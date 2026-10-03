@@ -16,10 +16,15 @@ const Sidebar = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h2 style={{ fontSize: '1.25rem', color: '#60a5fa', marginBottom: '4px' }}>Tuyển Dụng Nội Bộ</h2>
-        <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 400 }}>Hệ Thống Quản Trị</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #4f46e5 0%, #60a5fa 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.2rem', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.4)' }}>T</div>
+          <div>
+            <h2 style={{ fontSize: '1.15rem', color: '#f8fafc', margin: 0, fontWeight: '800', letterSpacing: '0.5px' }}>TechCorp</h2>
+            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px' }}>Hệ Thống Nội Bộ</p>
+          </div>
+        </div>
       </div>
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" style={{ padding: '24px 12px' }}>
         <NavLink 
           to="/" 
           className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
@@ -28,12 +33,21 @@ const Sidebar = () => {
           <span style={{ marginRight: '10px' }}>📊</span> Tổng Quan
         </NavLink>
         
-        {hasPermission('USER_VIEW') && (
+        {isAdmin && (
           <NavLink 
             to="/users" 
             className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
           >
             <span style={{ marginRight: '10px' }}>👥</span> Quản Lý Nhân Sự
+          </NavLink>
+        )}
+        
+        {isAdmin && (
+          <NavLink 
+            to="/roles" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <span style={{ marginRight: '10px' }}>🛡️</span> Quản Lý Phân Quyền
           </NavLink>
         )}
         
@@ -46,11 +60,15 @@ const Sidebar = () => {
           </NavLink>
         )}
         
+        <div style={{ marginTop: '30px', marginBottom: '10px', padding: '0 24px', fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '1.5px' }}>
+          Tài Khoản
+        </div>
+
         <NavLink 
           to="/change-password" 
           className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
         >
-          <span style={{ marginRight: '10px' }}>🔑</span> Đổi Mật Khẩu
+          <span style={{ marginRight: '12px', fontSize: '1.1rem' }}>🔑</span> Đổi Mật Khẩu
         </NavLink>
         
         <div 

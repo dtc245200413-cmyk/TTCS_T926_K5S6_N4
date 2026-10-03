@@ -53,17 +53,6 @@ const ForgotPassword = () => {
           {status.message && (
             <div className={`alert ${status.type === 'error' ? 'alert-error' : 'alert-success'}`}>
               {status.message}
-              
-              {status.devToken && (
-                <div style={{ marginTop: '10px', fontSize: '0.8rem', wordBreak: 'break-all' }}>
-                  <strong>Mã thử nghiệm (Dev Token):</strong> <br/>
-                  {status.devToken}
-                  <br/>
-                  <Link to={`/reset-password?token=${status.devToken}`} style={{display: 'inline-block', marginTop: '5px'}}>
-                    Chuyển đến trang Đặt lại mật khẩu
-                  </Link>
-                </div>
-              )}
             </div>
           )}
           

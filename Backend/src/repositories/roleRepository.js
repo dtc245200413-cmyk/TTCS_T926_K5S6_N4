@@ -17,9 +17,12 @@ const { pool } = require('../config/database');
  */
 async function getAllRoles() {
   const sql = `
-    SELECT role_id, role_code, role_name, description, created_at
-    FROM roles
-    ORDER BY role_id ASC
+    SELECT r.role_id, r.role_code, r.role_name, r.description, r.created_at,
+           COUNT(ur.user_id) as user_count
+    FROM roles r
+    LEFT JOIN user_roles ur ON r.role_id = ur.role_id
+    GROUP BY r.role_id
+    ORDER BY r.role_id ASC
   `;
   const [rows] = await pool.execute(sql);
   return rows;
@@ -126,4 +129,68 @@ module.exports = {
   userHasRole,
   assignRole,
   revokeRole,
+}
+
+/**
+ * Find a role by its code.
+ */
+async function findByCode(roleCode) {
+  const sql = `
+    SELECT role_id, role_code, role_name, description
+    FROM roles
+    WHERE role_code = ?
+    LIMIT 1
+  `;
+  const [rows] = await pool.execute(sql, [roleCode]);
+  return rows.length > 0 ? rows[0] : null;
+}
+
+/**
+ * Create a new role.
+ */
+async function createRole(roleCode, roleName, description) {
+  const sql = `
+    INSERT INTO roles (role_code, role_name, description)
+    VALUES (?, ?, ?)
+  `;
+  const [result] = await pool.execute(sql, [roleCode, roleName, description || null]);
+  return findById(result.insertId);
+}
+
+/**
+ * Update an existing role.
+ */
+async function updateRole(roleId, roleName, description) {
+  const sql = `
+    UPDATE roles
+    SET role_name = ?, description = ?
+    WHERE role_id = ?
+  `;
+  await pool.execute(sql, [roleName, description || null, roleId]);
+  return findById(roleId);
+}
+
+/**
+ * Delete a role.
+ */
+async function deleteRole(roleId) {
+  const sql = `
+    DELETE FROM roles
+    WHERE role_id = ?
+  `;
+  const [result] = await pool.execute(sql, [roleId]);
+  return result.affectedRows > 0;
+}
+
+module.exports = {
+  getAllRoles,
+  findById,
+  findByCode,
+  getUserRoles,
+  userHasRole,
+  assignRole,
+  revokeRole,
+  createRole,
+  updateRole,
+  deleteRole,
 };

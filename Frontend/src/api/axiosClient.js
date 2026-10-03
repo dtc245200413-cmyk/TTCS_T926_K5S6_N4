@@ -29,10 +29,12 @@ axiosClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       if (error.response.status === 401) {
-        // Token expired or revoked
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Token expired or revoked, BUT do not redirect if this was a login attempt
+        if (!error.config.url.includes('/auth/login')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       } else if (error.response.status === 403) {
         // Do not redirect on every 403, just let the specific catch block handle it
         // Or could redirect to /unauthorized depending on the design

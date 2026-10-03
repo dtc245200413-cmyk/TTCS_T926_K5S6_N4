@@ -103,10 +103,10 @@ async function incrementFailedAttempts(userId) {
   );
 }
 
-/** Lock account: set status = LOCKED and locked_until. */
+/** Lock account temporarily: set locked_until = 30 seconds and reset failed attempts. */
 async function lockAccount(userId) {
   await pool.execute(
-    `UPDATE users SET status = 'LOCKED', locked_until = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE user_id = ?`,
+    `UPDATE users SET locked_until = DATE_ADD(NOW(), INTERVAL 30 SECOND), failed_login_attempts = 0 WHERE user_id = ?`,
     [userId]
   );
 }

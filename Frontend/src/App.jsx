@@ -19,6 +19,7 @@ import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
+import RoleList from './pages/roles/RoleList';
 
 function App() {
   return (
@@ -36,20 +37,25 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/change-password" element={<ChangePassword />} />
             
-            {/* User Management Routes (Requires USER_VIEW) */}
-            <Route path="/users" element={<ProtectedRoute requiredPermission="USER_VIEW"><Outlet /></ProtectedRoute>}>
+            {/* User Management Routes */}
+            <Route path="/users" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserList />} />
               <Route path=":id" element={<UserDetail />} />
             </Route>
 
-            {/* User Creation Route (Requires USER_CREATE) */}
-            <Route path="/users/create" element={<ProtectedRoute requiredPermission="USER_CREATE"><Outlet /></ProtectedRoute>}>
+            {/* User Creation Route */}
+            <Route path="/users/create" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserCreate />} />
             </Route>
 
-            {/* User Edit Route (Requires USER_UPDATE) */}
-            <Route path="/users/:id/edit" element={<ProtectedRoute requiredPermission="USER_UPDATE"><Outlet /></ProtectedRoute>}>
+            {/* User Edit Route */}
+            <Route path="/users/:id/edit" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserEdit />} />
+            </Route>
+            
+            {/* Roles Management Route */}
+            <Route path="/roles" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
+              <Route index element={<RoleList />} />
             </Route>
           </Route>
 

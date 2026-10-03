@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import authApi from '../api/authApi';
@@ -8,15 +8,33 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const { user, login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const timerRef = useRef(null);
 
   useEffect(() => {
     // If already logged in, redirect to home
     if (user) {
       navigate('/');
     }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      timerRef.current = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (countdown === 0) {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [countdown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,13 +47,19 @@ const Login = () => {
 
     setLoading(true);
     try {
+      // Thêm một chút thời gian chờ (delay) để giao diện hiển thị trạng thái "Đang xác thực..." mượt hơn
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
       const response = await authApi.login(email, password);
       if (response.data.success) {
         login(response.data.data.token, response.data.data.user);
         navigate('/');
       }
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
+      if (err.response && err.response.status === 429) {
+        setCountdown(30);
+        setError('Bạn đã nhập sai 5 lần. Vui lòng đợi 30 giây.');
+      } else if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else {
         setError('Login failed. Please try again.');
@@ -48,119 +72,178 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-banner">
-        <div className="auth-banner-content" style={{ textAlign: 'left', maxWidth: '550px' }}>
-          <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', fontSize: '0.85rem', marginBottom: '20px', fontWeight: '600', letterSpacing: '1px' }}>
-            CỔNG THÔNG TIN NỘI BỘ
+        <div className="auth-banner-content" style={{ textAlign: 'left', maxWidth: '550px', background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(20px)', padding: '50px', borderRadius: '30px', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transform: 'translateY(-10px)' }}>
+          <div style={{ display: 'inline-block', padding: '8px 16px', background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(67, 56, 202, 0.9))', borderRadius: '30px', fontSize: '0.75rem', marginBottom: '24px', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.4)' }}>
+            Hệ sinh thái số TechCorp
           </div>
           
-          <h1 style={{ fontSize: '2.8rem', marginBottom: '20px', fontWeight: '800', lineHeight: '1.2' }}>Tập đoàn TechCorp</h1>
+          <h1 style={{ fontSize: '2.8rem', marginBottom: '15px', fontWeight: '800', lineHeight: '1.15', letterSpacing: '-1px' }}>Hệ thống Tuyển dụng Nội bộ</h1>
           
-          <p style={{ fontSize: '1.15rem', opacity: '0.9', marginBottom: '40px', lineHeight: '1.7' }}>
-            Chào mừng bạn đến với Hệ thống Quản trị Nhân sự nội bộ. 
-            Nơi kết nối các thành viên, xây dựng văn hóa doanh nghiệp vững mạnh và kiến tạo môi trường làm việc số chuyên nghiệp, sáng tạo.
+          <p style={{ fontSize: '1rem', opacity: '0.9', marginBottom: '25px', lineHeight: '1.6', color: '#f1f5f9' }}>
+            Chào mừng bạn đến với Hệ thống Quản trị Nhân sự thế hệ mới. Nơi kết nối các thành viên, tối ưu hóa quy trình tuyển dụng và kiến tạo môi trường làm việc thông minh.
           </p>
-          
-          <div className="auth-features" style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-            <div className="auth-feature-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-              <div style={{ background: 'rgba(255,255,255,0.15)', padding: '12px', borderRadius: '12px', fontSize: '1.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>🎯</div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', margin: '0 0 8px 0', fontWeight: '700' }}>Tầm nhìn chiến lược</h3>
-                <p style={{ margin: 0, opacity: '0.85', fontSize: '0.95rem', lineHeight: '1.6' }}>Trở thành tập đoàn công nghệ hàng đầu, mang lại giá trị đột phá thông qua các giải pháp số hóa và tự động hóa.</p>
-              </div>
+
+          <div style={{ display: 'flex', gap: '40px', marginTop: '20px', paddingTop: '25px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div>
+              <div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#60a5fa', marginBottom: '4px', textShadow: '0 2px 10px rgba(96, 165, 250, 0.3)' }}>99%</div>
+              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8, fontWeight: '700' }}>Tự động hóa</div>
             </div>
-            
-            <div className="auth-feature-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-              <div style={{ background: 'rgba(255,255,255,0.15)', padding: '12px', borderRadius: '12px', fontSize: '1.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>💡</div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', margin: '0 0 8px 0', fontWeight: '700' }}>Giá trị cốt lõi</h3>
-                <p style={{ margin: 0, opacity: '0.85', fontSize: '0.95rem', lineHeight: '1.6' }}>Sáng tạo không ngừng, hợp tác cùng phát triển và luôn đặt con người làm trung tâm của mọi hoạt động.</p>
-              </div>
-            </div>
-            
-            <div className="auth-feature-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-              <div style={{ background: 'rgba(255,255,255,0.15)', padding: '12px', borderRadius: '12px', fontSize: '1.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>👥</div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', margin: '0 0 8px 0', fontWeight: '700' }}>Văn hóa doanh nghiệp</h3>
-                <p style={{ margin: 0, opacity: '0.85', fontSize: '0.95rem', lineHeight: '1.6' }}>Môi trường làm việc mở, tôn trọng sự khác biệt và luôn tạo điều kiện tốt nhất để nhân tài phát triển.</p>
-              </div>
+            <div>
+              <div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#34d399', marginBottom: '4px', textShadow: '0 2px 10px rgba(52, 211, 153, 0.3)' }}>24/7</div>
+              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8, fontWeight: '700' }}>Vận hành liên tục</div>
             </div>
           </div>
-          
-          <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', gap: '40px', opacity: '0.9' }}>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: '800' }}>2010</div>
-              <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: '0.8' }}>Năm thành lập</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: '800' }}>500+</div>
-              <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: '0.8' }}>Nhân sự</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: '800' }}>3</div>
-              <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: '0.8' }}>Chi nhánh</div>
+
+          <div style={{ marginTop: '25px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', letterSpacing: '1.5px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Hệ Thống Văn Phòng</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem', color: '#e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: '#60a5fa' }}>📍</span>
+                <span><strong>Hà Nội:</strong> Tầng 12, Tòa nhà Enterprise Center, Cầu Giấy</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: '#60a5fa' }}>📍</span>
+                <span><strong>TP. HCM:</strong> Tầng 8, Tòa nhà Innovation Hub, Quận 1</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: '#60a5fa' }}>📍</span>
+                <span><strong>Đà Nẵng:</strong> Tầng 5, Tòa nhà HighTech, Hải Châu</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <div className="auth-form-wrapper">
-        <div className="auth-card">
-          <div className="auth-logo">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" fill="url(#paint0_linear)" />
-              <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" fill="white" />
-              <defs>
-                <linearGradient id="paint0_linear" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#3B82F6" />
-                  <stop offset="1" stopColor="#1E3A8A" />
-                </linearGradient>
-              </defs>
-            </svg>
+      <div className="auth-form-wrapper" style={{ background: '#f8fafc', position: 'relative' }}>
+        {/* Subtle decorative elements for the right side */}
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(79, 70, 229, 0.05) 0%, transparent 70%)', borderRadius: '50%' }}></div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.03) 0%, transparent 70%)', borderRadius: '50%' }}></div>
+
+        <div className="auth-card" style={{ background: '#ffffff', borderRadius: '24px', padding: '48px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 0 0 1px rgba(226,232,240,0.5)', position: 'relative', zIndex: 10 }}>
+          <div className="auth-logo" style={{ marginBottom: '32px' }}>
+            <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', borderRadius: '16px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(79, 70, 229, 0.25)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
           </div>
-          <h2>Đăng nhập tài khoản</h2>
-          <p className="auth-subtitle">Vui lòng nhập thông tin để tiếp tục</p>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px', letterSpacing: '-0.5px', textAlign: 'center' }}>Đăng nhập tài khoản</h2>
+          <p className="auth-subtitle" style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '32px', textAlign: 'center' }}>Vui lòng nhập thông tin để truy cập hệ thống</p>
           
           {error && <div className="alert alert-error">{error}</div>}
           
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">Email công ty</label>
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label htmlFor="email" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>Email công ty</label>
               <div className="input-wrapper">
                 <input
                   type="email"
                   id="email"
                   className="form-control"
+                  placeholder="ví dụ: employee@techcorp.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                   disabled={loading}
-                  placeholder="ví dụ: employee@company.com"
+                  style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '0.95rem', width: '100%', transition: 'all 0.2s', outline: 'none' }}
+                  onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; e.target.style.backgroundColor = '#ffffff'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; e.target.style.backgroundColor = '#f8fafc'; }}
                 />
               </div>
             </div>
             
-            <div className="form-group">
-              <label htmlFor="password">Mật khẩu</label>
+            <div className="form-group" style={{ marginBottom: '28px' }}>
+              <label htmlFor="password" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>Mật khẩu</label>
               <div className="input-wrapper">
                 <input
                   type="password"
                   id="password"
                   className="form-control"
+                  placeholder="Nhập mật khẩu của bạn..."
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                   disabled={loading}
-                  placeholder="Nhập mật khẩu của bạn..."
+                  style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '0.95rem', width: '100%', transition: 'all 0.2s', outline: 'none' }}
+                  onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; e.target.style.backgroundColor = '#ffffff'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; e.target.style.backgroundColor = '#f8fafc'; }}
                 />
               </div>
             </div>
             
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Đang xác thực...' : 'Đăng nhập ngay'}
+            <button type="submit" disabled={loading || countdown > 0} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', color: 'white', border: 'none', fontSize: '1rem', fontWeight: '700', letterSpacing: '0.5px', cursor: (loading || countdown > 0) ? 'not-allowed' : 'pointer', opacity: (loading || countdown > 0) ? 0.7 : 1, boxShadow: '0 8px 20px rgba(67, 56, 202, 0.25)', transition: 'all 0.3s ease', marginBottom: '24px' }} onMouseOver={(e) => { if (!loading && countdown === 0) { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 25px rgba(67, 56, 202, 0.35)'; } }} onMouseOut={(e) => { if (!loading && countdown === 0) { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 8px 20px rgba(67, 56, 202, 0.25)'; } }}>
+              {countdown > 0 
+                ? `Vui lòng đợi ${countdown}s...` 
+                : loading ? 'Đang xác thực...' : 'ĐĂNG NHẬP NGAY'}
             </button>
+
+            {/* QUICK LOGIN CHO MỤC ĐÍCH TEST */}
+            <div style={{ marginTop: '10px', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: '0.8rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>⚡ ĐĂNG NHẬP NHANH (TEST)</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setEmail('dtc245200413@ictu.edu.vn'); setPassword('123456'); }}
+                  style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { e.target.style.background = '#ef4444'; e.target.style.color = 'white'; }}
+                  onMouseOut={(e) => { e.target.style.background = 'rgba(239, 68, 68, 0.1)'; e.target.style.color = '#ef4444'; }}
+                >
+                  Quản trị viên
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => { setEmail('dtc245200002@ictu.edu.vn'); setPassword('123456'); }}
+                  style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5', border: '1px solid rgba(79, 70, 229, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { e.target.style.background = '#4f46e5'; e.target.style.color = 'white'; }}
+                  onMouseOut={(e) => { e.target.style.background = 'rgba(79, 70, 229, 0.1)'; e.target.style.color = '#4f46e5'; }}
+                >
+                  Trưởng phòng NS
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => { setEmail('dtc245200480@ictu.edu.vn'); setPassword('123456'); }}
+                  style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { e.target.style.background = '#f59e0b'; e.target.style.color = 'white'; }}
+                  onMouseOut={(e) => { e.target.style.background = 'rgba(245, 158, 11, 0.1)'; e.target.style.color = '#f59e0b'; }}
+                >
+                  Trưởng bộ phận
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => { setEmail('dtc245200852@ictu.edu.vn'); setPassword('123456'); }}
+                  style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { e.target.style.background = '#10b981'; e.target.style.color = 'white'; }}
+                  onMouseOut={(e) => { e.target.style.background = 'rgba(16, 185, 129, 0.1)'; e.target.style.color = '#10b981'; }}
+                >
+                  NV Tuyển dụng
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => { setEmail('dtc245200571@ictu.edu.vn'); setPassword('123456'); }}
+                  style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { e.target.style.background = '#8b5cf6'; e.target.style.color = 'white'; }}
+                  onMouseOut={(e) => { e.target.style.background = 'rgba(139, 92, 246, 0.1)'; e.target.style.color = '#8b5cf6'; }}
+                >
+                  Người phỏng vấn
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => { setEmail('dtc245200592@ictu.edu.vn'); setPassword('123456'); }}
+                  style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(100, 116, 139, 0.1)', color: '#64748b', border: '1px solid rgba(100, 116, 139, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { e.target.style.background = '#64748b'; e.target.style.color = 'white'; }}
+                  onMouseOut={(e) => { e.target.style.background = 'rgba(100, 116, 139, 0.1)'; e.target.style.color = '#64748b'; }}
+                >
+                  Người phê duyệt
+                </button>
+              </div>
+            </div>
           </form>
           
           <div className="auth-links">
             <Link to="/forgot-password">Quên mật khẩu?</Link>
           </div>
-
 
         </div>
       </div>
