@@ -12,6 +12,7 @@ const userRoutes     = require('./routes/userRoutes');
 const roleRoutes     = require('./routes/roleRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
+const departmentRoutes = require('./routes/departmentRoutes');
 const app = express();
 
 // ── Global Middleware ────────────────────────────────────────
@@ -44,7 +45,7 @@ app.use('/api/auth',  authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
-
+app.use('/api/departments', departmentRoutes);
 // ── 404 Handler ───────────────────────────────────────────────
 
 app.use((req, res) => {
