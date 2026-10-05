@@ -261,8 +261,12 @@ INSERT INTO permissions (permission_code, permission_name, description) VALUES
 ('USER_LOCK',   'Lock Users',   'Can lock a user account'),
 ('USER_UNLOCK', 'Unlock Users', 'Can unlock a user account'),
 ('ROLE_VIEW',   'View Roles',   'Can view roles and permissions'),
-('ROLE_ASSIGN', 'Assign Roles', 'Can assign a role to a user'),
-('ROLE_REVOKE', 'Revoke Roles', 'Can revoke a role from a user');
+('ROLE_ASSIGN',       'Assign Roles',       'Can assign a role to a user'),
+('ROLE_REVOKE',       'Revoke Roles',       'Can revoke a role from a user'),
+('DEPARTMENT_VIEW',   'View Departments',   'Can view department hierarchy'),
+('DEPARTMENT_CREATE', 'Create Departments', 'Can create departments'),
+('DEPARTMENT_UPDATE', 'Update Departments', 'Can update departments'),
+('DEPARTMENT_DELETE', 'Delete Departments', 'Can delete or deactivate departments');
 
 -- Role -> Permission mappings
 INSERT INTO role_permissions (role_id, permission_id)
@@ -274,9 +278,17 @@ WHERE  r.role_code = 'ADMIN';
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
-JOIN   permissions p ON p.permission_code IN ('USER_VIEW','USER_CREATE','USER_UPDATE','ROLE_VIEW')
-WHERE  r.role_code = 'HR_MANAGER';
-
+JOIN permissions p ON p.permission_code IN (
+    'USER_VIEW',
+    'USER_CREATE',
+    'USER_UPDATE',
+    'ROLE_VIEW',
+    'DEPARTMENT_VIEW',
+    'DEPARTMENT_CREATE',
+    'DEPARTMENT_UPDATE',
+    'DEPARTMENT_DELETE'
+)
+WHERE r.role_code = 'HR_MANAGER';
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
@@ -396,9 +408,10 @@ USE internal_recruitment_system;
 ALTER TABLE departments
 ADD COLUMN parent_department_id INT NULL AFTER description,
 ADD COLUMN manager_user_id INT NULL AFTER parent_department_id,
-ADD CONSTRAINT fk_dept_parent FOREIGN KEY (parent_department_id) 
+ADD COLUMN status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE' AFTER manager_user_id,
+ADD CONSTRAINT fk_dept_parent FOREIGN KEY (parent_department_id)
     REFERENCES departments(department_id) ON DELETE SET NULL ON UPDATE CASCADE,
-ADD CONSTRAINT fk_dept_manager FOREIGN KEY (manager_user_id) 
+ADD CONSTRAINT fk_dept_manager FOREIGN KEY (manager_user_id)
     REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE;
 
 
@@ -421,7 +434,7 @@ CREATE TABLE employee_import_batches (
 CREATE TABLE employee_import_rows (
     row_id INT NOT NULL AUTO_INCREMENT,
     batch_id INT NOT NULL,
-    row_number INT NOT NULL,
+    `row_number` INT NOT NULL,
     employee_code VARCHAR(20) NULL,
     full_name VARCHAR(150) NULL,
     company_email VARCHAR(200) NULL,

@@ -1,8 +1,13 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Outlet,
+} from 'react-router-dom';
+
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import { Outlet } from 'react-router-dom';
 
 // Pages
 import Login from './pages/Login';
@@ -14,54 +19,146 @@ import NotFound from './pages/NotFound';
 import ChangePassword from './pages/ChangePassword';
 import Reports from './pages/Reports';
 
-// User Pages
+// User pages
 import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
+
+// Role pages
 import RoleList from './pages/roles/RoleList';
+
+// Department pages - SCRUM-94
+import DepartmentList from './pages/departments/DepartmentList';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Routes */}
+
+          {/* ================= PUBLIC ROUTES ================= */}
+
           <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          
-          {/* Protected Routes inside Main Layout */}
+
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
+          />
+
+
+          {/* ================= PROTECTED ROUTES ================= */}
+
           <Route element={<ProtectedRoute />}>
+
+            {/* Dashboard */}
             <Route path="/" element={<Home />} />
+
+            {/* Reports */}
             <Route path="/reports" element={<Reports />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            
-            {/* User Management Routes */}
-            <Route path="/users" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
+
+            {/* SCRUM-94 - Department Management */}
+            <Route
+              path="/departments"
+              element={<DepartmentList />}
+            />
+
+            {/* Change password */}
+            <Route
+              path="/change-password"
+              element={<ChangePassword />}
+            />
+
+
+            {/* ================= USER MANAGEMENT ================= */}
+
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<UserList />} />
-              <Route path=":id" element={<UserDetail />} />
+
+              <Route
+                path=":id"
+                element={<UserDetail />}
+              />
             </Route>
 
-            {/* User Creation Route */}
-            <Route path="/users/create" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
-              <Route index element={<UserCreate />} />
+
+            {/* Create User */}
+
+            <Route
+              path="/users/create"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+              <Route
+                index
+                element={<UserCreate />}
+              />
             </Route>
 
-            {/* User Edit Route */}
-            <Route path="/users/:id/edit" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
-              <Route index element={<UserEdit />} />
+
+            {/* Edit User */}
+
+            <Route
+              path="/users/:id/edit"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+              <Route
+                index
+                element={<UserEdit />}
+              />
             </Route>
-            
-            {/* Roles Management Route */}
-            <Route path="/roles" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
-              <Route index element={<RoleList />} />
+
+
+            {/* ================= ROLE MANAGEMENT ================= */}
+
+            <Route
+              path="/roles"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+              <Route
+                index
+                element={<RoleList />}
+              />
             </Route>
+
           </Route>
 
-          {/* Error Pages */}
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="*" element={<NotFound />} />
+
+          {/* ================= ERROR PAGES ================= */}
+
+          <Route
+            path="/unauthorized"
+            element={<Unauthorized />}
+          />
+
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+
         </Routes>
       </Router>
     </AuthProvider>
