@@ -228,8 +228,9 @@ async function create({ departmentId, employeeCode, fullName, companyEmail, phon
  * Update allowed user fields.
  * Only fields present in the 'fields' object are updated.
  *
- * Allowed fields: full_name, phone_number, job_title, department_id
- * (status/password are updated by dedicated functions)
+ * Allowed profile fields: full_name, phone_number, job_title.
+ * Email, department, role, status and password are intentionally excluded
+ * from this profile-update query.
  *
  * @param {number} userId
  * @param {object} fields - only whitelisted keys are applied
@@ -237,7 +238,7 @@ async function create({ departmentId, employeeCode, fullName, companyEmail, phon
  */
 async function update(userId, fields) {
   // Whitelist of columns that are allowed to be updated by this function
-  const ALLOWED = ['full_name', 'phone_number', 'job_title', 'department_id'];
+  const ALLOWED = ['full_name', 'phone_number', 'job_title'];
 
   const setClauses = [];
   const params = [];
@@ -245,7 +246,6 @@ async function update(userId, fields) {
   for (const key of ALLOWED) {
     if (Object.prototype.hasOwnProperty.call(fields, key)) {
       setClauses.push(`${key} = ?`);
-      // Allow explicit null for department_id (remove from department)
       params.push(fields[key] === undefined ? null : fields[key]);
     }
   }

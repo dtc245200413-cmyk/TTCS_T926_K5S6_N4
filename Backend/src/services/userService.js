@@ -182,25 +182,62 @@ async function createUser(data, performedByUserId, ipAddress) {
 //  PART 2: UPDATE USER
 // ─────────────────────────────────────────────
 
-async function updateUser(userId, data, performedByUserId, ipAddress) {
+// Vietnamese mobile-number format used by the profile form.
+// Accepted examples: 0912345678 and +84912345678.
+const VIETNAM_MOBILE_REGEX = /^(0[35789]\d{8}|\+84[35789]\d{8})$/;
+const PROFILE_UPDATE_FIELDS = ['full_name', 'phone_number', 'job_title'];
+
+async function updateUser(userId, data = {}, performedByUserId, ipAddress) {
   const existing = await userRepository.findById(userId);
   if (!existing) throw createError('User not found.', 404);
 
-  const { full_name, phone_number, job_title, department_id } = data;
+  const incomingFields = Object.keys(data || {});
+  const unsupportedFields = incomingFields.filter(
+    (field) => !PROFILE_UPDATE_FIELDS.includes(field)
+  );
+
+  // Security rule for SCRUM-58: email, department and role are read-only
+  // in the personal-profile update flow. The backend also rejects these
+  // fields so the rule cannot be bypassed by calling the API directly.
+  if (unsupportedFields.length > 0) {
+    throw createError(
+      'Chỉ được cập nhật họ tên, số điện thoại và chức danh. Email, phòng ban và vai trò không thể thay đổi tại đây.',
+      400
+    );
+  }
+
+  const { full_name, phone_number, job_title } = data;
   const fields = {};
 
   if (full_name !== undefined) {
-    if (String(full_name).trim() === '') throw createError('full_name cannot be empty.', 400);
-    fields.full_name = String(full_name).trim();
+    const fullName = String(full_name).trim();
+    if (!fullName) throw createError('Họ tên không được để trống.', 400);
+    if (fullName.length > 150) throw createError('Họ tên không được vượt quá 150 ký tự.', 400);
+    fields.full_name = fullName;
   }
-  if (phone_number  !== undefined) fields.phone_number  = phone_number  || null;
-  if (job_title     !== undefined) fields.job_title     = job_title     || null;
-  if (department_id !== undefined) {
-    fields.department_id = department_id === null ? null : parseInt(department_id, 10);
+
+  if (phone_number !== undefined) {
+    const phone = String(phone_number).trim();
+    if (phone === '') {
+      fields.phone_number = null;
+    } else if (!VIETNAM_MOBILE_REGEX.test(phone)) {
+      throw createError(
+        'Số điện thoại không hợp lệ. Vui lòng nhập số di động Việt Nam 10 số (03/05/07/08/09...) hoặc dạng +84.',
+        400
+      );
+    } else {
+      fields.phone_number = phone;
+    }
+  }
+
+  if (job_title !== undefined) {
+    const jobTitle = String(job_title).trim();
+    if (jobTitle.length > 100) throw createError('Chức danh không được vượt quá 100 ký tự.', 400);
+    fields.job_title = jobTitle || null;
   }
 
   if (Object.keys(fields).length === 0) {
-    throw createError('No valid fields provided to update.', 400);
+    throw createError('Vui lòng nhập ít nhất một thông tin cần cập nhật.', 400);
   }
 
   await userRepository.update(userId, fields);
