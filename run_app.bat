@@ -66,7 +66,7 @@ echo  Link kiem tra API:   http://localhost:3000/
 echo  Database:            internal_recruitment_system
 echo --------------------------------------------------------
 echo  Tai khoan test (Admin):
-echo  Email:    an.nguyen@company.com
+echo  Email:    dtc245200413@ictu.edu.vn
 echo  Password: 123456
 echo ========================================================
 echo.
