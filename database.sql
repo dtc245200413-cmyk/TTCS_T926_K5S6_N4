@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 --  INTERNAL RECRUITMENT MANAGEMENT SYSTEM
 --  Sprint 1: Account, Authorization and User Administration
 --  Database : internal_recruitment_system
@@ -300,7 +300,7 @@ VALUES
 (2, 'EMP003', 'Nguyễn Anh Sơn',        'dtc245200852@ictu.edu.vn', '0988888888', 'Nhân viên Tuyển dụng',               '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
 (1, 'EMP004', 'Mã Dương Quốc',         'dtc245200935@ictu.edu.vn', '0988888888', 'Trưởng bộ phận Kỹ thuật',            '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
 (1, 'EMP005', 'Thàng Xuân Lập',        'dtc245200571@ictu.edu.vn', '0988888888', 'Lập trình viên Senior (Interviewer)','$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
-(5, 'EMP006', 'Thào A Pông',           'dtc245200592@ictu.edu.vn', '0988888888', 'Giám đốc Vận hành (Approver)',       '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
+(5, 'EMP006', 'Thảo A Pồng',           'dtc245200592@ictu.edu.vn', '0988888888', 'Giám đốc Vận hành (Approver)',       '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
 (4, 'EMP007', 'Nguyễn Xuân Phú',       'dtc245200480@ictu.edu.vn', '0988888888', 'Trưởng bộ phận Marketing',           '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
 (3, 'EMP008', 'Lưu Quang Lực',         'dtc245200349@ictu.edu.vn', '0988888888', 'Chuyên viên Phỏng vấn Tài chính',    '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE'),
 (2, 'EMP009', 'Long Minh Thành',       'dtc245200344@ictu.edu.vn', '0988888888', 'Nhân viên Tuyển dụng',               '$2b$12$cVOoPZJxLXu66G2dZE6tPeB9dcQ56AMpbBy23xr88J7./.6rz9jIW', 'ACTIVE');
