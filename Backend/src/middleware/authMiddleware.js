@@ -31,7 +31,7 @@ const authenticate = async (req, res, next) => {
     // Step 3: Verify JWT signature and expiry
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_replace_in_production');
     } catch (jwtError) {
       return sendError(res, 'Invalid or expired token.', 401);
     }

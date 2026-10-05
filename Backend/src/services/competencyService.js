@@ -7,12 +7,14 @@ const competencyRepository = require('../repositories/competencyRepository');
 const competencyService = {
   // Hàm kiểm tra tính hợp lệ của dữ liệu và trọng số
   validateFrameworkData(data) {
-    const { job_title, framework_name, criteria } = data;
+    const job_title = (data.job_title || data.position || '').trim();
+    const framework_name = (data.framework_name || data.title || '').trim();
+    const { criteria } = data;
 
-    if (!job_title || !job_title.trim()) {
+    if (!job_title) {
       throw new Error('Chức danh (job_title) không được để trống.');
     }
-    if (!framework_name || !framework_name.trim()) {
+    if (!framework_name) {
       throw new Error('Tên khung năng lực (framework_name) không được để trống.');
     }
     if (!criteria || !Array.isArray(criteria) || criteria.length === 0) {

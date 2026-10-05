@@ -59,6 +59,13 @@ const Sidebar = () => {
             <span style={{ marginRight: '10px' }}>📈</span> Báo Cáo Thống Kê
           </NavLink>
         )}
+
+        <NavLink 
+          to="/competencies" 
+          className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+        >
+          <span style={{ marginRight: '10px' }}>🎯</span> Khung Năng Lực
+        </NavLink>
         
         <div style={{ marginTop: '30px', marginBottom: '10px', padding: '0 24px', fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '1.5px' }}>
           Tài Khoản

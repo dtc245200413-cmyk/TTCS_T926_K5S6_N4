@@ -8,7 +8,12 @@ const competencyRepository = {
   // Lấy tất cả khung năng lực
   async findAll() {
     const [rows] = await pool.query(
-      `SELECT f.*, COUNT(c.criterion_id) as total_criteria
+      `SELECT f.*, 
+              f.framework_id AS id, 
+              f.framework_name AS title, 
+              f.job_title AS position, 
+              COUNT(c.criterion_id) AS total_criteria,
+              COUNT(c.criterion_id) AS criteria_count
        FROM competency_frameworks f
        LEFT JOIN competency_criteria c ON f.framework_id = c.framework_id
        GROUP BY f.framework_id
@@ -30,14 +35,22 @@ const competencyRepository = {
       [frameworkId]
     );
 
+    const f = frameworks[0];
     return {
-      ...frameworks[0],
+      ...f,
+      id: f.framework_id,
+      title: f.framework_name,
+      position: f.job_title,
+      total_criteria: criteria.length,
+      criteria_count: criteria.length,
       criteria,
     };
   },
 
   // Tạo mới khung năng lực kèm các tiêu chí (sử dụng Transaction)
-  async create({ job_title, framework_name, description, criteria }) {
+  async create({ job_title, framework_name, position, title, description, criteria }) {
+    const finalJobTitle = (job_title || position || '').trim();
+    const finalFrameworkName = (framework_name || title || '').trim();
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -46,7 +59,7 @@ const competencyRepository = {
       const [fResult] = await conn.query(
         `INSERT INTO competency_frameworks (job_title, framework_name, description)
          VALUES (?, ?, ?)`,
-        [job_title, framework_name, description || null]
+        [finalJobTitle, finalFrameworkName, description || null]
       );
       const frameworkId = fResult.insertId;
 
@@ -72,7 +85,9 @@ const competencyRepository = {
   },
 
   // Cập nhật khung năng lực và tiêu chí
-  async update(frameworkId, { job_title, framework_name, description, criteria }) {
+  async update(frameworkId, { job_title, framework_name, position, title, description, criteria }) {
+    const finalJobTitle = (job_title || position || '').trim();
+    const finalFrameworkName = (framework_name || title || '').trim();
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -82,7 +97,7 @@ const competencyRepository = {
         `UPDATE competency_frameworks
          SET job_title = ?, framework_name = ?, description = ?
          WHERE framework_id = ?`,
-        [job_title, framework_name, description || null, frameworkId]
+        [finalJobTitle, finalFrameworkName, description || null, frameworkId]
       );
 
       // 2. Xóa tiêu chí cũ và thêm lại danh sách mới

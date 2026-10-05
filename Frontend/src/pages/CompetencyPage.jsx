@@ -18,8 +18,9 @@ export default function CompetencyPage() {
   ]);
 
   // Tính tổng trọng số
-  const totalWeight = criteria.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
-  const isValidWeight = totalWeight === 100;
+  const rawTotalWeight = criteria.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
+  const totalWeight = Math.round(rawTotalWeight * 100) / 100;
+  const isValidWeight = Math.abs(totalWeight - 100) < 0.01;
 
   useEffect(() => {
     fetchCompetencies();
@@ -71,9 +72,11 @@ export default function CompetencyPage() {
     }
 
     const payload = {
-      title,
-      position,
-      description,
+      framework_name: title.trim(),
+      job_title: position.trim(),
+      title: title.trim(),
+      position: position.trim(),
+      description: description.trim(),
       criteria
     };
 
@@ -94,6 +97,10 @@ export default function CompetencyPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!id) {
+      alert('ID khung năng lực không hợp lệ.');
+      return;
+    }
     if (window.confirm('Bạn có chắc chắn muốn xóa khung năng lực này?')) {
       try {
         await competencyApi.delete(id);
@@ -255,22 +262,29 @@ export default function CompetencyPage() {
                 <td colSpan="5" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>Chưa có dữ liệu</td>
               </tr>
             ) : (
-              competencies.map((comp) => (
-                <tr key={comp.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '12px' }}>#{comp.id}</td>
-                  <td style={{ padding: '12px', fontWeight: 600 }}>{comp.title}</td>
-                  <td style={{ padding: '12px' }}>{comp.position}</td>
-                  <td style={{ padding: '12px' }}>{comp.criteria?.length || comp.criteria_count || 0}</td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button
-                      onClick={() => handleDelete(comp.id)}
-                      style={{ background: '#ef4444', color: '#ffffff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))
+              competencies.map((comp) => {
+                const id = comp.framework_id || comp.id;
+                const name = comp.framework_name || comp.title;
+                const positionName = comp.job_title || comp.position;
+                const criteriaTotal = comp.total_criteria ?? comp.criteria_count ?? comp.criteria?.length ?? 0;
+
+                return (
+                  <tr key={id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '12px' }}>#{id}</td>
+                    <td style={{ padding: '12px', fontWeight: 600 }}>{name}</td>
+                    <td style={{ padding: '12px' }}>{positionName}</td>
+                    <td style={{ padding: '12px' }}>{criteriaTotal}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleDelete(id)}
+                        style={{ background: '#ef4444', color: '#ffffff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Xóa
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
