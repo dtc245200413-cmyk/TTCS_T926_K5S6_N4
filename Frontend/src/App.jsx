@@ -1,3 +1,4 @@
+import CompetencyPage from './pages/CompetencyPage';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -36,6 +37,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/competencies" element={<CompetencyPage />} />
             
             {/* User Management Routes */}
             <Route path="/users" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
