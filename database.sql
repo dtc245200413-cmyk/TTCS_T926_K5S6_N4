@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 --  INTERNAL RECRUITMENT MANAGEMENT SYSTEM
 --  Sprint 1: Account, Authorization and User Administration
 --  Database : internal_recruitment_system
@@ -511,21 +511,25 @@ CREATE TABLE job_positions (
 
 
 -- ============================================================
--- 6. INTERVIEW QUESTION BANK (S2-07)
+-- 6. QUESTION BANK (SCRUM-73, SCRUM-74, SCRUM-75)
 -- ============================================================
-CREATE TABLE interview_questions (
-    question_id INT NOT NULL AUTO_INCREMENT,
-    criteria_id INT NOT NULL,
-    question_content TEXT NOT NULL,
-    difficulty_level ENUM('EASY', 'MEDIUM', 'HARD') NOT NULL DEFAULT 'MEDIUM',
-    good_answer_hint TEXT NULL,
+CREATE TABLE questions (
+    id INT NOT NULL AUTO_INCREMENT,
+    competency_criteria_id INT NOT NULL,
+    difficulty_level ENUM('Easy', 'Medium', 'Hard') NOT NULL DEFAULT 'Medium',
+    question_text TEXT NOT NULL,
+    sample_answer TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_interview_questions PRIMARY KEY (question_id),
-    CONSTRAINT fk_iq_criteria FOREIGN KEY (criteria_id)
+    CONSTRAINT pk_questions PRIMARY KEY (id),
+    CONSTRAINT fk_questions_criteria FOREIGN KEY (competency_criteria_id)
         REFERENCES competency_criteria (criteria_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_questions_criteria_id ON questions (competency_criteria_id);
+CREATE INDEX idx_questions_difficulty ON questions (difficulty_level);
+
 
 
 -- ============================================================

@@ -4,12 +4,12 @@
  */
 
 const express = require('express');
-const cors    = require('cors');
+const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes     = require('./routes/authRoutes');
-const userRoutes     = require('./routes/userRoutes');
-const roleRoutes     = require('./routes/roleRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const roleRoutes = require('./routes/roleRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -36,14 +36,16 @@ app.get('/', (req, res) => {
   });
 });
 
-const statsRoutes    = require('./routes/statsRoutes');
+const statsRoutes = require('./routes/statsRoutes');
+const questionRoutes = require('./routes/questionRoutes');
 
 // ── API Routes ────────────────────────────────────────────────
 
-app.use('/api/auth',  authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/questions', questionRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────
 
