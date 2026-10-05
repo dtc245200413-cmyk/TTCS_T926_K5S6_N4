@@ -331,9 +331,9 @@ async function unlockUser(targetUserId, performedByUserId, ipAddress) {
   const user = await userRepository.findById(targetUserId);
   if (!user) throw createError('User not found.', 404);
 
-  // Step 2: Only unlock if actually locked
-  if (user.status !== 'LOCKED') {
-    throw createError('This account is not currently locked.', 409);
+  // Step 2: Only unlock if actually locked or inactive
+  if (user.status !== 'LOCKED' && user.status !== 'INACTIVE') {
+    throw createError('This account is not currently locked or inactive.', 409);
   }
 
   // Step 3: Restore account to ACTIVE, clear all lock-related fields

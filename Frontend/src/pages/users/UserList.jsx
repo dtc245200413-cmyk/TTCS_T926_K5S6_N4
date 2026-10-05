@@ -127,7 +127,7 @@ const UserList = () => {
         </form>
       </div>
 
-      <div className="card">
+      <div>
         {error && <div className="alert alert-error">{error}</div>}
         
         {loading ? (
@@ -139,7 +139,6 @@ const UserList = () => {
                 <tr>
                   <th>Mã NV</th>
                   <th>Họ tên</th>
-                  <th>Email</th>
                   <th>Phòng ban</th>
                   <th>Chức danh</th>
                   <th>Trạng thái</th>
@@ -169,7 +168,6 @@ const UserList = () => {
                           </div>
                         </div>
                       </td>
-                      <td style={{ color: '#475569', fontWeight: 500 }}>{u.company_email}</td>
                       <td style={{ color: '#475569', fontWeight: 600 }}>{u.department ? u.department.department_name : 'N/A'}</td>
                       <td style={{ color: '#475569' }}>{u.job_title || 'N/A'}</td>
                       <td>

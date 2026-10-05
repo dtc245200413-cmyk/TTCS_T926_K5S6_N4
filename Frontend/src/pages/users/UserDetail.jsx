@@ -168,7 +168,7 @@ const UserDetail = () => {
           )}
 
           {/* S1-10: Lock/Unlock UI logic */}
-          {user.status !== 'LOCKED' && hasPermission('USER_LOCK') && (
+          {user.status === 'ACTIVE' && hasPermission('USER_LOCK') && (
             <button onClick={openLockModal} className="btn-danger" style={{ marginRight: '10px' }}>
               Khoá tài khoản
             </button>
@@ -176,6 +176,11 @@ const UserDetail = () => {
           {user.status === 'LOCKED' && hasPermission('USER_UNLOCK') && (
             <button onClick={handleUnlockAccount} className="btn-secondary" style={{ marginRight: '10px', borderColor: 'var(--success-color)', color: 'var(--success-color)' }}>
               Mở khoá tài khoản
+            </button>
+          )}
+          {user.status === 'INACTIVE' && hasPermission('USER_UNLOCK') && (
+            <button onClick={handleUnlockAccount} className="btn-secondary" style={{ marginRight: '10px', borderColor: 'var(--success-color)', color: 'var(--success-color)' }}>
+              Kích hoạt tài khoản
             </button>
           )}
         </div>
