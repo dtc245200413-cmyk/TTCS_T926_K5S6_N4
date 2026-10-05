@@ -622,3 +622,32 @@ CREATE TABLE job_requisitions (
     CONSTRAINT fk_jr_created_by FOREIGN KEY (created_by)
         REFERENCES users (user_id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =======================================================
+-- SCRUM-71: KHUNG NĂNG LỰC & TIÊU CHÍ ĐÁNH GIÁ
+-- =======================================================
+
+CREATE TABLE IF NOT EXISTS competency_frameworks (
+    framework_id INT NOT NULL AUTO_INCREMENT,
+    job_title VARCHAR(100) NOT NULL,
+    framework_name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (framework_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS competency_criteria (
+    criterion_id INT NOT NULL AUTO_INCREMENT,
+    framework_id INT NOT NULL,
+    criterion_name VARCHAR(150) NOT NULL,
+    weight DECIMAL(5, 2) NOT NULL,
+    description TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (criterion_id),
+    CONSTRAINT fk_criteria_framework
+        FOREIGN KEY (framework_id) 
+        REFERENCES competency_frameworks (framework_id) 
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
