@@ -25,7 +25,7 @@ async function findAll({
   const params = [];
 
   if (search && search.trim() !== '') {
-    conditions.push(`(q.question_text LIKE ? OR q.sample_answer LIKE ? OR c.criteria_name LIKE ?)`);
+    conditions.push(`(q.question_text LIKE ? OR q.sample_answer LIKE ? OR c.name LIKE ?)`);
     const searchPattern = `%${search.trim()}%`;
     params.push(searchPattern, searchPattern, searchPattern);
   }
@@ -47,7 +47,8 @@ async function findAll({
     id: 'q.id',
     difficulty_level: 'q.difficulty_level',
     created_at: 'q.created_at',
-    criteria_name: 'c.criteria_name'
+    criteria_name: 'c.name',
+    name: 'c.name'
   };
   const sanitizedSortBy = allowedSortCols[sortBy] || 'q.id';
   const sanitizedOrder = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
@@ -56,31 +57,30 @@ async function findAll({
   const countSql = `
     SELECT COUNT(*) AS total
     FROM questions q
-    LEFT JOIN competency_criteria c ON q.competency_criteria_id = c.criteria_id
+    LEFT JOIN competencies c ON q.competency_criteria_id = c.id
     ${whereClause}
   `;
   const [countRows] = await pool.execute(countSql, params);
   const total = countRows[0].total;
   const totalPages = Math.ceil(total / limitNum) || 1;
 
-  // Data query - Note: limit & offset should be integers in query or interpolated safely
+  // Data query
   const dataSql = `
     SELECT
       q.id,
       q.competency_criteria_id,
+      q.competency_criteria_id AS competency_id,
       q.difficulty_level,
       q.question_text,
       q.sample_answer,
       q.created_at,
       q.updated_at,
-      c.criteria_name,
-      c.weight AS criteria_weight,
-      f.framework_id,
-      f.framework_name,
-      f.framework_code
+      c.name AS criteria_name,
+      c.name AS competency_name,
+      c.name,
+      c.description
     FROM questions q
-    LEFT JOIN competency_criteria c ON q.competency_criteria_id = c.criteria_id
-    LEFT JOIN competency_frameworks f ON c.framework_id = f.framework_id
+    LEFT JOIN competencies c ON q.competency_criteria_id = c.id
     ${whereClause}
     ORDER BY ${sanitizedSortBy} ${sanitizedOrder}
     LIMIT ${limitNum} OFFSET ${offset}
@@ -102,27 +102,25 @@ async function findAll({
 }
 
 /**
- * Find question by ID with criteria and framework details.
+ * Find question by ID with competency details.
  */
 async function findById(id) {
   const sql = `
     SELECT
       q.id,
       q.competency_criteria_id,
+      q.competency_criteria_id AS competency_id,
       q.difficulty_level,
       q.question_text,
       q.sample_answer,
       q.created_at,
       q.updated_at,
-      c.criteria_name,
-      c.weight AS criteria_weight,
-      c.description AS criteria_description,
-      f.framework_id,
-      f.framework_name,
-      f.framework_code
+      c.name AS criteria_name,
+      c.name AS competency_name,
+      c.name,
+      c.description
     FROM questions q
-    LEFT JOIN competency_criteria c ON q.competency_criteria_id = c.criteria_id
-    LEFT JOIN competency_frameworks f ON c.framework_id = f.framework_id
+    LEFT JOIN competencies c ON q.competency_criteria_id = c.id
     WHERE q.id = ?
     LIMIT 1
   `;
@@ -181,21 +179,19 @@ async function deleteById(id) {
 }
 
 /**
- * Get all competency criteria with their framework names.
+ * Get all competencies for dropdown selectors.
  */
 async function getAllCriteria() {
   const sql = `
     SELECT
-      c.criteria_id,
-      c.framework_id,
-      c.criteria_name,
-      c.weight,
+      c.id,
+      c.id AS criteria_id,
+      c.name,
+      c.name AS criteria_name,
       c.description,
-      f.framework_name,
-      f.framework_code
-    FROM competency_criteria c
-    LEFT JOIN competency_frameworks f ON c.framework_id = f.framework_id
-    ORDER BY f.framework_id ASC, c.criteria_id ASC
+      c.created_at
+    FROM competencies c
+    ORDER BY c.id ASC
   `;
   const [rows] = await pool.execute(sql);
   return rows;

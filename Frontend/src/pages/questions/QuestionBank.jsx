@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import questionApi from '../../api/questionApi';
+import competencyApi from '../../api/competencyApi';
 import { AuthContext } from '../../context/AuthContext';
 import '../../styles/global.css';
 
@@ -54,16 +55,28 @@ const QuestionBank = () => {
   const [deletingQuestion, setDeletingQuestion] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
-  // Fetch criteria list on mount
-  const fetchCriteria = async () => {
+  // Competency (Tiêu chí năng lực) Modal State
+  const [showCompetencyModal, setShowCompetencyModal] = useState(false);
+  const [competencyForm, setCompetencyForm] = useState({ name: '', description: '' });
+  const [competencySubmitting, setCompetencySubmitting] = useState(false);
+  const [competencyError, setCompetencyError] = useState('');
+
+  // Fetch criteria list on mount (optional autoSelectId to select newly created item)
+  const fetchCriteria = async (autoSelectId = null) => {
     try {
-      const res = await questionApi.getCriteria();
+      const res = await competencyApi.getAll();
       if (res.data.success) {
-        setCriteriaList(res.data.data);
+        const list = res.data.data || [];
+        setCriteriaList(list);
+        if (autoSelectId) {
+          setFormData(prev => ({ ...prev, competency_criteria_id: String(autoSelectId) }));
+        }
+        return list;
       }
     } catch (err) {
       console.error('Không thể tải danh sách tiêu chí:', err);
     }
+    return [];
   };
 
   // Fetch questions list
@@ -137,13 +150,50 @@ const QuestionBank = () => {
   const handleOpenAddModal = () => {
     setEditingQuestion(null);
     setFormData({
-      competency_criteria_id: criteriaList.length > 0 ? criteriaList[0].criteria_id : '',
+      competency_criteria_id: criteriaList.length > 0 ? (criteriaList[0].id || criteriaList[0].criteria_id) : '',
       difficulty_level: 'Medium',
       question_text: '',
       sample_answer: ''
     });
     setFormError('');
     setShowFormModal(true);
+  };
+
+  // Open Competency Modal
+  const handleOpenCompetencyModal = () => {
+    setCompetencyForm({ name: '', description: '' });
+    setCompetencyError('');
+    setShowCompetencyModal(true);
+  };
+
+  // Submit new competency
+  const handleCompetencySubmit = async (e) => {
+    e.preventDefault();
+    setCompetencyError('');
+
+    if (!competencyForm.name.trim() || competencyForm.name.trim().length < 2) {
+      setCompetencyError('Tên tiêu chí năng lực phải có ít nhất 2 ký tự.');
+      return;
+    }
+
+    setCompetencySubmitting(true);
+    try {
+      const res = await competencyApi.create({
+        name: competencyForm.name.trim(),
+        description: competencyForm.description.trim()
+      });
+
+      if (res.data.success) {
+        const created = res.data.data;
+        showToast(`Đã thêm tiêu chí "${created.name}" thành công!`, 'success');
+        await fetchCriteria(created.id);
+        setShowCompetencyModal(false);
+      }
+    } catch (err) {
+      setCompetencyError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo tiêu chí năng lực.');
+    } finally {
+      setCompetencySubmitting(false);
+    }
   };
 
   // Open Edit Modal
@@ -379,8 +429,8 @@ const QuestionBank = () => {
             >
               <option value="">-- Tất cả tiêu chí năng lực --</option>
               {criteriaList.map((c) => (
-                <option key={c.criteria_id} value={c.criteria_id}>
-                  {c.framework_name ? `[${c.framework_name}] ` : ''}{c.criteria_name}
+                <option key={c.id || c.criteria_id} value={c.id || c.criteria_id}>
+                  {c.name || c.criteria_name}
                 </option>
               ))}
             </select>
@@ -724,23 +774,73 @@ const QuestionBank = () => {
             <form onSubmit={handleFormSubmit}>
               {/* Tiêu chí năng lực */}
               <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#334155' }}>
-                  Tiêu chí năng lực <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <select
-                  className="form-control"
-                  value={formData.competency_criteria_id}
-                  onChange={(e) => setFormData({ ...formData, competency_criteria_id: e.target.value })}
-                  required
-                  style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #cbd5e1' }}
-                >
-                  <option value="">-- Chọn tiêu chí năng lực liên kết --</option>
-                  {criteriaList.map((c) => (
-                    <option key={c.criteria_id} value={c.criteria_id}>
-                      {c.framework_name ? `[${c.framework_name}] ` : ''}{c.criteria_name} ({c.weight}%)
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#334155', margin: 0 }}>
+                    Tiêu chí năng lực <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleOpenCompetencyModal}
+                    style={{
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      color: '#2563eb',
+                      borderRadius: '8px',
+                      padding: '4px 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span>➕</span> Thêm tiêu chí mới
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    className="form-control"
+                    value={formData.competency_criteria_id}
+                    onChange={(e) => setFormData({ ...formData, competency_criteria_id: e.target.value })}
+                    required
+                    style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #cbd5e1', flex: 1 }}
+                  >
+                    <option value="">-- Chọn tiêu chí năng lực liên kết --</option>
+                    {criteriaList.map((c) => (
+                      <option key={c.id || c.criteria_id} value={c.id || c.criteria_id}>
+                        {c.name || c.criteria_name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleOpenCompetencyModal}
+                    title="Thêm tiêu chí năng lực mới trực tiếp"
+                    style={{
+                      background: '#4f46e5',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span>+</span> Thêm mới
+                  </button>
+                </div>
+                <small style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '6px', display: 'block' }}>
+                  Chưa có tiêu chí phù hợp? Bấm <strong>"+ Thêm mới"</strong> để bổ sung ngay mà không mất dữ liệu đang nhập.
+                </small>
               </div>
 
               {/* Mức độ khó */}
@@ -1031,6 +1131,112 @@ const QuestionBank = () => {
                 {deleteSubmitting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: THÊM TIÊU CHÍ NĂNG LỰC MỚI ── */}
+      {showCompetencyModal && (
+        <div className="modal-overlay" style={{ background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(5px)', zIndex: 10000 }}>
+          <div className="modal-content" style={{ maxWidth: '480px', width: '92%', borderRadius: '20px', padding: '28px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🎯</span> Thêm Tiêu Chí Năng Lực Mới
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                  Tiêu chí sẽ tự động được chọn vào form câu hỏi sau khi lưu
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCompetencyModal(false)}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1rem', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {competencyError && (
+              <div className="alert alert-error" style={{ marginBottom: '16px', fontSize: '0.88rem' }}>
+                {competencyError}
+              </div>
+            )}
+
+            <form onSubmit={handleCompetencySubmit}>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label style={{ fontWeight: '700', fontSize: '0.88rem', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  Tên tiêu chí năng lực <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="VD: Tư duy phản biện, Quản lý thời gian..."
+                  value={competencyForm.name}
+                  onChange={(e) => setCompetencyForm({ ...competencyForm, name: e.target.value })}
+                  autoFocus
+                  required
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: '10px',
+                    padding: '11px 14px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.92rem',
+                    width: '100%'
+                  }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '22px' }}>
+                <label style={{ fontWeight: '700', fontSize: '0.88rem', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  Mô tả tiêu chí (Tùy chọn)
+                </label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  placeholder="Mô tả tóm tắt tiêu chuẩn đánh giá hoặc kỳ vọng đối với ứng viên..."
+                  value={competencyForm.description}
+                  onChange={(e) => setCompetencyForm({ ...competencyForm, description: e.target.value })}
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: '10px',
+                    padding: '11px 14px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    width: '100%',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCompetencyModal(false)}
+                  className="btn-secondary"
+                  disabled={competencySubmitting}
+                  style={{ borderRadius: '10px', padding: '10px 18px', fontSize: '0.88rem', cursor: 'pointer' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={competencySubmitting}
+                  className="btn-primary"
+                  style={{
+                    borderRadius: '10px',
+                    padding: '10px 22px',
+                    fontSize: '0.88rem',
+                    fontWeight: '600',
+                    width: 'auto',
+                    marginTop: 0,
+                    cursor: competencySubmitting ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {competencySubmitting ? 'Đang lưu...' : '+ Lưu Tiêu Chí'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

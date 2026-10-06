@@ -38,6 +38,7 @@ app.get('/', (req, res) => {
 
 const statsRoutes = require('./routes/statsRoutes');
 const questionRoutes = require('./routes/questionRoutes');
+const competencyRoutes = require('./routes/competencyRoutes');
 
 // ── API Routes ────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/competencies', competencyRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────
 
