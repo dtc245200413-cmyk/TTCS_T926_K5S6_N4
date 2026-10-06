@@ -20,6 +20,7 @@ import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
 import RoleList from './pages/roles/RoleList';
+import PositionManagement from './pages/positions/PositionManagement';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           {/* Protected Routes inside Main Layout */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Home />} />
+            <Route path="/positions" element={<PositionManagement />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/change-password" element={<ChangePassword />} />
             
