@@ -73,9 +73,14 @@ const UserList = () => {
           <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.95rem' }}>Quản lý danh sách và quyền hạn của nhân viên</p>
         </div>
         {hasPermission('USER_CREATE') && (
-          <Link to="/users/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Nhân Viên
-          </Link>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Link to="/users/import" className="btn-secondary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>📥</span> Nhập từ Excel
+            </Link>
+            <Link to="/users/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Nhân Viên
+            </Link>
+          </div>
         )}
       </div>
 
@@ -127,7 +132,7 @@ const UserList = () => {
         </form>
       </div>
 
-      <div className="card">
+      <div>
         {error && <div className="alert alert-error">{error}</div>}
         
         {loading ? (
@@ -139,7 +144,6 @@ const UserList = () => {
                 <tr>
                   <th>Mã NV</th>
                   <th>Họ tên</th>
-                  <th>Email</th>
                   <th>Phòng ban</th>
                   <th>Chức danh</th>
                   <th>Trạng thái</th>
@@ -169,7 +173,6 @@ const UserList = () => {
                           </div>
                         </div>
                       </td>
-                      <td style={{ color: '#475569', fontWeight: 500 }}>{u.company_email}</td>
                       <td style={{ color: '#475569', fontWeight: 600 }}>{u.department ? u.department.department_name : 'N/A'}</td>
                       <td style={{ color: '#475569' }}>{u.job_title || 'N/A'}</td>
                       <td>

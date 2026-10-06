@@ -24,11 +24,12 @@ import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
+import UserImport from './pages/users/UserImport';
 
 // Role pages
 import RoleList from './pages/roles/RoleList';
 
-// Department pages - SCRUM-94
+// Department pages - SCRUM-61
 import DepartmentList from './pages/departments/DepartmentList';
 
 function App() {
@@ -37,46 +38,36 @@ function App() {
       <Router>
         <Routes>
 
-          {/* ================= PUBLIC ROUTES ================= */}
-
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
-
           <Route
             path="/forgot-password"
             element={<ForgotPassword />}
           />
-
           <Route
             path="/reset-password"
             element={<ResetPassword />}
           />
 
-
-          {/* ================= PROTECTED ROUTES ================= */}
-
+          {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
 
-            {/* Dashboard */}
             <Route path="/" element={<Home />} />
 
-            {/* Reports */}
             <Route path="/reports" element={<Reports />} />
 
-            {/* SCRUM-94 - Department Management */}
+            {/* Department Management - SCRUM-61 */}
             <Route
               path="/departments"
               element={<DepartmentList />}
             />
 
-            {/* Change password */}
             <Route
               path="/change-password"
               element={<ChangePassword />}
             />
 
-
-            {/* ================= USER MANAGEMENT ================= */}
-
+            {/* User Management */}
             <Route
               path="/users"
               element={
@@ -86,16 +77,11 @@ function App() {
               }
             >
               <Route index element={<UserList />} />
-
-              <Route
-                path=":id"
-                element={<UserDetail />}
-              />
+              <Route path="import" element={<UserImport />} />
+              <Route path=":id" element={<UserDetail />} />
             </Route>
 
-
             {/* Create User */}
-
             <Route
               path="/users/create"
               element={
@@ -104,15 +90,10 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route
-                index
-                element={<UserCreate />}
-              />
+              <Route index element={<UserCreate />} />
             </Route>
 
-
             {/* Edit User */}
-
             <Route
               path="/users/:id/edit"
               element={
@@ -121,15 +102,10 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route
-                index
-                element={<UserEdit />}
-              />
+              <Route index element={<UserEdit />} />
             </Route>
 
-
-            {/* ================= ROLE MANAGEMENT ================= */}
-
+            {/* Roles */}
             <Route
               path="/roles"
               element={
@@ -138,17 +114,12 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route
-                index
-                element={<RoleList />}
-              />
+              <Route index element={<RoleList />} />
             </Route>
 
           </Route>
 
-
-          {/* ================= ERROR PAGES ================= */}
-
+          {/* Error Pages */}
           <Route
             path="/unauthorized"
             element={<Unauthorized />}
