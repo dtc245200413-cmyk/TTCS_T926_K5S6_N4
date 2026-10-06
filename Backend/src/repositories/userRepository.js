@@ -159,7 +159,7 @@ async function getAll({ search = '', status = '', departmentId = '', page = 1, l
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.department_id
     ${whereClause}
-    ORDER BY u.created_at DESC
+    ORDER BY u.employee_code ASC
     LIMIT ? OFFSET ?
   `;
   params.push(limitNum, offset);
