@@ -5,7 +5,7 @@ async function insertMissingUsers() {
   try {
     await connection.beginTransaction();
 
-    const hash = '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52';
+    const hash = '$2b$10$gbHbInH/QcTxXm0uTBEOLeub6.KUca8lGdywMat/XAb9awabEwT1W';
 
     const usersToInsert = [
       [4, 'EMP007', 'Nguyễn Xuân Phú', 'dtc245200480@ictu.edu.vn', '0988888888', 'Trưởng bộ phận Marketing', hash, 'ACTIVE'],

@@ -6,7 +6,7 @@ const users = [
   { code: 'EMP003', name: 'Nguyễn Anh Sơn', email: 'dtc245200852@ictu.edu.vn' },
   { code: 'EMP004', name: 'Mã Dương Quốc', email: 'dtc245200935@ictu.edu.vn' },
   { code: 'EMP005', name: 'Thàng Xuân Lập', email: 'dtc245200571@ictu.edu.vn' },
-  { code: 'EMP006', name: 'Thảo A Pồng', email: 'dtc245200592@ictu.edu.vn' },
+  { code: 'EMP006', name: 'Thào A Pông', email: 'dtc245200592@ictu.edu.vn' },
   { code: 'EMP007', name: 'Nguyễn Xuân Phú', email: 'dtc245200480@ictu.edu.vn' },
   { code: 'EMP008', name: 'Lưu Quang Lực', email: 'dtc245200349@ictu.edu.vn' },
   { code: 'EMP009', name: 'Long Minh Thành', email: 'dtc245200344@ictu.edu.vn' }

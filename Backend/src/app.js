@@ -4,12 +4,18 @@
  */
 
 const express = require('express');
-const cors    = require('cors');
+const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes     = require('./routes/authRoutes');
-const userRoutes     = require('./routes/userRoutes');
-const roleRoutes     = require('./routes/roleRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const statsRoutes = require('./routes/statsRoutes');
+
+// ── NEW: Competency Framework ────────────────────────────────
+const competencyFrameworkRoutes =
+  require('./routes/competencyFrameworkRoutes');
+
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -21,9 +27,22 @@ app.use(express.urlencoded({ extended: true }));
 
 // SPRINT 1 FINAL: Configure CORS strictly for the frontend
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'], // Restrict to the React frontend running on Vite ports
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ],
+  methods: [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS'
+  ],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization'
+  ],
 }));
 
 // ── Health Check ─────────────────────────────────────────────
@@ -36,16 +55,20 @@ app.get('/', (req, res) => {
   });
 });
 
-const statsRoutes    = require('./routes/statsRoutes');
-
 // ── API Routes ────────────────────────────────────────────────
 
-app.use('/api/auth',  authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
 
-// ── 404 Handler ───────────────────────────────────────────────
+// ── NEW: Competency Framework API ────────────────────────────
+app.use(
+  '/api/competency-frameworks',
+  competencyFrameworkRoutes
+);
+
+// ── 404 Handler ──────────────────────────────────────────────
 
 app.use((req, res) => {
   res.status(404).json({
