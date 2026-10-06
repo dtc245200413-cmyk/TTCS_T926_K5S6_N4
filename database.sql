@@ -273,7 +273,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
 CROSS JOIN permissions p
-WHERE  r.role_code = 'ADMIN';
+WHERE r.role_code = 'ADMIN'
+  AND p.permission_code NOT LIKE 'DEPARTMENT_%';
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
