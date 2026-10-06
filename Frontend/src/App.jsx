@@ -19,6 +19,7 @@ import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
+import UserImport from './pages/users/UserImport';
 import RoleList from './pages/roles/RoleList';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
             {/* User Management Routes */}
             <Route path="/users" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserList />} />
+              <Route path="import" element={<UserImport />} />
               <Route path=":id" element={<UserDetail />} />
             </Route>
 
