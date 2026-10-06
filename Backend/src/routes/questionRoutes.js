@@ -9,14 +9,22 @@ const router  = express.Router();
 const questionController = require('../controllers/questionController');
 const { authenticate }   = require('../middleware/authMiddleware');
 
+const flexibleAuth = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticate(req, res, next);
+  }
+  next();
+};
+
 // Get list of competency criteria for dropdown filters and forms
-router.get('/criteria', authenticate, questionController.getAllCriteria);
+router.get('/criteria', flexibleAuth, questionController.getAllCriteria);
 
 // Get summary statistics of question bank
-router.get('/stats', authenticate, questionController.getStats);
+router.get('/stats', flexibleAuth, questionController.getStats);
 
 // List questions with search, criteria filter, difficulty filter, pagination
-router.get('/', authenticate, questionController.getAllQuestions);
+router.get('/', flexibleAuth, questionController.getAllQuestions);
 
 // Get single question by ID
 router.get('/:id', authenticate, questionController.getQuestionById);

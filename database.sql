@@ -511,9 +511,19 @@ CREATE TABLE job_positions (
 
 
 -- ============================================================
--- 6. QUESTION BANK (SCRUM-73, SCRUM-74, SCRUM-75)
+-- 6. COMPETENCY CATALOG & QUESTION BANK (SCRUM-73, SCRUM-74, SCRUM-75)
 -- ============================================================
-CREATE TABLE questions (
+CREATE TABLE IF NOT EXISTS competencies (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_competencies PRIMARY KEY (id),
+    CONSTRAINT uq_competencies_name UNIQUE (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS questions (
     id INT NOT NULL AUTO_INCREMENT,
     competency_criteria_id INT NOT NULL,
     difficulty_level ENUM('Easy', 'Medium', 'Hard') NOT NULL DEFAULT 'Medium',
@@ -523,8 +533,8 @@ CREATE TABLE questions (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_questions PRIMARY KEY (id),
-    CONSTRAINT fk_questions_criteria FOREIGN KEY (competency_criteria_id)
-        REFERENCES competency_criteria (criteria_id) ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT fk_questions_competencies FOREIGN KEY (competency_criteria_id)
+        REFERENCES competencies (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_questions_criteria_id ON questions (competency_criteria_id);
@@ -626,3 +636,22 @@ CREATE TABLE job_requisitions (
     CONSTRAINT fk_jr_created_by FOREIGN KEY (created_by)
         REFERENCES users (user_id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 10. SAMPLE DATA FOR COMPETENCIES & QUESTION BANK
+-- ============================================================
+
+INSERT INTO competencies (name, description) VALUES
+('Tư duy logic', 'Đánh giá khả năng suy luận logic, giải quyết bài toán phức tạp và tư duy phản biện.'),
+('Giải quyết vấn đề', 'Khả năng phân tích nguyên nhân gốc rễ, đề xuất giải pháp khả thi và xử lý sự cố.'),
+('Kỹ năng làm việc nhóm', 'Khả năng phối hợp, giao tiếp hiệu quả và hỗ trợ đồng đội trong công việc.'),
+('Kiến thức chuyên môn backend', 'Hiểu biết chuyên sâu về kiến trúc hệ thống, cơ sở dữ liệu, API và tối ưu hiệu năng.'),
+('Tiếng Anh giao tiếp', 'Khả năng đọc hiểu tài liệu kỹ thuật và trao đổi công việc bằng tiếng Anh.');
+
+INSERT INTO questions (competency_criteria_id, difficulty_level, question_text, sample_answer) VALUES
+(1, 'Medium', 'Bạn hãy giải thích sự khác biệt giữa synchronous và asynchronous programming? Khi nào nên áp dụng từng loại?', 'Ứng viên nêu rõ khái niệm blocking vs non-blocking I/O, event loop, ứng dụng trong xử lý tác vụ tốn thời gian hoặc song song.'),
+(2, 'Hard', 'Kể lại một sự cố lỗi nghiêm trọng trên production bạn từng xử lý. Các bước điều tra nguyên nhân gốc rễ và biện pháp phòng ngừa là gì?', 'Ứng viên trình bày theo mô hình STAR, thể hiện quy trình phân tích log, rollback hoặc hotfix, và viết post-mortem.'),
+(3, 'Easy', 'Khi có xung đột ý kiến với một thành viên trong nhóm về giải pháp kỹ thuật, bạn sẽ xử lý thế nào để đạt được sự đồng thuận?', 'Ứng viên đề xuất thảo luận dựa trên số liệu/dẫn chứng kỹ thuật (trade-offs), lắng nghe tích cực và tôn trọng quyết định chung.'),
+(4, 'Medium', 'Giải thích nguyên lý hoạt động của cơ chế Database Connection Pool và cách cấu hình phù hợp với tải hệ thống.', 'Ứng viên giải thích việc tái sử dụng connection thay vì mở mới liên tục, tránh quá tải RAM/CPU của DB server.'),
+(5, 'Easy', 'Can you introduce yourself and talk briefly about the most recent technology stack you worked with?', 'Ứng viên phát âm rõ ràng, sử dụng đúng từ vựng chuyên ngành, ngữ pháp cơ bản ổn định và tự tin giao tiếp.');
