@@ -59,7 +59,11 @@ function App() {
             {/* Department Management - SCRUM-61 */}
             <Route
               path="/departments"
-              element={<DepartmentList />}
+              element={
+                <ProtectedRoute requiredPermission="DEPARTMENT_VIEW">
+                  <DepartmentList />
+                </ProtectedRoute>
+              }
             />
 
             <Route
