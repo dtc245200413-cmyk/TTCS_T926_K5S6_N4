@@ -106,7 +106,38 @@ const unlockUser = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const importService = require('../services/importService');
+
+const downloadTemplate = async (req, res, next) => {
+  try {
+    const buffer = await importService.generateTemplate();
+    res.setHeader('Content-Disposition', 'attachment; filename="template.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) { next(error); }
+};
+
+const previewImport = async (req, res, next) => {
+  try {
+    if (!req.file) return sendError(res, 'Vui lòng chọn một tệp Excel.', 400);
+    const results = await importService.previewImport(req.file.buffer);
+    return sendSuccess(res, 'Đọc tệp thành công.', results);
+  } catch (error) { next(error); }
+};
+
+const confirmImport = async (req, res, next) => {
+  try {
+    const { validRows } = req.body;
+    if (!Array.isArray(validRows) || validRows.length === 0) {
+      return sendError(res, 'Không có dữ liệu hợp lệ để nhập.', 400);
+    }
+    const result = await importService.confirmImport(validRows, req.user.user_id, getIp(req));
+    return sendSuccess(res, 'Nhập dữ liệu thành công.', result);
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getAllUsers, getUserById, createUser, updateUser,
-  getUserRoles, assignRole, revokeRole, lockUser, unlockUser
+  getUserRoles, assignRole, revokeRole, lockUser, unlockUser,
+  downloadTemplate, previewImport, confirmImport
 };
