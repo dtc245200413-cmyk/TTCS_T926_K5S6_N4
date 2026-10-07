@@ -61,7 +61,7 @@ async function findAll({
     ${whereClause}
   `;
   const [countRows] = await pool.execute(countSql, params);
-  const total = countRows[0].total;
+  const total = (countRows && countRows.length > 0) ? Number(countRows[0].total ?? countRows[0]['COUNT(*)'] ?? 0) : 0;
   const totalPages = Math.ceil(total / limitNum) || 1;
 
   // Data query
