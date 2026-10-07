@@ -63,21 +63,26 @@ async function createPosition(data, performedByUserId, ipAddress) {
     positionLevel,
     minSalary,
     maxSalary,
+    competencyFrameworkId: data.competencyFrameworkId || data.competency_framework_id || null,
     description
   });
 
   const newPosition = await jobPositionRepo.findById(insertId);
 
   // Audit
-  await auditRepo.create({
-    userId: performedByUserId,
-    performedBy: performedByUserId,
-    action: 'JOB_POSITION_CREATED',
-    entityType: 'job_positions',
-    entityId: String(insertId),
-    description: `Created job position: ${positionCode}`,
-    ipAddress
-  });
+  try {
+    await auditRepo.create({
+      userId: performedByUserId,
+      performedBy: performedByUserId,
+      action: 'JOB_POSITION_CREATED',
+      entityType: 'job_positions',
+      entityId: String(insertId),
+      description: `Created job position: ${positionCode}`,
+      ipAddress
+    });
+  } catch (err) {
+    console.error('Audit log failed:', err.message);
+  }
 
   return newPosition;
 }
@@ -90,7 +95,15 @@ async function updatePosition(id, data, performedByUserId, ipAddress) {
     throw error;
   }
 
-  const { position_name, position_level, min_salary, max_salary, description, status } = data;
+  const {
+    position_name,
+    position_level,
+    min_salary,
+    max_salary,
+    description,
+    status,
+    competency_framework_id
+  } = data;
 
   // Validate salary
   const min = min_salary !== undefined ? min_salary : position.min_salary;
@@ -109,21 +122,26 @@ async function updatePosition(id, data, performedByUserId, ipAddress) {
   if (max_salary !== undefined) fields.max_salary = max_salary;
   if (description !== undefined) fields.description = description;
   if (status !== undefined) fields.status = status;
+  if (competency_framework_id !== undefined) fields.competency_framework_id = competency_framework_id;
 
   await jobPositionRepo.update(id, fields);
 
   const updatedPosition = await jobPositionRepo.findById(id);
 
   // Audit
-  await auditRepo.create({
-    userId: performedByUserId,
-    performedBy: performedByUserId,
-    action: 'JOB_POSITION_UPDATED',
-    entityType: 'job_positions',
-    entityId: String(id),
-    description: `Updated job position: ${position.position_code}`,
-    ipAddress
-  });
+  try {
+    await auditRepo.create({
+      userId: performedByUserId,
+      performedBy: performedByUserId,
+      action: 'JOB_POSITION_UPDATED',
+      entityType: 'job_positions',
+      entityId: String(id),
+      description: `Updated job position: ${position.position_code}`,
+      ipAddress
+    });
+  } catch (err) {
+    console.error('Audit log failed:', err.message);
+  }
 
   return updatedPosition;
 }
