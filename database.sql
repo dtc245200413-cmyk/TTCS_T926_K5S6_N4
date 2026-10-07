@@ -303,7 +303,7 @@ VALUES
 (5, 'EMP006', 'Thảo A Pồng',           'dtc245200592@ictu.edu.vn', '0988888888', 'Giám đốc Vận hành (Approver)',       '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (4, 'EMP007', 'Nguyễn Xuân Phú',       'dtc245200480@ictu.edu.vn', '0988888888', 'Trưởng bộ phận Marketing',           '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (3, 'EMP008', 'Lưu Quang Lực',         'dtc245200349@ictu.edu.vn', '0988888888', 'Chuyên viên Phỏng vấn Tài chính',    '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
-(2, 'EMP009', 'Long Minh Thành',       'dtc245200344@ictu.edu.vn', '0988888888', 'Nhân viên Tuyển dụng',               '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE');
+(2, 'EMP009', 'Long Minh Thành',       'dtc245200344@ictu.edu.vn', '0988888888', 'Trưởng phòng Nhân sự',               '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE');
 
 -- User Roles
 INSERT INTO user_roles (user_id, role_id) VALUES
@@ -315,7 +315,7 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 (6, (SELECT role_id FROM roles WHERE role_code = 'APPROVER')),
 (7, (SELECT role_id FROM roles WHERE role_code = 'HIRING_MANAGER')),
 (8, (SELECT role_id FROM roles WHERE role_code = 'INTERVIEWER')),
-(9, (SELECT role_id FROM roles WHERE role_code = 'RECRUITER'));
+(9, (SELECT role_id FROM roles WHERE role_code = 'HR_MANAGER'));
 
 -- Sessions
 INSERT INTO user_sessions (user_id, session_token, expires_at, revoked_at) VALUES

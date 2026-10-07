@@ -41,7 +41,7 @@ const ProtectedRoute = ({ requiredPermission, requireAdmin, requireHrManager, ch
         user.job_title.toLowerCase().includes('tp ns') ||
         user.job_title.toLowerCase().includes('hr manager')
       )) ||
-      user?.company_email === 'dtc245200002@ictu.edu.vn'
+      ['dtc245200344@ictu.edu.vn', 'dtc245200002@ictu.edu.vn'].includes(user?.company_email)
     );
     if (!isHrManager) {
       return <Navigate to="/unauthorized" replace />;
