@@ -6,6 +6,27 @@ import '../../styles/global.css';
 const Sidebar = () => {
   const { hasPermission, logout, user } = useContext(AuthContext);
   const isAdmin = user?.roles?.some(r => r.role_code === 'ADMIN');
+  const isHrManager = Boolean(
+    user?.roles?.some(
+      (r) =>
+        r.role_code === 'HR_MANAGER' ||
+        (r.role_name && (
+          r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
+          r.role_name.toLowerCase().includes('trưởng phòng ns') ||
+          r.role_name.toLowerCase().includes('tp nhân sự') ||
+          r.role_name.toLowerCase().includes('tp ns') ||
+          r.role_name.toLowerCase().includes('hr manager')
+        ))
+    ) ||
+    (user?.job_title && (
+      user.job_title.toLowerCase().includes('trưởng phòng nhân sự') ||
+      user.job_title.toLowerCase().includes('trưởng phòng ns') ||
+      user.job_title.toLowerCase().includes('tp nhân sự') ||
+      user.job_title.toLowerCase().includes('tp ns') ||
+      user.job_title.toLowerCase().includes('hr manager')
+    )) ||
+    user?.company_email === 'dtc245200002@ictu.edu.vn'
+  );
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -60,12 +81,14 @@ const Sidebar = () => {
           </NavLink>
         )}
 
-        <NavLink 
-          to="/positions" 
-          className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-        >
-          <span style={{ marginRight: '10px' }}>💼</span> Chức Danh & Dải Lương
-        </NavLink>
+        {isHrManager && (
+          <NavLink 
+            to="/positions" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <span style={{ marginRight: '10px' }}>💼</span> Chức Danh & Dải Lương
+          </NavLink>
+        )}
         
         <div style={{ marginTop: '30px', marginBottom: '10px', padding: '0 24px', fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '1.5px' }}>
           Tài Khoản
