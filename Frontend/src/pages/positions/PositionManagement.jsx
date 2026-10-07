@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   FiPlus,
   FiRotateCcw,
   FiShield,
   FiUserCheck,
+  FiLock,
   FiBriefcase,
   FiDollarSign,
   FiCheckCircle,
@@ -12,6 +13,7 @@ import {
   FiCheck,
   FiTrendingUp,
 } from 'react-icons/fi';
+import { AuthContext } from '../../context/AuthContext';
 import PositionTable from '../../components/PositionTable';
 import PositionForm from '../../components/PositionForm';
 import {
@@ -24,9 +26,20 @@ import { formatCurrency, formatNumberWithDots, parseRawNumber } from '../../util
 import '../../styles/positions.css';
 
 function PositionManagement() {
+  const { user } = useContext(AuthContext);
+
+  // Phân quyền: CHỈ Trưởng phòng Nhân sự mới có quyền xem dải lương và quản lý danh mục
+  const isHrManager = Boolean(
+    user?.roles?.some(
+      (r) =>
+        r.role_code === 'HR_MANAGER' ||
+        (r.role_name && r.role_name.toLowerCase().includes('trưởng phòng nhân sự'))
+    ) ||
+    (user?.job_title && user.job_title.toLowerCase().includes('trưởng phòng nhân sự'))
+  );
+
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentRole, setCurrentRole] = useState('HR_MANAGER'); // 'HR_MANAGER' hoặc 'HR_STAFF'
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState(null);
   const [deletingPosition, setDeletingPosition] = useState(null);
@@ -69,7 +82,7 @@ function PositionManagement() {
   };
 
   const handleAddNew = () => {
-    if (currentRole !== 'HR_MANAGER') {
+    if (!isHrManager) {
       showToast('Chỉ Trưởng phòng Nhân sự mới có quyền thêm chức danh!', 'error');
       return;
     }
@@ -78,7 +91,7 @@ function PositionManagement() {
   };
 
   const handleEdit = (pos) => {
-    if (currentRole !== 'HR_MANAGER') {
+    if (!isHrManager) {
       showToast('Chỉ Trưởng phòng Nhân sự mới có quyền sửa dải lương!', 'error');
       return;
     }
@@ -102,7 +115,7 @@ function PositionManagement() {
   };
 
   const handleDeleteRequest = (pos) => {
-    if (currentRole !== 'HR_MANAGER') {
+    if (!isHrManager) {
       showToast('Chỉ Trưởng phòng Nhân sự mới có quyền xóa chức danh!', 'error');
       return;
     }
@@ -119,6 +132,10 @@ function PositionManagement() {
   };
 
   const handleResetData = () => {
+    if (!isHrManager) {
+      showToast('Chỉ Trưởng phòng Nhân sự mới có quyền đặt lại dữ liệu mẫu!', 'error');
+      return;
+    }
     if (window.confirm('Khôi phục danh sách chức danh mẫu ban đầu?')) {
       const defaults = resetLocalPositions();
       setPositions(defaults);
@@ -149,19 +166,25 @@ function PositionManagement() {
       setCheckerResult({
         status: 'warning',
         title: 'Thấp hơn sàn dải lương',
-        message: `Mức đề xuất (${formatCurrency(proposed)}) thấp hơn mức sàn công ty đã duyệt (${formatCurrency(minSal)}). Cần xem xét lại quyền lợi ứng viên.`,
+        message: isHrManager
+          ? `Mức đề xuất (${formatCurrency(proposed)}) thấp hơn mức sàn công ty đã duyệt (${formatCurrency(minSal)}). Cần xem xét lại quyền lợi ứng viên.`
+          : `Mức đề xuất (${formatCurrency(proposed)}) thấp hơn mức sàn công ty đã duyệt cho vị trí này. Cần xem xét lại quyền lợi ứng viên.`,
       });
     } else if (proposed > maxSal) {
       setCheckerResult({
         status: 'danger',
         title: 'Vượt trần khung lương duyệt (Cần phê duyệt ngoại lệ)',
-        message: `Mức đề xuất (${formatCurrency(proposed)}) vượt trần cho phép (${formatCurrency(maxSal)}) là ${formatCurrency(proposed - maxSal)}. Cần gửi yêu cầu phê duyệt ngoại lệ đến Ban Giám Đốc!`,
+        message: isHrManager
+          ? `Mức đề xuất (${formatCurrency(proposed)}) vượt trần cho phép (${formatCurrency(maxSal)}) là ${formatCurrency(proposed - maxSal)}. Cần gửi yêu cầu phê duyệt ngoại lệ đến Ban Giám Đốc!`
+          : `Mức đề xuất (${formatCurrency(proposed)}) vượt trần cho phép đối với vị trí này. Cần gửi yêu cầu phê duyệt ngoại lệ đến Ban Giám Đốc!`,
       });
     } else {
       setCheckerResult({
         status: 'success',
         title: 'Hợp lệ! Nằm trong khung lương đã duyệt',
-        message: `Mức đề xuất (${formatCurrency(proposed)}) nằm trọn vẹn trong dải lương [${formatCurrency(minSal)} - ${formatCurrency(maxSal)}]. Đủ điều kiện duyệt offer!`,
+        message: isHrManager
+          ? `Mức đề xuất (${formatCurrency(proposed)}) nằm trọn vẹn trong dải lương [${formatCurrency(minSal)} - ${formatCurrency(maxSal)}]. Đủ điều kiện duyệt offer!`
+          : `Mức đề xuất (${formatCurrency(proposed)}) nằm trong khung lương đã duyệt cho vị trí này. Đủ điều kiện duyệt offer!`,
       });
     }
   };
@@ -189,40 +212,27 @@ function PositionManagement() {
         <div>
           <div className="pos-breadcrumb">
             <span>Hệ Thống Tuyển Dụng</span> / <span>Danh Mục Vị Trí</span> /{' '}
-            <strong className="pos-badge-ticket">SCRUM-62</strong>
+            <strong>Chức Danh & Dải Lương</strong>
           </div>
           <h1 className="pos-page-title">Quản Lý Danh Mục Chức Danh & Khung Dải Lương</h1>
           <p className="pos-page-desc">
             Khai báo và kiểm soát định mức dải lương theo từng vị trí chuyên môn, thiết lập hạn mức
-            chuẩn cho quy trình phê duyệt offer tuyển dụng (Subtask SCRUM-97 & SCRUM-98).
+            chuẩn cho quy trình phê duyệt offer tuyển dụng.
           </p>
         </div>
 
-        <div className="pos-role-switch">
+        <div className="pos-user-role-card">
           <div className="pos-role-title">
-            <FiShield /> Vai trò demo (Kiểm thử SCRUM-99):
+            <FiShield /> Quyền hạn truy cập:
           </div>
-          <div className="pos-role-tabs">
-            <button
-              type="button"
-              className={`pos-role-btn ${currentRole === 'HR_MANAGER' ? 'active manager' : ''}`}
-              onClick={() => {
-                setCurrentRole('HR_MANAGER');
-                showToast('Chuyển sang: Trưởng phòng Nhân sự (Xem & Quản lý đầy đủ dải lương)');
-              }}
-            >
-              <FiUserCheck /> Trưởng phòng Nhân sự
-            </button>
-            <button
-              type="button"
-              className={`pos-role-btn ${currentRole === 'HR_STAFF' ? 'active staff' : ''}`}
-              onClick={() => {
-                setCurrentRole('HR_STAFF');
-                showToast('Chuyển sang: Nhân viên Tuyển dụng (Dải lương bị bảo mật)');
-              }}
-            >
-              <FiShield /> Nhân viên Tuyển dụng
-            </button>
+          <div className={`pos-role-badge-status ${isHrManager ? 'manager' : 'staff'}`}>
+            {isHrManager ? <FiUserCheck /> : <FiLock />}
+            <span className="pos-role-name">
+              {user?.job_title || (isHrManager ? 'Trưởng phòng Nhân sự' : 'Chức vụ khác')}
+            </span>
+            <span className="pos-role-perm">
+              {isHrManager ? '(Xem & Quản lý dải lương)' : '(Dải lương bảo mật)'}
+            </span>
           </div>
         </div>
       </div>
@@ -257,14 +267,14 @@ function PositionManagement() {
           <div className="pos-stat-content">
             <span className="pos-stat-label">Khung lương trung bình</span>
             <span className="pos-stat-val">
-              {currentRole === 'HR_MANAGER' ? (
+              {isHrManager ? (
                 `${(avgMinSalary / 1000000).toFixed(0)}M - ${(avgMaxSalary / 1000000).toFixed(0)}M`
               ) : (
                 '••••••••'
               )}
             </span>
             <span className="pos-stat-sub">
-              {currentRole === 'HR_MANAGER' ? 'Định mức toàn công ty' : 'Bảo mật - Chỉ TP Nhân sự'}
+              {isHrManager ? 'Định mức toàn công ty' : 'Bảo mật - Chỉ TP Nhân sự'}
             </span>
           </div>
         </div>
@@ -276,10 +286,10 @@ function PositionManagement() {
           <div className="pos-stat-content">
             <span className="pos-stat-label">Quyền xem dải lương</span>
             <span className="pos-stat-val">
-              {currentRole === 'HR_MANAGER' ? 'Toàn quyền' : 'Bảo mật'}
+              {isHrManager ? 'Toàn quyền' : 'Bảo mật'}
             </span>
             <span className="pos-stat-sub">
-              {currentRole === 'HR_MANAGER' ? 'Trưởng phòng Nhân sự' : 'Chỉ xem mã & tên'}
+              {isHrManager ? 'Trưởng phòng Nhân sự' : 'Chỉ xem mã & tên'}
             </span>
           </div>
         </div>
@@ -296,7 +306,12 @@ function PositionManagement() {
             type="button"
             className="pos-btn pos-btn-outline"
             onClick={handleResetData}
-            title="Khôi phục dữ liệu mẫu ban đầu"
+            disabled={!isHrManager}
+            title={
+              isHrManager
+                ? 'Khôi phục dữ liệu mẫu ban đầu'
+                : 'Chỉ Trưởng phòng Nhân sự mới có quyền đặt lại mẫu'
+            }
           >
             <FiRotateCcw /> Đặt lại mẫu
           </button>
@@ -305,9 +320,9 @@ function PositionManagement() {
             type="button"
             className="pos-btn pos-btn-primary"
             onClick={handleAddNew}
-            disabled={currentRole !== 'HR_MANAGER'}
+            disabled={!isHrManager}
             title={
-              currentRole === 'HR_MANAGER'
+              isHrManager
                 ? 'Thêm chức danh & dải lương mới'
                 : 'Chỉ Trưởng phòng Nhân sự mới có quyền thêm'
             }
@@ -321,7 +336,8 @@ function PositionManagement() {
         positions={positions}
         onEdit={handleEdit}
         onDelete={handleDeleteRequest}
-        currentRole={currentRole}
+        isHrManager={isHrManager}
+        userRoleName={user?.job_title || (isHrManager ? 'Trưởng phòng Nhân sự' : 'Chức vụ khác')}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         selectedLevel={selectedLevel}
@@ -337,7 +353,7 @@ function PositionManagement() {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>
-              Công cụ kiểm soát hạn mức duyệt Offer theo khung lương (SCRUM-62)
+              Công cụ kiểm soát hạn mức duyệt Offer theo khung lương
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.825rem', color: '#475569' }}>
               Kiểm tra nhanh xem mức lương tuyển dụng đề xuất cho ứng viên có nằm trong dải lương đã duyệt hay không.

@@ -142,7 +142,7 @@ function PositionForm({ isOpen, onClose, onSubmit, initialData }) {
                 {isEditMode ? 'Chỉnh Sửa Chức Danh & Dải Lương' : 'Khai Báo Chức Danh & Dải Lương Mới'}
               </h2>
               <p className="pos-modal-subtitle">
-                Thiết lập thông tin định danh và khung lương chuẩn để kiểm soát offer (SCRUM-62)
+                Thiết lập thông tin định danh và khung lương chuẩn để kiểm soát offer
               </p>
             </div>
           </div>

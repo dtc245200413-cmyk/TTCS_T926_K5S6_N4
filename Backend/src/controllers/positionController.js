@@ -1,19 +1,23 @@
 /**
  * positionController.js
- * Controller for Job Positions & Salary Range endpoints (SCRUM-62 / SCRUM-98).
+ * Controller for Job Positions & Salary Range endpoints.
  */
 
 const positionService = require('../services/positionService');
 const { sendSuccess, sendError } = require('../utils/response');
 
 /**
- * Check if the current authenticated user has HR Manager or Admin role
+ * Check if the current authenticated user is HR Manager (Trưởng phòng Nhân sự)
+ * Chỉ Trưởng phòng Nhân sự mới có quyền xem dải lương và cấu hình danh mục.
  */
 function isUserHrManager(req) {
-  if (!req.user || !req.user.roles) return false;
-  return req.user.roles.some((r) =>
-    ['ADMIN', 'HR_MANAGER', 'HR_DIRECTOR'].includes(r.role_code)
+  if (!req.user) return false;
+  const hasHrRole = req.user.roles && req.user.roles.some((r) =>
+    r.role_code === 'HR_MANAGER' ||
+    (r.role_name && r.role_name.toLowerCase().includes('trưởng phòng nhân sự'))
   );
+  const hasHrJobTitle = req.user.job_title && req.user.job_title.toLowerCase().includes('trưởng phòng nhân sự');
+  return Boolean(hasHrRole || hasHrJobTitle);
 }
 
 /**
@@ -73,10 +77,13 @@ const getPositionById = async (req, res, next) => {
 
 /**
  * POST /api/positions
- * Create a new position (Requires HR Manager or Admin)
+ * Create a new position (Chỉ Trưởng phòng Nhân sự)
  */
 const createPosition = async (req, res, next) => {
   try {
+    if (!isUserHrManager(req)) {
+      return sendError(res, 'Chỉ Trưởng phòng Nhân sự mới có quyền tạo chức danh và dải lương.', 403);
+    }
     const newPos = await positionService.createPosition(req.body);
     return sendSuccess(res, 'Tạo chức danh và dải lương thành công.', newPos, 201);
   } catch (error) {
@@ -86,10 +93,13 @@ const createPosition = async (req, res, next) => {
 
 /**
  * PUT /api/positions/:id
- * Update an existing position
+ * Update an existing position (Chỉ Trưởng phòng Nhân sự)
  */
 const updatePosition = async (req, res, next) => {
   try {
+    if (!isUserHrManager(req)) {
+      return sendError(res, 'Chỉ Trưởng phòng Nhân sự mới có quyền cập nhật chức danh và dải lương.', 403);
+    }
     const { id } = req.params;
     const updated = await positionService.updatePosition(id, req.body);
     return sendSuccess(res, 'Cập nhật chức danh thành công.', updated);
@@ -100,10 +110,13 @@ const updatePosition = async (req, res, next) => {
 
 /**
  * DELETE /api/positions/:id
- * Delete a position
+ * Delete a position (Chỉ Trưởng phòng Nhân sự)
  */
 const deletePosition = async (req, res, next) => {
   try {
+    if (!isUserHrManager(req)) {
+      return sendError(res, 'Chỉ Trưởng phòng Nhân sự mới có quyền xóa chức danh.', 403);
+    }
     const { id } = req.params;
     await positionService.deletePosition(id);
     return sendSuccess(res, 'Xóa chức danh thành công.');
@@ -114,7 +127,7 @@ const deletePosition = async (req, res, next) => {
 
 /**
  * POST /api/positions/:id/validate-offer
- * Validate if proposed salary is within the approved range (SCRUM-62 / SCRUM-98)
+ * Validate if proposed salary is within the approved range
  */
 const validateOffer = async (req, res, next) => {
   try {

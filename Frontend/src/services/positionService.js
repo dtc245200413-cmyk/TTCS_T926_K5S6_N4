@@ -1,6 +1,6 @@
 import positionApi from '../api/positionApi';
 
-const STORAGE_KEY = 'hr_positions_scrum_62_data';
+const STORAGE_KEY = 'hr_positions_data';
 
 const INITIAL_POSITIONS = [
   {

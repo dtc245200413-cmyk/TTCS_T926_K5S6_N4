@@ -1,6 +1,6 @@
 /**
  * positionService.js
- * Business logic for Job Positions & Salary Ranges (SCRUM-62 / SCRUM-98).
+ * Business logic for Job Positions & Salary Ranges.
  */
 
 const positionRepo = require('../repositories/positionRepository');
@@ -118,7 +118,7 @@ async function deletePosition(id) {
 }
 
 /**
- * Check if proposed offer salary is within approved salary range (SCRUM-62 / SCRUM-98)
+ * Check if proposed offer salary is within approved salary range
  */
 async function validateOfferSalary(positionId, proposedSalary) {
   const position = await positionRepo.findById(positionId);
