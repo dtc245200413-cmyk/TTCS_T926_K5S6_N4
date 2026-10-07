@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { FiEye, FiSearch, FiPlus, FiEdit2, FiTrash2, FiRefreshCw, FiCopy, FiX } from 'react-icons/fi';
 import questionApi from '../../api/questionApi';
 import competencyApi from '../../api/competencyApi';
 import { AuthContext } from '../../context/AuthContext';
@@ -390,8 +391,18 @@ const QuestionBank = () => {
       }}>
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Search Input */}
-          <div style={{ flex: '1 1 300px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '1.1rem' }}>🔍</span>
+          <div style={{ flex: '1 1 240px', minWidth: '200px', position: 'relative' }}>
+            <FiSearch
+              size={18}
+              style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#94a3b8',
+                pointerEvents: 'none'
+              }}
+            />
             <input
               type="text"
               placeholder="Tìm kiếm nội dung câu hỏi, đáp án gợi ý hoặc tiêu chí..."
@@ -400,18 +411,19 @@ const QuestionBank = () => {
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 background: '#f8fafc',
-                padding: '12px 16px 12px 48px',
+                padding: '12px 16px 12px 46px',
                 height: '48px',
                 borderRadius: '12px',
                 border: '1px solid #e2e8f0',
                 fontSize: '0.95rem',
-                width: '100%'
+                width: '100%',
+                boxSizing: 'border-box'
               }}
             />
           </div>
 
           {/* Criteria Filter */}
-          <div style={{ flex: '0 0 260px' }}>
+          <div style={{ flex: '0 1 220px', minWidth: '180px' }}>
             <select
               className="form-control"
               value={selectedCriteria}
@@ -424,10 +436,11 @@ const QuestionBank = () => {
                 border: '1px solid #e2e8f0',
                 cursor: 'pointer',
                 fontSize: '0.95rem',
-                width: '100%'
+                width: '100%',
+                boxSizing: 'border-box'
               }}
             >
-              <option value="">-- Tất cả tiêu chí năng lực --</option>
+              <option value="">-- Tất cả tiêu chí --</option>
               {criteriaList.map((c) => (
                 <option key={c.id || c.criteria_id} value={c.id || c.criteria_id}>
                   {c.name || c.criteria_name}
@@ -437,7 +450,7 @@ const QuestionBank = () => {
           </div>
 
           {/* Difficulty Filter */}
-          <div style={{ flex: '0 0 180px' }}>
+          <div style={{ flex: '0 1 160px', minWidth: '140px' }}>
             <select
               className="form-control"
               value={selectedDifficulty}
@@ -450,7 +463,8 @@ const QuestionBank = () => {
                 border: '1px solid #e2e8f0',
                 cursor: 'pointer',
                 fontSize: '0.95rem',
-                width: '100%'
+                width: '100%',
+                boxSizing: 'border-box'
               }}
             >
               <option value="">-- Mức độ khó --</option>
@@ -463,39 +477,74 @@ const QuestionBank = () => {
           {/* Buttons */}
           <button
             type="submit"
-            className="btn-primary"
             style={{
-              padding: '12px 20px',
+              padding: '0 22px',
               borderRadius: '12px',
               height: '48px',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '8px',
               fontWeight: '600',
-              marginTop: 0,
-              cursor: 'pointer'
+              fontSize: '0.95rem',
+              color: '#ffffff',
+              background: '#4f46e5',
+              border: 'none',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
+              transition: 'all 0.2s ease',
+              marginTop: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#4338ca';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(79, 70, 229, 0.35)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#4f46e5';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.25)';
             }}
           >
-            Tìm kiếm
+            <FiSearch size={17} />
+            <span>Tìm kiếm</span>
           </button>
 
           {(search || selectedCriteria || selectedDifficulty) && (
             <button
               type="button"
               onClick={handleResetFilters}
-              className="btn-secondary"
               style={{
-                padding: '12px 18px',
+                padding: '0 18px',
                 borderRadius: '12px',
                 height: '48px',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                cursor: 'pointer'
+                gap: '8px',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                color: '#475569',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.color = '#0f172a';
+                e.currentTarget.style.borderColor = '#94a3b8';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.color = '#475569';
+                e.currentTarget.style.borderColor = '#cbd5e1';
               }}
             >
-              🔄 Đặt lại
+              <FiRefreshCw size={15} />
+              <span>Đặt lại</span>
             </button>
           )}
         </form>
@@ -513,7 +562,7 @@ const QuestionBank = () => {
                 <th style={{ width: '220px' }}>Tiêu chí năng lực</th>
                 <th style={{ width: '150px' }}>Độ khó</th>
                 <th>Nội dung câu hỏi</th>
-                <th style={{ width: '130px', textAlign: 'center' }}>Đáp án gợi ý</th>
+                <th style={{ width: '150px', textAlign: 'center' }}>Đáp án gợi ý</th>
                 <th style={{ width: '150px', textAlign: 'center' }}>Thao tác</th>
               </tr>
             </thead>
@@ -581,69 +630,72 @@ const QuestionBank = () => {
                         <button
                           onClick={() => setViewingQuestion(q)}
                           style={{
-                            background: '#e0e7ff',
-                            color: '#4338ca',
-                            border: '1px solid #c7d2fe',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '0.8rem',
+                            background: '#f5f3ff',
+                            color: '#6366f1',
+                            border: '1px solid #ddd6fe',
+                            borderRadius: '10px',
+                            padding: '6px 14px',
+                            fontSize: '0.82rem',
                             fontWeight: '600',
                             cursor: 'pointer',
-                            transition: 'all 0.2s',
+                            transition: 'all 0.2s ease',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            justifyContent: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#c7d2fe'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = '#e0e7ff'}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#ede9fe';
+                            e.currentTarget.style.borderColor = '#c4b5fd';
+                            e.currentTarget.style.color = '#4f46e5';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#f5f3ff';
+                            e.currentTarget.style.borderColor = '#ddd6fe';
+                            e.currentTarget.style.color = '#6366f1';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
                         >
-                          👁️ Xem đáp án
+                          <FiEye size={15} />
+                          <span>Xem đáp án</span>
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Chưa có</span>
+                        <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>Chưa có</span>
                       )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                         <button
-                          onClick={() => setViewingQuestion(q)}
-                          title="Xem chi tiết"
-                          style={{
-                            background: '#f1f5f9',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            width: '34px',
-                            height: '34px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '0.95rem',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          🔍
-                        </button>
-
-                        <button
                           onClick={() => handleOpenEditModal(q)}
                           title="Chỉnh sửa câu hỏi"
                           style={{
-                            background: '#f1f5f9',
+                            background: '#f8fafc',
                             border: '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            width: '34px',
-                            height: '34px',
+                            borderRadius: '10px',
+                            width: '36px',
+                            height: '36px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer',
                             fontSize: '0.95rem',
                             color: '#2563eb',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#eff6ff';
+                            e.currentTarget.style.borderColor = '#bfdbfe';
+                            e.currentTarget.style.color = '#1d4ed8';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#f8fafc';
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                            e.currentTarget.style.color = '#2563eb';
                           }}
                         >
-                          ✏️
+                          <FiEdit2 size={16} />
                         </button>
 
                         <button
@@ -652,19 +704,29 @@ const QuestionBank = () => {
                           style={{
                             background: '#fef2f2',
                             border: '1px solid #fecaca',
-                            borderRadius: '8px',
-                            width: '34px',
-                            height: '34px',
+                            borderRadius: '10px',
+                            width: '36px',
+                            height: '36px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer',
                             fontSize: '0.95rem',
                             color: '#dc2626',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#fee2e2';
+                            e.currentTarget.style.borderColor = '#f87171';
+                            e.currentTarget.style.color = '#b91c1c';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#fef2f2';
+                            e.currentTarget.style.borderColor = '#fecaca';
+                            e.currentTarget.style.color = '#dc2626';
                           }}
                         >
-                          🗑️
+                          <FiTrash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -763,9 +825,11 @@ const QuestionBank = () => {
               </div>
               <button
                 onClick={() => setShowFormModal(false)}
-                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '1.1rem', color: '#64748b' }}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
               >
-                ✕
+                <FiX size={18} />
               </button>
             </div>
 
@@ -774,38 +838,16 @@ const QuestionBank = () => {
             <form onSubmit={handleFormSubmit}>
               {/* Tiêu chí năng lực */}
               <div className="form-group" style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#334155', margin: 0 }}>
-                    Tiêu chí năng lực <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleOpenCompetencyModal}
-                    style={{
-                      background: '#eff6ff',
-                      border: '1px solid #bfdbfe',
-                      color: '#2563eb',
-                      borderRadius: '8px',
-                      padding: '4px 10px',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <span>➕</span> Thêm tiêu chí mới
-                  </button>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <label style={{ display: 'block', fontWeight: '700', fontSize: '0.9rem', color: '#334155', marginBottom: '8px' }}>
+                  Tiêu chí năng lực <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <select
                     className="form-control"
                     value={formData.competency_criteria_id}
                     onChange={(e) => setFormData({ ...formData, competency_criteria_id: e.target.value })}
                     required
-                    style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #cbd5e1', flex: 1 }}
+                    style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #cbd5e1', flex: 1, height: '48px', fontSize: '0.95rem' }}
                   >
                     <option value="">-- Chọn tiêu chí năng lực liên kết --</option>
                     {criteriaList.map((c) => (
@@ -823,19 +865,32 @@ const QuestionBank = () => {
                       color: 'white',
                       border: 'none',
                       borderRadius: '12px',
-                      padding: '12px 16px',
-                      fontSize: '0.88rem',
+                      padding: '0 18px',
+                      height: '48px',
+                      fontSize: '0.9rem',
                       fontWeight: '600',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
                       boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#4338ca';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(79, 70, 229, 0.35)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#4f46e5';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.25)';
                     }}
                   >
-                    <span>+</span> Thêm mới
+                    <FiPlus size={16} />
+                    <span>Thêm mới</span>
                   </button>
                 </div>
                 <small style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '6px', display: 'block' }}>
@@ -971,9 +1026,11 @@ const QuestionBank = () => {
               </div>
               <button
                 onClick={() => setViewingQuestion(null)}
-                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '1.1rem', color: '#64748b' }}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
               >
-                ✕
+                <FiX size={18} />
               </button>
             </div>
 
@@ -1018,18 +1075,23 @@ const QuestionBank = () => {
                       showToast('Đã sao chép đáp án vào clipboard!', 'success');
                     }}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#4f46e5',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '8px',
+                      color: '#2563eb',
                       fontSize: '0.8rem',
                       fontWeight: '600',
+                      padding: '4px 10px',
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '4px',
+                      transition: 'all 0.2s'
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#eff6ff'}
                   >
-                    📋 Sao chép
+                    <FiCopy size={14} /> <span>Sao chép</span>
                   </button>
                 )}
               </div>
@@ -1061,10 +1123,13 @@ const QuestionBank = () => {
                   padding: '10px 20px',
                   width: 'auto',
                   marginTop: 0,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                ✏️ Chỉnh Sửa
+                <FiEdit2 size={15} /> <span>Chỉnh Sửa</span>
               </button>
               <button
                 onClick={() => setViewingQuestion(null)}
@@ -1151,9 +1216,11 @@ const QuestionBank = () => {
               <button
                 type="button"
                 onClick={() => setShowCompetencyModal(false)}
-                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1rem', color: '#64748b' }}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
               >
-                ✕
+                <FiX size={16} />
               </button>
             </div>
 
