@@ -1,6 +1,6 @@
 /**
  * positionRepository.js
- * All database operations for 'job_positions' table (SCRUM-62 / SCRUM-98).
+ * All database operations for 'job_positions' table.
  *
  * DB columns:
  *   position_id, position_code, position_name, position_level,

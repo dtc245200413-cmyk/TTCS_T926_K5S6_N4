@@ -16,6 +16,8 @@ function PositionTable({
   positions,
   onEdit,
   onDelete,
+  isHrManager: isHrManagerProp,
+  userRoleName,
   currentRole,
   searchTerm,
   setSearchTerm,
@@ -24,7 +26,8 @@ function PositionTable({
   selectedStatus,
   setSelectedStatus,
 }) {
-  const isHrManager = currentRole === 'HR_MANAGER' || currentRole === 'ADMIN';
+  const isHrManager =
+    isHrManagerProp !== undefined ? isHrManagerProp : currentRole === 'HR_MANAGER';
 
   const filteredPositions = positions.filter((pos) => {
     const code = pos.position_code || pos.code || '';
@@ -102,9 +105,9 @@ function PositionTable({
         <div className="pos-role-alert">
           <FiLock className="pos-alert-icon" />
           <div>
-            <strong>Chế độ xem: Nhân viên Tuyển dụng</strong>
+            <strong>Chế độ xem: {userRoleName || 'Chức vụ khác'} (Dải lương bị bảo mật)</strong>
             <p>
-              Theo quy định phân quyền của ticket <strong>SCRUM-62</strong>: Dải lương tối thiểu và
+              Theo quy định phân quyền hệ thống: Dải lương tối thiểu và
               tối đa được bảo mật, chỉ <strong>Trưởng phòng Nhân sự</strong> mới có quyền xem và cấu
               hình dải lương này.
             </p>
@@ -265,7 +268,7 @@ function PositionTable({
           Hiển thị <strong>{filteredPositions.length}</strong> / <strong>{positions.length}</strong> chức danh
         </div>
         <div className="pos-table-note">
-          * Dải lương được áp dụng làm hạn mức trần & sàn khi phòng nhân sự duyệt quyết định offer (SCRUM-62).
+          * Dải lương được áp dụng làm hạn mức trần & sàn khi phòng nhân sự duyệt quyết định offer.
         </div>
       </div>
     </div>

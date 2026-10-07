@@ -1,6 +1,6 @@
 /**
  * positionRoutes.js
- * Endpoints for /api/positions (SCRUM-62 / SCRUM-98)
+ * Endpoints for /api/positions
  */
 
 const express = require('express');
