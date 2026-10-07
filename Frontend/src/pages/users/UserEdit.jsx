@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import userApi from '../../api/userApi';
+import { AuthContext } from '../../context/AuthContext';
 
 // Chỉ chấp nhận số di động Việt Nam: 03/05/07/08/09 + 8 số
 // hoặc dạng quốc tế +84 + 9 số.
@@ -18,9 +19,19 @@ const JOB_TITLES = [
   'Thực tập sinh (Intern)'
 ];
 
-const UserEdit = () => {
-  const { id } = useParams();
+/**
+ * UserEdit component
+ *
+ * Props:
+ *   isSelfEdit (bool) – when true, uses the /users/me endpoint so any
+ *                       authenticated user can edit their own profile.
+ *                       When false/omitted, uses /users/:id and requires admin.
+ */
+const UserEdit = ({ isSelfEdit = false }) => {
+  const { id } = useParams(); // only used in admin mode
   const navigate = useNavigate();
+  const { user: currentUser, refreshUser } = useContext(AuthContext);
+
   const [formData, setFormData] = useState({
     full_name: '',
     phone_number: '',
@@ -31,10 +42,18 @@ const UserEdit = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Determine which user ID and API calls to use
+  const targetId = isSelfEdit ? (currentUser?.user_id) : id;
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await userApi.getById(id);
+        let response;
+        if (isSelfEdit) {
+          response = await userApi.getMe();
+        } else {
+          response = await userApi.getById(id);
+        }
         if (response.data.success) {
           const user = response.data.data;
           setOriginalUser(user);
@@ -55,7 +74,7 @@ const UserEdit = () => {
     };
 
     fetchUser();
-  }, [id]);
+  }, [id, isSelfEdit]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -102,10 +121,22 @@ const UserEdit = () => {
         job_title: formData.job_title.trim()
       };
 
-      const response = await userApi.update(id, payload);
+      let response;
+      if (isSelfEdit) {
+        response = await userApi.updateMe(payload);
+      } else {
+        response = await userApi.update(id, payload);
+      }
+
       if (response.data.success) {
         setStatus({ type: 'success', message: 'Cập nhật hồ sơ thành công!' });
-        setTimeout(() => navigate(`/users/${id}`), 1000);
+        // Refresh the global auth context so the top-bar shows updated name
+        if (isSelfEdit) {
+          await refreshUser();
+          setTimeout(() => navigate('/'), 1000);
+        } else {
+          setTimeout(() => navigate(`/users/${id}`), 1000);
+        }
       }
     } catch (err) {
       setStatus({
@@ -124,6 +155,8 @@ const UserEdit = () => {
 
   const departmentName = originalUser.department?.department_name || 'Chưa phân phòng ban';
   const roleNames = originalUser.roles?.map((role) => role.role_name).filter(Boolean) || [];
+  const backLink = isSelfEdit ? '/' : `/users/${id}`;
+  const backLabel = isSelfEdit ? 'Quay lại trang chủ' : 'Hủy';
 
   return (
     <div>
@@ -218,7 +251,7 @@ const UserEdit = () => {
             <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={saving}>
               {saving ? 'Đang lưu...' : 'Cập nhật hồ sơ'}
             </button>
-            <Link to={`/users/${id}`} className="btn-secondary">Hủy</Link>
+            <Link to={backLink} className="btn-secondary">{backLabel}</Link>
           </div>
         </form>
       </div>

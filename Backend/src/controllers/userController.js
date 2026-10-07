@@ -43,6 +43,23 @@ const updateUser = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// SCRUM-58: Get own profile — any authenticated user can view their own profile
+const getOwnProfile = async (req, res, next) => {
+  try {
+    const user = await userService.getUserById(req.user.user_id);
+    return sendSuccess(res, 'Profile retrieved successfully.', user);
+  } catch (error) { next(error); }
+};
+
+// SCRUM-58: Update own profile — any authenticated user can update ONLY their own profile.
+// Only full_name, phone_number, job_title are allowed. Email/department/role are read-only.
+const updateOwnProfile = async (req, res, next) => {
+  try {
+    const updatedUser = await userService.updateUser(req.user.user_id, req.body, req.user.user_id, getIp(req));
+    return sendSuccess(res, 'Hồ sơ cá nhân đã được cập nhật thành công.', updatedUser);
+  } catch (error) { next(error); }
+};
+
 // ── PART 3 ENDPOINTS ────────────────────────────────────────
 
 const getUserRoles = async (req, res, next) => {
@@ -108,5 +125,6 @@ const unlockUser = async (req, res, next) => {
 
 module.exports = {
   getAllUsers, getUserById, createUser, updateUser,
+  getOwnProfile, updateOwnProfile,
   getUserRoles, assignRole, revokeRole, lockUser, unlockUser
 };
