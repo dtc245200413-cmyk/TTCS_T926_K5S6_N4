@@ -17,9 +17,10 @@ function createError(message, statusCode) {
 function normalizeDifficulty(diff) {
   if (!diff) return null;
   const upper = String(diff).trim().toUpperCase();
-  if (upper === 'EASY') return 'Easy';
-  if (upper === 'MEDIUM') return 'Medium';
-  if (upper === 'HARD') return 'Hard';
+  if (upper === 'ALL' || upper === '' || upper === 'NULL' || upper === 'UNDEFINED' || upper === 'TẤT CẢ' || upper === 'TAT CA' || upper.includes('TẤT CẢ')) return null;
+  if (upper === 'EASY' || upper.includes('EASY') || upper.includes('DỄ') || upper.includes('DE')) return 'Easy';
+  if (upper === 'MEDIUM' || upper.includes('MEDIUM') || upper.includes('TRUNG BÌNH') || upper.includes('TRUNG BINH') || upper.includes('TB')) return 'Medium';
+  if (upper === 'HARD' || upper.includes('HARD') || upper.includes('KHÓ') || upper.includes('KHO')) return 'Hard';
   return null;
 }
 
@@ -39,17 +40,21 @@ async function getAllQuestions(query = {}) {
     sortOrder = 'DESC'
   } = query;
 
-  const parsedCriteriaId = competency_criteria_id || criteriaId;
-  const rawDifficulty = difficulty_level || difficulty;
-  const normalizedDiff = rawDifficulty ? normalizeDifficulty(rawDifficulty) : null;
-
-  if (rawDifficulty && rawDifficulty !== 'ALL' && !normalizedDiff) {
-    throw createError("Mức độ khó không hợp lệ. Vui lòng chọn: Easy, Medium, hoặc Hard.", 400);
+  const rawCriteria = competency_criteria_id || criteriaId;
+  let parsedCriteriaId = null;
+  if (rawCriteria && rawCriteria !== '' && rawCriteria !== 'ALL' && rawCriteria !== 'null' && rawCriteria !== 'undefined') {
+    const num = parseInt(rawCriteria, 10);
+    if (!isNaN(num) && num > 0) {
+      parsedCriteriaId = num;
+    }
   }
 
+  const rawDifficulty = difficulty_level || difficulty;
+  const normalizedDiff = normalizeDifficulty(rawDifficulty);
+
   const result = await questionRepository.findAll({
-    search,
-    competency_criteria_id: parsedCriteriaId ? parseInt(parsedCriteriaId, 10) : null,
+    search: search ? String(search).trim() : '',
+    competency_criteria_id: parsedCriteriaId,
     difficulty_level: normalizedDiff,
     page: parseInt(page, 10) || 1,
     limit: parseInt(limit, 10) || 10,
@@ -57,8 +62,12 @@ async function getAllQuestions(query = {}) {
     sortOrder
   });
 
-  const stats = await questionRepository.getSummaryStats();
-  result.stats = stats;
+  try {
+    const stats = await questionRepository.getSummaryStats();
+    result.stats = stats;
+  } catch (err) {
+    result.stats = { total: 0, easyCount: 0, mediumCount: 0, hardCount: 0 };
+  }
 
   return result;
 }

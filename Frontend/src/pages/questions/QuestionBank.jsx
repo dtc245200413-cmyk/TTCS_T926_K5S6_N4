@@ -89,12 +89,18 @@ const QuestionBank = () => {
         page: currentPage,
         limit,
       };
-      if (search.trim()) params.search = search.trim();
-      if (selectedCriteria) params.competency_criteria_id = selectedCriteria;
-      if (selectedDifficulty) params.difficulty_level = selectedDifficulty;
+      if (search && search.trim()) {
+        params.search = search.trim();
+      }
+      if (selectedCriteria && selectedCriteria !== '' && selectedCriteria !== 'ALL') {
+        params.competency_criteria_id = selectedCriteria;
+      }
+      if (selectedDifficulty && selectedDifficulty !== '' && selectedDifficulty !== 'ALL') {
+        params.difficulty_level = selectedDifficulty;
+      }
 
       const res = await questionApi.getAll(params);
-      if (res.data.success) {
+      if (res.data && res.data.success) {
         const payload = res.data.data;
         setQuestions(payload.questions || []);
         if (payload.pagination) {
@@ -107,6 +113,8 @@ const QuestionBank = () => {
         }
       }
     } catch (err) {
+      console.error('Lỗi khi tải danh sách câu hỏi:', err);
+      // Only show error message if it is not an empty result
       setError(err.response?.data?.message || 'Không thể tải danh sách câu hỏi.');
     } finally {
       setLoading(false);
@@ -131,11 +139,11 @@ const QuestionBank = () => {
     setSelectedCriteria('');
     setSelectedDifficulty('');
     setPage(1);
-    // Directly fetch without filters
+    setError('');
     setLoading(true);
     questionApi.getAll({ page: 1, limit })
       .then(res => {
-        if (res.data.success) {
+        if (res.data && res.data.success) {
           setQuestions(res.data.data.questions || []);
           setTotalPages(res.data.data.pagination.totalPages || 1);
           setTotalRecords(res.data.data.pagination.total || 0);
@@ -143,7 +151,10 @@ const QuestionBank = () => {
           if (res.data.data.stats) setStats(res.data.data.stats);
         }
       })
-      .catch(() => setError('Lỗi khi đặt lại bộ lọc.'))
+      .catch(err => {
+        console.error('Lỗi khi đặt lại bộ lọc:', err);
+        setError('Không thể đặt lại bộ lọc.');
+      })
       .finally(() => setLoading(false));
   };
 
@@ -423,21 +434,40 @@ const QuestionBank = () => {
           </div>
 
           {/* Criteria Filter */}
-          <div style={{ flex: '0 1 220px', minWidth: '180px' }}>
+          <div style={{ flex: '0 1 240px', minWidth: '200px', position: 'relative' }}>
             <select
               className="form-control"
               value={selectedCriteria}
               onChange={(e) => setSelectedCriteria(e.target.value)}
+              onClick={(e) => {
+                if (typeof e.target.showPicker === 'function') {
+                  try { e.target.showPicker(); } catch (_) {}
+                }
+              }}
               style={{
-                background: '#f8fafc',
-                padding: '12px 16px',
+                background: `#f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 14px center / 16px`,
+                padding: '12px 38px 12px 16px',
                 height: '48px',
                 borderRadius: '12px',
                 border: '1px solid #e2e8f0',
                 cursor: 'pointer',
                 fontSize: '0.95rem',
                 width: '100%',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                color: '#1e293b',
+                outline: 'none',
+                transition: 'border-color 0.2s, box-shadow 0.2s'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#6366f1';
+                e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
               }}
             >
               <option value="">-- Tất cả tiêu chí --</option>
@@ -450,21 +480,40 @@ const QuestionBank = () => {
           </div>
 
           {/* Difficulty Filter */}
-          <div style={{ flex: '0 1 160px', minWidth: '140px' }}>
+          <div style={{ flex: '0 1 180px', minWidth: '150px', position: 'relative' }}>
             <select
               className="form-control"
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
+              onClick={(e) => {
+                if (typeof e.target.showPicker === 'function') {
+                  try { e.target.showPicker(); } catch (_) {}
+                }
+              }}
               style={{
-                background: '#f8fafc',
-                padding: '12px 16px',
+                background: `#f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 14px center / 16px`,
+                padding: '12px 38px 12px 16px',
                 height: '48px',
                 borderRadius: '12px',
                 border: '1px solid #e2e8f0',
                 cursor: 'pointer',
                 fontSize: '0.95rem',
                 width: '100%',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                color: '#1e293b',
+                outline: 'none',
+                transition: 'border-color 0.2s, box-shadow 0.2s'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#6366f1';
+                e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
               }}
             >
               <option value="">-- Mức độ khó --</option>
@@ -846,8 +895,27 @@ const QuestionBank = () => {
                     className="form-control"
                     value={formData.competency_criteria_id}
                     onChange={(e) => setFormData({ ...formData, competency_criteria_id: e.target.value })}
+                    onClick={(e) => {
+                      if (typeof e.target.showPicker === 'function') {
+                        try { e.target.showPicker(); } catch (_) {}
+                      }
+                    }}
                     required
-                    style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #cbd5e1', flex: 1, height: '48px', fontSize: '0.95rem' }}
+                    style={{
+                      background: `#f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 14px center / 16px`,
+                      borderRadius: '12px',
+                      padding: '12px 38px 12px 16px',
+                      border: '1px solid #cbd5e1',
+                      flex: 1,
+                      height: '48px',
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      color: '#1e293b',
+                      outline: 'none'
+                    }}
                   >
                     <option value="">-- Chọn tiêu chí năng lực liên kết --</option>
                     {criteriaList.map((c) => (
