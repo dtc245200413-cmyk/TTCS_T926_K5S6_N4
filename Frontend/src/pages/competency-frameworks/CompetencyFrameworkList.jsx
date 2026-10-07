@@ -8,7 +8,7 @@ const CompetencyFrameworkList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const { hasPermission } = useContext(AuthContext);
+  const { hasPermission, user } = useContext(AuthContext);
 
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState(null);
@@ -22,6 +22,9 @@ const CompetencyFrameworkList = () => {
 
   // Có COMPETENCY_MANAGE -> được thêm / sửa / xóa
   const canManage = hasPermission('COMPETENCY_MANAGE');
+  const canCreate = user?.roles?.some(
+    (role) => role.role_code === 'HR_MANAGER'
+  );
 
   // =========================================================
   // LẤY DANH SÁCH KHUNG NĂNG LỰC
@@ -248,7 +251,7 @@ const CompetencyFrameworkList = () => {
         </div>
 
         {/* CHỈ NGƯỜI CÓ COMPETENCY_MANAGE MỚI ĐƯỢC THÊM */}
-        {canManage && (
+        {canCreate && (
           <Link
             to="/competency-frameworks/create"
             className="btn-primary"
@@ -422,8 +425,7 @@ const CompetencyFrameworkList = () => {
                 color: '#64748b'
               }}
             >
-              Thêm khung năng lực mới để sử dụng trong quá trình
-              phỏng vấn.
+              Hiện chưa có khung năng lực nào.
             </p>
           </div>
         ) : (

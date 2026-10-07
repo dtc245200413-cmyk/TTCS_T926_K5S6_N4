@@ -63,7 +63,11 @@ function App() {
 
             <Route
               path="/competency-frameworks/create"
-              element={<CompetencyFrameworkForm />}
+              element={
+                <ProtectedRoute requiredRole="HR_MANAGER">
+                  <CompetencyFrameworkForm />
+                </ProtectedRoute>
+              }
             />
 
             <Route
