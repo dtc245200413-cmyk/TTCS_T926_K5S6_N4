@@ -194,7 +194,7 @@ const Login = () => {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => { setEmail('dtc245200002@ictu.edu.vn'); setPassword('123456'); }}
+                  onClick={() => { setEmail('dtc245200344@ictu.edu.vn'); setPassword('123456'); }}
                   style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5', border: '1px solid rgba(79, 70, 229, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseOver={(e) => { e.target.style.background = '#4f46e5'; e.target.style.color = 'white'; }}
                   onMouseOut={(e) => { e.target.style.background = 'rgba(79, 70, 229, 0.1)'; e.target.style.color = '#4f46e5'; }}

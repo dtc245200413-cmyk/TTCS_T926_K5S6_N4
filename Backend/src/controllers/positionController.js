@@ -29,7 +29,7 @@ function isUserHrManager(req) {
     req.user.job_title.toLowerCase().includes('tp ns') ||
     req.user.job_title.toLowerCase().includes('hr manager')
   );
-  const isHrEmail = req.user.company_email === 'dtc245200002@ictu.edu.vn';
+  const isHrEmail = ['dtc245200344@ictu.edu.vn', 'dtc245200002@ictu.edu.vn'].includes(req.user.company_email);
 
   return Boolean(hasHrRole || hasHrJobTitle || isHrEmail);
 }
