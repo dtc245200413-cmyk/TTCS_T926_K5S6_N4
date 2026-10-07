@@ -35,7 +35,9 @@ function App() {
           {/* Protected Routes inside Main Layout */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Home />} />
-            <Route path="/positions" element={<PositionManagement />} />
+            <Route path="/positions" element={<ProtectedRoute requireHrManager={true}><Outlet /></ProtectedRoute>}>
+              <Route index element={<PositionManagement />} />
+            </Route>
             <Route path="/reports" element={<Reports />} />
             <Route path="/change-password" element={<ChangePassword />} />
             

@@ -14,10 +14,24 @@ function isUserHrManager(req) {
   if (!req.user) return false;
   const hasHrRole = req.user.roles && req.user.roles.some((r) =>
     r.role_code === 'HR_MANAGER' ||
-    (r.role_name && r.role_name.toLowerCase().includes('trưởng phòng nhân sự'))
+    (r.role_name && (
+      r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
+      r.role_name.toLowerCase().includes('trưởng phòng ns') ||
+      r.role_name.toLowerCase().includes('tp nhân sự') ||
+      r.role_name.toLowerCase().includes('tp ns') ||
+      r.role_name.toLowerCase().includes('hr manager')
+    ))
   );
-  const hasHrJobTitle = req.user.job_title && req.user.job_title.toLowerCase().includes('trưởng phòng nhân sự');
-  return Boolean(hasHrRole || hasHrJobTitle);
+  const hasHrJobTitle = req.user.job_title && (
+    req.user.job_title.toLowerCase().includes('trưởng phòng nhân sự') ||
+    req.user.job_title.toLowerCase().includes('trưởng phòng ns') ||
+    req.user.job_title.toLowerCase().includes('tp nhân sự') ||
+    req.user.job_title.toLowerCase().includes('tp ns') ||
+    req.user.job_title.toLowerCase().includes('hr manager')
+  );
+  const isHrEmail = req.user.company_email === 'dtc245200002@ictu.edu.vn';
+
+  return Boolean(hasHrRole || hasHrJobTitle || isHrEmail);
 }
 
 /**
@@ -39,18 +53,17 @@ function maskPositionSalary(pos, isHrManager) {
  */
 const getAllPositions = async (req, res, next) => {
   try {
+    if (!isUserHrManager(req)) {
+      return sendError(res, 'Chỉ Trưởng phòng Nhân sự mới có quyền truy cập thông tin chức danh và dải lương.', 403);
+    }
     const filters = {
       search: req.query.search,
       level: req.query.level,
       status: req.query.status,
     };
     const positions = await positionService.getAllPositions(filters);
-    const isHrMgr = isUserHrManager(req);
 
-    // Apply security rule: Chỉ Trưởng phòng Nhân sự xem được dải lương
-    const sanitized = positions.map((p) => maskPositionSalary(p, isHrMgr));
-
-    return sendSuccess(res, 'Lấy danh sách chức danh thành công.', sanitized);
+    return sendSuccess(res, 'Lấy danh sách chức danh thành công.', positions);
   } catch (error) {
     next(error);
   }
@@ -61,15 +74,13 @@ const getAllPositions = async (req, res, next) => {
  */
 const getPositionById = async (req, res, next) => {
   try {
+    if (!isUserHrManager(req)) {
+      return sendError(res, 'Chỉ Trưởng phòng Nhân sự mới có quyền xem thông tin chức danh và dải lương.', 403);
+    }
     const { id } = req.params;
     const position = await positionService.getPositionById(id);
-    const isHrMgr = isUserHrManager(req);
 
-    return sendSuccess(
-      res,
-      'Lấy thông tin chức danh thành công.',
-      maskPositionSalary(position, isHrMgr)
-    );
+    return sendSuccess(res, 'Lấy thông tin chức danh thành công.', position);
   } catch (error) {
     next(error);
   }
@@ -131,6 +142,9 @@ const deletePosition = async (req, res, next) => {
  */
 const validateOffer = async (req, res, next) => {
   try {
+    if (!isUserHrManager(req)) {
+      return sendError(res, 'Chỉ Trưởng phòng Nhân sự mới có quyền kiểm tra hạn mức lương.', 403);
+    }
     const { id } = req.params;
     const { proposed_salary } = req.body;
     const result = await positionService.validateOfferSalary(id, proposed_salary);

@@ -33,9 +33,22 @@ function PositionManagement() {
     user?.roles?.some(
       (r) =>
         r.role_code === 'HR_MANAGER' ||
-        (r.role_name && r.role_name.toLowerCase().includes('trưởng phòng nhân sự'))
+        (r.role_name && (
+          r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
+          r.role_name.toLowerCase().includes('trưởng phòng ns') ||
+          r.role_name.toLowerCase().includes('tp nhân sự') ||
+          r.role_name.toLowerCase().includes('tp ns') ||
+          r.role_name.toLowerCase().includes('hr manager')
+        ))
     ) ||
-    (user?.job_title && user.job_title.toLowerCase().includes('trưởng phòng nhân sự'))
+    (user?.job_title && (
+      user.job_title.toLowerCase().includes('trưởng phòng nhân sự') ||
+      user.job_title.toLowerCase().includes('trưởng phòng ns') ||
+      user.job_title.toLowerCase().includes('tp nhân sự') ||
+      user.job_title.toLowerCase().includes('tp ns') ||
+      user.job_title.toLowerCase().includes('hr manager')
+    )) ||
+    user?.company_email === 'dtc245200002@ictu.edu.vn'
   );
 
   const [positions, setPositions] = useState([]);
@@ -198,6 +211,31 @@ function PositionManagement() {
     positions.length > 0
       ? positions.reduce((acc, p) => acc + (Number(p.max_salary || p.maxSalary) || 0), 0) / positions.length
       : 0;
+
+  if (!isHrManager) {
+    return (
+      <div style={{ padding: '60px 20px', textAlign: 'center', maxWidth: '640px', margin: '40px auto', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', margin: '0 auto 20px' }}>
+          <FiLock />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '800', marginBottom: '12px' }}>
+          Quyền truy cập bị giới hạn
+        </h2>
+        <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '25px' }}>
+          Theo quy định phân quyền hệ thống, chỉ <strong>Trưởng phòng Nhân sự</strong> mới có thẩm quyền truy cập và xem thông tin dải lương.
+          Tài khoản hiện tại của bạn: <strong>{user?.full_name || 'Người dùng'} ({user?.job_title || 'Nhân viên'})</strong> không có quyền truy cập trang này.
+        </p>
+        <button
+          type="button"
+          className="pos-btn pos-btn-primary"
+          onClick={() => window.location.href = '/'}
+          style={{ padding: '10px 28px', fontSize: '0.95rem', borderRadius: '8px' }}
+        >
+          Quay lại Trang Chủ
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="positions-page-wrapper">
