@@ -6,7 +6,8 @@ const competencyFrameworkController =
 
 const {
   authenticate,
-  authorize
+  authorize,
+  authorizeRole
 } = require('../middleware/authMiddleware');
 
 // XEM
@@ -28,6 +29,7 @@ router.get(
 router.post(
   '/',
   authenticate,
+  authorizeRole('HR_MANAGER'),
   authorize('COMPETENCY_MANAGE'),
   competencyFrameworkController.createFramework
 );

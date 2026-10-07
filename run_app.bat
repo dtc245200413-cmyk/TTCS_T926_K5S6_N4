@@ -37,7 +37,7 @@ echo Press any key to start the servers...
 pause >nul
 
 echo.
-echo [1/3] Starting Backend API on Port 3000...
+echo [1/3] Starting Backend API on Port 5000...
 if not exist "%BACKEND_DIR%\node_modules" (
     echo [INFO] Backend node_modules not found. Installing dependencies...
     cmd /c "cd /d ""%BACKEND_DIR%"" && npm install"
@@ -62,7 +62,7 @@ echo ========================================================
 echo  SYSTEM STARTED SUCCESSFULLY
 echo ========================================================
 echo  Link dang nhap Web:  http://localhost:5173/login
-echo  Link kiem tra API:   http://localhost:3000/
+echo  Link kiem tra API:   http://localhost:5000/
 echo  Database:            internal_recruitment_system
 echo --------------------------------------------------------
 echo  Tai khoan test (Admin):
