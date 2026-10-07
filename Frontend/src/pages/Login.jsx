@@ -212,7 +212,7 @@ const Login = () => {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => { setEmail('dtc245200344@ictu.edu.vn'); setPassword('123456'); }}
+                  onClick={() => { setEmail('dtc245200852@ictu.edu.vn'); setPassword('123456'); }}
                   style={{ padding: '8px', fontSize: '0.85rem', fontWeight: '600', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseOver={(e) => { e.target.style.background = '#10b981'; e.target.style.color = 'white'; }}
                   onMouseOut={(e) => { e.target.style.background = 'rgba(16, 185, 129, 0.1)'; e.target.style.color = '#10b981'; }}
