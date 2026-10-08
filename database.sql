@@ -264,7 +264,11 @@ INSERT INTO permissions (permission_code, permission_name, description) VALUES
 ('USER_UNLOCK', 'Unlock Users', 'Can unlock a user account'),
 ('ROLE_VIEW',   'View Roles',   'Can view roles and permissions'),
 ('ROLE_ASSIGN', 'Assign Roles', 'Can assign a role to a user'),
-('ROLE_REVOKE', 'Revoke Roles', 'Can revoke a role from a user');
+('ROLE_REVOKE', 'Revoke Roles', 'Can revoke a role from a user'),
+('COMPETENCY_VIEW', 'View Competency Frameworks', 'Can view competency frameworks'),
+('COMPETENCY_MANAGE', 'Manage Competency Frameworks', 'Can create, edit, delete competency frameworks'),
+('POSITION_VIEW', 'View Positions', 'Can view job positions'),
+('POSITION_MANAGE', 'Manage Positions', 'Can manage job positions');
 
 -- Role -> Permission mappings
 INSERT INTO role_permissions (role_id, permission_id)
@@ -276,19 +280,19 @@ WHERE  r.role_code = 'ADMIN';
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
-JOIN   permissions p ON p.permission_code IN ('USER_VIEW','USER_CREATE','USER_UPDATE','ROLE_VIEW')
+JOIN   permissions p ON p.permission_code IN ('USER_VIEW','USER_CREATE','USER_UPDATE','ROLE_VIEW', 'COMPETENCY_VIEW', 'COMPETENCY_MANAGE')
 WHERE  r.role_code = 'HR_MANAGER';
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
-JOIN   permissions p ON p.permission_code IN ('USER_VIEW','ROLE_VIEW')
+JOIN   permissions p ON p.permission_code IN ('USER_VIEW','ROLE_VIEW', 'COMPETENCY_VIEW')
 WHERE  r.role_code = 'RECRUITER';
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
-JOIN   permissions p ON p.permission_code = 'USER_VIEW'
+JOIN   permissions p ON p.permission_code IN ('USER_VIEW', 'COMPETENCY_VIEW')
 WHERE  r.role_code IN ('INTERVIEWER', 'HIRING_MANAGER', 'APPROVER');
 
 -- Users
