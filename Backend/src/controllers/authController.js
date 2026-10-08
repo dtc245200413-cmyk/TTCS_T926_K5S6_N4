@@ -23,7 +23,10 @@ function getIp(req) {
 // ─────────────────────────────────────────────
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = typeof req.body.email === 'string'
+      ? req.body.email.trim().toLowerCase()
+      : '';
 
     if (!email || !password) {
       return sendError(res, 'Email and password are required.', 400);
@@ -72,7 +75,9 @@ const me = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const email = typeof req.body.email === 'string'
+      ? req.body.email.trim().toLowerCase()
+      : '';
 
     if (!email) {
       return sendError(res, 'Email is required.', 400);
