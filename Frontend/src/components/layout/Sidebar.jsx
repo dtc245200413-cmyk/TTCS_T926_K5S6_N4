@@ -156,7 +156,6 @@ const Sidebar = () => {
           </NavLink>
         )}
 
-<<<<<<< HEAD
         {/* Quản lý phân quyền */}
         {isAdmin && (
           <NavLink
@@ -202,6 +201,16 @@ const Sidebar = () => {
           <span style={{ marginRight: '10px' }}>❓</span> Ngân Hàng Câu Hỏi
         </NavLink>
 
+        {/* Chức Danh & Dải Lương */}
+        {isHrManager && (
+          <NavLink 
+            to="/positions" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <span style={{ marginRight: '10px' }}>💼</span> Chức Danh & Dải Lương
+          </NavLink>
+        )}
+
         {/* Tài khoản */}
         <div
           style={{
@@ -215,18 +224,6 @@ const Sidebar = () => {
             letterSpacing: '1.5px'
           }}
         >
-=======
-        {isHrManager && (
-          <NavLink 
-            to="/positions" 
-            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-          >
-            <span style={{ marginRight: '10px' }}>💼</span> Chức Danh & Dải Lương
-          </NavLink>
-        )}
-        
-        <div style={{ marginTop: '30px', marginBottom: '10px', padding: '0 24px', fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '1.5px' }}>
->>>>>>> origin/feature/DTC245200344-SCRUM-62
           Tài Khoản
         </div>
 
