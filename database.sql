@@ -423,7 +423,7 @@ CREATE TABLE employee_import_batches (
 CREATE TABLE employee_import_rows (
     row_id INT NOT NULL AUTO_INCREMENT,
     batch_id INT NOT NULL,
-    row_number INT NOT NULL,
+    `row_number` INT NOT NULL,
     employee_code VARCHAR(20) NULL,
     full_name VARCHAR(150) NULL,
     company_email VARCHAR(200) NULL,
