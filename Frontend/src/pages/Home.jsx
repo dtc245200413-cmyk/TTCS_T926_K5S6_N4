@@ -1,4 +1,5 @@
 import React, { useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -36,9 +37,19 @@ const Home = () => {
               <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: '800', boxShadow: '0 10px 20px rgba(79, 70, 229, 0.3)', border: '4px solid white', flexShrink: 0 }}>
                 {user?.full_name?.charAt(0) || 'U'}
               </div>
-              <div style={{ paddingBottom: '5px' }}>
+              <div style={{ paddingBottom: '5px', flex: 1 }}>
                 <h2 style={{ margin: '0 0 4px 0', fontSize: '1.4rem', color: '#0f172a', fontWeight: '800' }}>{user?.full_name}</h2>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: '#4f46e5', fontWeight: '600' }}>{user?.job_title}</p>
+              </div>
+              {/* SCRUM-58: Update profile button — visible to all users */}
+              <div style={{ paddingBottom: '5px' }}>
+                <Link
+                  to="/profile/edit"
+                  className="btn-primary"
+                  style={{ textDecoration: 'none', padding: '8px 18px', fontSize: '0.875rem' }}
+                >
+                  ✏️ Cập nhật hồ sơ
+                </Link>
               </div>
             </div>
             

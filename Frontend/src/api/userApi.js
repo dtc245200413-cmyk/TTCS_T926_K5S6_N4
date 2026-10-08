@@ -9,6 +9,15 @@ const userApi = {
     return axiosClient.get(`/users/${id}`);
   },
 
+  // SCRUM-58: Self-profile endpoints (no admin permission required)
+  getMe: () => {
+    return axiosClient.get('/users/me');
+  },
+
+  updateMe: (data) => {
+    return axiosClient.put('/users/me', data);
+  },
+
   create: (data) => {
     return axiosClient.post('/users', data);
   },

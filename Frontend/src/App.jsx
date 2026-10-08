@@ -45,21 +45,24 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/change-password" element={<ChangePassword />} />
             
-            {/* User Management Routes */}
+                      {/* User Management Routes (Admin only) */}
             <Route path="/users" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserList />} />
               <Route path=":id" element={<UserDetail />} />
             </Route>
 
-            {/* User Creation Route */}
+            {/* User Creation Route (Admin only) */}
             <Route path="/users/create" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserCreate />} />
             </Route>
 
-            {/* User Edit Route */}
+            {/* User Edit Route (Admin only - can edit any user) */}
             <Route path="/users/:id/edit" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserEdit />} />
             </Route>
+
+            {/* SCRUM-58: Self Profile Edit Route - any authenticated user can edit their OWN profile */}
+            <Route path="/profile/edit" element={<UserEdit isSelfEdit={true} />} />
             
             {/* Roles Management Route */}
             <Route path="/roles" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
