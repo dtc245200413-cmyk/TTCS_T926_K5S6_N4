@@ -1,5 +1,6 @@
 /**
  * jobPositionRepository.js
+ */
 const { pool } = require('../config/database');
 
 async function getAll({ search = '', status = '', page = 1, limit = 20 }) {

@@ -46,11 +46,10 @@ router.patch('/:id/lock', authenticate, authorize('USER_LOCK'), userController.l
 router.patch('/:id/unlock', authenticate, authorize('USER_UNLOCK'), userController.unlockUser);
 
 // SPRINT 2: Import Excel
-const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() });
+const uploadMemory = multer({ storage: multer.memoryStorage() });
 
 router.get('/import/template', authenticate, authorize('USER_CREATE'), userController.downloadTemplate);
-router.post('/import/preview', authenticate, authorize('USER_CREATE'), upload.single('file'), userController.previewImport);
+router.post('/import/preview', authenticate, authorize('USER_CREATE'), uploadMemory.single('file'), userController.previewImport);
 router.post('/import/confirm', authenticate, authorize('USER_CREATE'), userController.confirmImport);
 
 module.exports = router;
