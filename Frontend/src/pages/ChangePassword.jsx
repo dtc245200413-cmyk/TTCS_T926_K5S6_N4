@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authApi from '../api/authApi';
+import AvatarUpload from '../components/AvatarUpload';
 
 const ChangePassword = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -61,6 +62,7 @@ const ChangePassword = () => {
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '6px', background: 'linear-gradient(90deg, #4f46e5, #0ea5e9)' }}></div>
           
           <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '24px', color: '#1e293b' }}>Đổi mật khẩu</h2>
+          <AvatarUpload />
           
           {status.message && (
             <div className={`alert ${status.type === 'error' ? 'alert-error' : 'alert-success'}`} style={{ borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
