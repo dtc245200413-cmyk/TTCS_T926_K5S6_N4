@@ -9,6 +9,21 @@ const router  = express.Router();
 const userController = require('../controllers/userController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 
+const multer = require('multer');
+const upload = multer({ 
+  dest: 'uploads/temp/', 
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG and PNG are allowed'));
+    }
+  }
+});
+
+router.post('/me/avatar', authenticate, upload.single('avatar'), userController.uploadAvatar);
+
 router.get('/', authenticate, authorize('USER_VIEW'), userController.getAllUsers);
 router.get('/:id', authenticate, authorize('USER_VIEW'), userController.getUserById);
 router.post('/', authenticate, authorize('USER_CREATE'), userController.createUser);

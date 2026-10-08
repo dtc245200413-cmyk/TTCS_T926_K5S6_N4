@@ -20,6 +20,14 @@ import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
 import RoleList from './pages/roles/RoleList';
+import RecruitmentRequestCreate from './pages/recruitment-requests/RecruitmentRequestCreate';
+import RecruitmentRequestList from './pages/recruitment-requests/RecruitmentRequestList';
+import RecruitmentRequestDetail from './pages/recruitment-requests/RecruitmentRequestDetail';
+import RecruitmentRequestApprovalList from './pages/recruitment-requests/RecruitmentRequestApprovalList';
+import CompanyProfile from './pages/company-profile/CompanyProfile';
+import MasterData from './pages/master-data/MasterData';
+import CandidateList from './pages/candidates/CandidateList';
+import CandidateCreate from './pages/candidates/CandidateCreate';
 
 function App() {
   return (
@@ -56,6 +64,26 @@ function App() {
             {/* Roles Management Route */}
             <Route path="/roles" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<RoleList />} />
+            </Route>
+
+            {/* Company Profile */}
+            <Route path="/company-profile" element={<CompanyProfile />} />
+            
+            {/* Master Data */}
+            <Route path="/master-data" element={<MasterData />} />
+
+            {/* Recruitment Request Routes */}
+            <Route path="/recruitment-requests" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+              <Route index element={<RecruitmentRequestList />} />
+              <Route path="approvals" element={<RecruitmentRequestApprovalList />} />
+              <Route path="create" element={<RecruitmentRequestCreate />} />
+              <Route path=":id" element={<RecruitmentRequestDetail />} />
+            </Route>
+
+            {/* Candidate Routes */}
+            <Route path="/candidates" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+              <Route index element={<CandidateList />} />
+              <Route path="create" element={<CandidateCreate />} />
             </Route>
           </Route>
 

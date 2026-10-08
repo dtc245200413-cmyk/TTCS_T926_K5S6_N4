@@ -37,6 +37,9 @@ app.get('/', (req, res) => {
 });
 
 const statsRoutes    = require('./routes/statsRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
+const recruitmentRequestRoutes = require('./routes/recruitmentRequestRoutes');
+const jobPositionRoutes = require('./routes/jobPositionRoutes');
 
 // ── API Routes ────────────────────────────────────────────────
 
@@ -44,6 +47,19 @@ app.use('/api/auth',  authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/recruitment-requests', recruitmentRequestRoutes);
+app.use('/api/job-positions', jobPositionRoutes);
+
+const companyProfileRoutes = require('./routes/companyProfileRoutes');
+app.use('/api/company-profile', companyProfileRoutes);
+app.use('/uploads', express.static('uploads'));
+
+const masterDataRoutes = require('./routes/masterDataRoutes');
+app.use('/api/master-data', masterDataRoutes);
+
+const candidateRoutes = require('./routes/candidateRoutes');
+app.use('/api/candidates', candidateRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────
 

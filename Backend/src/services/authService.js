@@ -56,6 +56,7 @@ function formatUser(user, rolesAndPermissions) {
     company_email:      user.company_email,
     phone_number:       user.phone_number,
     job_title:          user.job_title,
+    avatar_url:         user.avatar_url,
     status:             user.status,
     last_login_at:      user.last_login_at,
     password_changed_at: user.password_changed_at,

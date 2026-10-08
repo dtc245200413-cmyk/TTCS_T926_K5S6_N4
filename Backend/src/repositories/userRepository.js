@@ -20,7 +20,7 @@ async function findByEmail(email) {
       u.company_email, u.phone_number, u.job_title,
       u.password_hash, u.status, u.failed_login_attempts,
       u.locked_until, u.last_login_at, u.password_changed_at,
-      u.created_at, u.updated_at,
+      u.avatar_url, u.created_at, u.updated_at,
       d.department_name, d.department_code
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.department_id
@@ -42,7 +42,7 @@ async function findById(userId) {
       u.company_email, u.phone_number, u.job_title,
       u.status, u.failed_login_attempts, u.locked_until,
       u.last_login_at, u.password_changed_at,
-      u.created_at, u.updated_at,
+      u.avatar_url, u.created_at, u.updated_at,
       d.department_name, d.department_code
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.department_id
@@ -258,6 +258,12 @@ async function update(userId, fields) {
   return result.affectedRows > 0;
 }
 
+async function updateAvatarUrl(userId, avatarUrl) {
+  const sql = `UPDATE users SET avatar_url = ? WHERE user_id = ?`;
+  const [result] = await pool.execute(sql, [avatarUrl, userId]);
+  return result.affectedRows > 0;
+}
+
 /**
  * Update the user's password_hash and password_changed_at.
  * Called by reset-password and change-password flows.
@@ -336,4 +342,5 @@ module.exports = {
   updatePassword,
   emailExistsForOtherUser,
   employeeCodeExists,
+  updateAvatarUrl,
 };
