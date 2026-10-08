@@ -172,6 +172,14 @@ const Sidebar = () => {
           Khung Năng Lực
         </NavLink>
 
+        {/* Ngân Hàng Câu Hỏi */}
+        <NavLink 
+          to="/questions" 
+          className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+        >
+          <span style={{ marginRight: '10px' }}>❓</span> Ngân Hàng Câu Hỏi
+        </NavLink>
+
         {/* Tài khoản */}
         <div
           style={{

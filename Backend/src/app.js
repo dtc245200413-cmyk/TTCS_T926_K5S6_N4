@@ -14,7 +14,8 @@ const statsRoutes = require('./routes/statsRoutes');
 const competencyFrameworkRoutes = require('./routes/competencyFrameworkRoutes');
 const jobPositionRoutes = require('./routes/jobPositionRoutes');
 const interviewQuestionRoutes = require('./routes/interviewQuestionRoutes');
-
+const questionRoutes = require('./routes/questionRoutes');
+const competencyRoutes = require('./routes/competencyRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -54,6 +55,8 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/recruitment-requests', recruitmentRequestRoutes);
 app.use('/api/job-positions', jobPositionRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/competencies', competencyRoutes);
 
 const companyProfileRoutes = require('./routes/companyProfileRoutes');
 app.use('/api/company-profile', companyProfileRoutes);

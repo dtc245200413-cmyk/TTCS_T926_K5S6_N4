@@ -13,6 +13,7 @@ import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import ChangePassword from './pages/ChangePassword';
 import Reports from './pages/Reports';
+import QuestionBank from './pages/questions/QuestionBank';
 
 // User Pages
 import UserList from './pages/users/UserList';
@@ -53,6 +54,7 @@ function App() {
 
             {/* Reports */}
             <Route path="/reports" element={<Reports />} />
+            <Route path="/questions" element={<QuestionBank />} />
             <Route path="/change-password" element={<ChangePassword />} />
             
             {/* ============================= */}
