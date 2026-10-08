@@ -42,6 +42,7 @@ CREATE TABLE users (
     company_email         VARCHAR(200)     NOT NULL,
     phone_number          VARCHAR(20)          NULL,
     job_title             VARCHAR(100)         NULL,
+    avatar_url            VARCHAR(255)         NULL,
     password_hash         VARCHAR(255)     NOT NULL,
     status                ENUM('ACTIVE','INACTIVE','LOCKED') NOT NULL DEFAULT 'ACTIVE',
     failed_login_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
