@@ -132,4 +132,26 @@ const authorize = (requiredPermission) => {
   };
 };
 
-module.exports = { authenticate, authorize };
+const authorizeRole = (requiredRole) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return sendError(res, 'Not authenticated.', 401);
+    }
+
+    const hasRole = req.user.roles?.some(
+      (role) => role.role_code === requiredRole
+    );
+
+    if (!hasRole) {
+      return sendError(
+        res,
+        'Chỉ Trưởng phòng Nhân sự mới được tạo khung năng lực.',
+        403
+      );
+    }
+
+    next();
+  };
+};
+
+module.exports = { authenticate, authorize, authorizeRole };

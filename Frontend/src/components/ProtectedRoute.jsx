@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import MainLayout from './layout/MainLayout';
 
-const ProtectedRoute = ({ requiredPermission, requireAdmin, children }) => {
+const ProtectedRoute = ({ requiredPermission, requiredRole, requireAdmin, children }) => {
   const { user, loading, hasPermission } = useContext(AuthContext);
 
   if (loading) {
@@ -22,6 +22,10 @@ const ProtectedRoute = ({ requiredPermission, requireAdmin, children }) => {
   }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  if (requiredRole && !user?.roles?.some((role) => role.role_code === requiredRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

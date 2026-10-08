@@ -73,9 +73,14 @@ const UserList = () => {
           <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.95rem' }}>Quản lý danh sách và quyền hạn của nhân viên</p>
         </div>
         {hasPermission('USER_CREATE') && (
-          <Link to="/users/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Nhân Viên
-          </Link>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Link to="/users/import" className="btn-secondary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>📥</span> Nhập từ Excel
+            </Link>
+            <Link to="/users/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Nhân Viên
+            </Link>
+          </div>
         )}
       </div>
 
