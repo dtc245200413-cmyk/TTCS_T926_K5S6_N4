@@ -34,6 +34,7 @@ import CandidateCreate from './pages/candidates/CandidateCreate';
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
 import CompetencyFrameworkForm from './pages/competency-frameworks/CompetencyFrameworkForm';
+import PositionManagement from './pages/positions/PositionManagement';
 
 function App() {
   return (
@@ -51,8 +52,10 @@ function App() {
 
             {/* Dashboard */}
             <Route path="/" element={<Home />} />
-
             {/* Reports */}
+            <Route path="/positions" element={<ProtectedRoute requireHrManager={true}><Outlet /></ProtectedRoute>}>
+              <Route index element={<PositionManagement />} />
+            </Route>
             <Route path="/reports" element={<Reports />} />
             <Route path="/questions" element={<QuestionBank />} />
             <Route path="/change-password" element={<ChangePassword />} />

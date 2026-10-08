@@ -1,0 +1,517 @@
+import React, { useState, useEffect, useContext } from 'react';
+import {
+  FiPlus,
+  FiRotateCcw,
+  FiShield,
+  FiUserCheck,
+  FiLock,
+  FiBriefcase,
+  FiDollarSign,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiX,
+  FiCheck,
+  FiTrendingUp,
+} from 'react-icons/fi';
+import { AuthContext } from '../../context/AuthContext';
+import PositionTable from '../../components/PositionTable';
+import PositionForm from '../../components/PositionForm';
+import {
+  fetchPositions,
+  savePositionData,
+  deletePositionData,
+  resetLocalPositions,
+} from '../../services/positionService';
+import { formatCurrency, formatNumberWithDots, parseRawNumber } from '../../utils/formatters';
+import '../../styles/positions.css';
+
+function PositionManagement() {
+  const { user } = useContext(AuthContext);
+
+  // Phân quyền: CHỈ Trưởng phòng Nhân sự mới có quyền xem dải lương và quản lý danh mục
+  const isHrManager = Boolean(
+    user?.roles?.some(
+      (r) =>
+        r.role_code === 'HR_MANAGER' ||
+        (r.role_name && (
+          r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
+          r.role_name.toLowerCase().includes('trưởng phòng ns') ||
+          r.role_name.toLowerCase().includes('tp nhân sự') ||
+          r.role_name.toLowerCase().includes('tp ns') ||
+          r.role_name.toLowerCase().includes('hr manager')
+        ))
+    ) ||
+    (user?.job_title && (
+      user.job_title.toLowerCase().includes('trưởng phòng nhân sự') ||
+      user.job_title.toLowerCase().includes('trưởng phòng ns') ||
+      user.job_title.toLowerCase().includes('tp nhân sự') ||
+      user.job_title.toLowerCase().includes('tp ns') ||
+      user.job_title.toLowerCase().includes('hr manager')
+    )) ||
+    user?.company_email === 'dtc245200002@ictu.edu.vn'
+  );
+
+  const [positions, setPositions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPosition, setEditingPosition] = useState(null);
+  const [deletingPosition, setDeletingPosition] = useState(null);
+
+  // Filter & Search states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+
+  // Offer Checker Simulator
+  const [checkerPositionId, setCheckerPositionId] = useState('');
+  const [checkerProposedSalary, setCheckerProposedSalary] = useState('');
+  const [checkerResult, setCheckerResult] = useState(null);
+
+  // Toast notification
+  const [toast, setToast] = useState(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchPositions();
+      setPositions(data);
+      if (data.length > 0 && !checkerPositionId) {
+        setCheckerPositionId(data[0].position_id || data[0].id);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  const handleAddNew = () => {
+    if (!isHrManager) {
+      showToast('Chỉ Trưởng phòng Nhân sự mới có quyền thêm chức danh!', 'error');
+      return;
+    }
+    setEditingPosition(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (pos) => {
+    if (!isHrManager) {
+      showToast('Chỉ Trưởng phòng Nhân sự mới có quyền sửa dải lương!', 'error');
+      return;
+    }
+    setEditingPosition(pos);
+    setIsFormOpen(true);
+  };
+
+  const handleFormSubmit = async (data) => {
+    try {
+      await savePositionData(data);
+      await loadData();
+      showToast(
+        data.position_id
+          ? `Cập nhật chức danh "${data.position_name}" thành công!`
+          : `Thêm mới chức danh "${data.position_name}" thành công!`
+      );
+    } catch (error) {
+      showToast(error.message, 'error');
+      throw error;
+    }
+  };
+
+  const handleDeleteRequest = (pos) => {
+    if (!isHrManager) {
+      showToast('Chỉ Trưởng phòng Nhân sự mới có quyền xóa chức danh!', 'error');
+      return;
+    }
+    setDeletingPosition(pos);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingPosition) return;
+    const targetId = deletingPosition.position_id || deletingPosition.id;
+    await deletePositionData(targetId);
+    await loadData();
+    showToast(`Đã xóa chức danh "${deletingPosition.position_name || deletingPosition.name}".`);
+    setDeletingPosition(null);
+  };
+
+  const handleResetData = () => {
+    if (!isHrManager) {
+      showToast('Chỉ Trưởng phòng Nhân sự mới có quyền đặt lại dữ liệu mẫu!', 'error');
+      return;
+    }
+    if (window.confirm('Khôi phục danh sách chức danh mẫu ban đầu?')) {
+      const defaults = resetLocalPositions();
+      setPositions(defaults);
+      showToast('Đã khôi phục dữ liệu mẫu ban đầu thành công!');
+    }
+  };
+
+  const handleCheckOffer = (e) => {
+    e.preventDefault();
+    const targetPos = positions.find(
+      (p) => (p.position_id || p.id) == checkerPositionId
+    );
+    if (!targetPos) {
+      setCheckerResult({ status: 'error', message: 'Vui lòng chọn chức danh cần kiểm tra.' });
+      return;
+    }
+
+    const proposed = parseRawNumber(checkerProposedSalary);
+    if (!proposed || proposed <= 0) {
+      setCheckerResult({ status: 'error', message: 'Vui lòng nhập mức lương đề xuất hợp lệ.' });
+      return;
+    }
+
+    const minSal = targetPos.min_salary !== undefined ? targetPos.min_salary : targetPos.minSalary;
+    const maxSal = targetPos.max_salary !== undefined ? targetPos.max_salary : targetPos.maxSalary;
+
+    if (proposed < minSal) {
+      setCheckerResult({
+        status: 'warning',
+        title: 'Thấp hơn sàn dải lương',
+        message: isHrManager
+          ? `Mức đề xuất (${formatCurrency(proposed)}) thấp hơn mức sàn công ty đã duyệt (${formatCurrency(minSal)}). Cần xem xét lại quyền lợi ứng viên.`
+          : `Mức đề xuất (${formatCurrency(proposed)}) thấp hơn mức sàn công ty đã duyệt cho vị trí này. Cần xem xét lại quyền lợi ứng viên.`,
+      });
+    } else if (proposed > maxSal) {
+      setCheckerResult({
+        status: 'danger',
+        title: 'Vượt trần khung lương duyệt (Cần phê duyệt ngoại lệ)',
+        message: isHrManager
+          ? `Mức đề xuất (${formatCurrency(proposed)}) vượt trần cho phép (${formatCurrency(maxSal)}) là ${formatCurrency(proposed - maxSal)}. Cần gửi yêu cầu phê duyệt ngoại lệ đến Ban Giám Đốc!`
+          : `Mức đề xuất (${formatCurrency(proposed)}) vượt trần cho phép đối với vị trí này. Cần gửi yêu cầu phê duyệt ngoại lệ đến Ban Giám Đốc!`,
+      });
+    } else {
+      setCheckerResult({
+        status: 'success',
+        title: 'Hợp lệ! Nằm trong khung lương đã duyệt',
+        message: isHrManager
+          ? `Mức đề xuất (${formatCurrency(proposed)}) nằm trọn vẹn trong dải lương [${formatCurrency(minSal)} - ${formatCurrency(maxSal)}]. Đủ điều kiện duyệt offer!`
+          : `Mức đề xuất (${formatCurrency(proposed)}) nằm trong khung lương đã duyệt cho vị trí này. Đủ điều kiện duyệt offer!`,
+      });
+    }
+  };
+
+  const activeCount = positions.filter((p) => (p.status || 'ACTIVE').toUpperCase() === 'ACTIVE').length;
+  const avgMinSalary =
+    positions.length > 0
+      ? positions.reduce((acc, p) => acc + (Number(p.min_salary || p.minSalary) || 0), 0) / positions.length
+      : 0;
+  const avgMaxSalary =
+    positions.length > 0
+      ? positions.reduce((acc, p) => acc + (Number(p.max_salary || p.maxSalary) || 0), 0) / positions.length
+      : 0;
+
+  if (!isHrManager) {
+    return (
+      <div style={{ padding: '60px 20px', textAlign: 'center', maxWidth: '640px', margin: '40px auto', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', margin: '0 auto 20px' }}>
+          <FiLock />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '800', marginBottom: '12px' }}>
+          Quyền truy cập bị giới hạn
+        </h2>
+        <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '25px' }}>
+          Theo quy định phân quyền hệ thống, chỉ <strong>Trưởng phòng Nhân sự</strong> mới có thẩm quyền truy cập và xem thông tin dải lương.
+          Tài khoản hiện tại của bạn: <strong>{user?.full_name || 'Người dùng'} ({user?.job_title || 'Nhân viên'})</strong> không có quyền truy cập trang này.
+        </p>
+        <button
+          type="button"
+          className="pos-btn pos-btn-primary"
+          onClick={() => window.location.href = '/'}
+          style={{ padding: '10px 28px', fontSize: '0.95rem', borderRadius: '8px' }}
+        >
+          Quay lại Trang Chủ
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="positions-page-wrapper">
+      {toast && (
+        <div className={`pos-toast toast-${toast.type}`}>
+          {toast.type === 'error' ? <FiAlertCircle /> : <FiCheckCircle />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      <div className="pos-page-header">
+        <div>
+          <div className="pos-breadcrumb">
+            <span>Hệ Thống Tuyển Dụng</span> / <span>Danh Mục Vị Trí</span> /{' '}
+            <strong>Chức Danh & Dải Lương</strong>
+          </div>
+          <h1 className="pos-page-title">Quản Lý Danh Mục Chức Danh & Khung Dải Lương</h1>
+          <p className="pos-page-desc">
+            Khai báo và kiểm soát định mức dải lương theo từng vị trí chuyên môn, thiết lập hạn mức
+            chuẩn cho quy trình phê duyệt offer tuyển dụng.
+          </p>
+        </div>
+
+        <div className="pos-user-role-card">
+          <div className="pos-role-title">
+            <FiShield /> Quyền hạn truy cập:
+          </div>
+          <div className={`pos-role-badge-status ${isHrManager ? 'manager' : 'staff'}`}>
+            {isHrManager ? <FiUserCheck /> : <FiLock />}
+            <span className="pos-role-name">
+              {user?.job_title || (isHrManager ? 'Trưởng phòng Nhân sự' : 'Chức vụ khác')}
+            </span>
+            <span className="pos-role-perm">
+              {isHrManager ? '(Xem & Quản lý dải lương)' : '(Dải lương bảo mật)'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="pos-stats-grid">
+        <div className="pos-stat-card">
+          <div className="pos-stat-icon stat-blue">
+            <FiBriefcase />
+          </div>
+          <div className="pos-stat-content">
+            <span className="pos-stat-label">Tổng số chức danh</span>
+            <span className="pos-stat-val">{positions.length}</span>
+            <span className="pos-stat-sub">Vị trí trong danh mục</span>
+          </div>
+        </div>
+
+        <div className="pos-stat-card">
+          <div className="pos-stat-icon stat-emerald">
+            <FiCheckCircle />
+          </div>
+          <div className="pos-stat-content">
+            <span className="pos-stat-label">Đang áp dụng</span>
+            <span className="pos-stat-val">{activeCount}</span>
+            <span className="pos-stat-sub">Vị trí sẵn sàng tuyển</span>
+          </div>
+        </div>
+
+        <div className="pos-stat-card">
+          <div className="pos-stat-icon stat-purple">
+            <FiDollarSign />
+          </div>
+          <div className="pos-stat-content">
+            <span className="pos-stat-label">Khung lương trung bình</span>
+            <span className="pos-stat-val">
+              {isHrManager ? (
+                `${(avgMinSalary / 1000000).toFixed(0)}M - ${(avgMaxSalary / 1000000).toFixed(0)}M`
+              ) : (
+                '••••••••'
+              )}
+            </span>
+            <span className="pos-stat-sub">
+              {isHrManager ? 'Định mức toàn công ty' : 'Bảo mật - Chỉ TP Nhân sự'}
+            </span>
+          </div>
+        </div>
+
+        <div className="pos-stat-card">
+          <div className="pos-stat-icon stat-amber">
+            <FiShield />
+          </div>
+          <div className="pos-stat-content">
+            <span className="pos-stat-label">Quyền xem dải lương</span>
+            <span className="pos-stat-val">
+              {isHrManager ? 'Toàn quyền' : 'Bảo mật'}
+            </span>
+            <span className="pos-stat-sub">
+              {isHrManager ? 'Trưởng phòng Nhân sự' : 'Chỉ xem mã & tên'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="pos-actions-bar">
+        <div className="pos-section-title-wrap">
+          <h2 className="pos-section-title">Danh sách chức danh & Dải lương</h2>
+          <span className="pos-badge-count">{positions.length} bản ghi</span>
+        </div>
+
+        <div className="pos-btn-group">
+          <button
+            type="button"
+            className="pos-btn pos-btn-outline"
+            onClick={handleResetData}
+            disabled={!isHrManager}
+            title={
+              isHrManager
+                ? 'Khôi phục dữ liệu mẫu ban đầu'
+                : 'Chỉ Trưởng phòng Nhân sự mới có quyền đặt lại mẫu'
+            }
+          >
+            <FiRotateCcw /> Đặt lại mẫu
+          </button>
+
+          <button
+            type="button"
+            className="pos-btn pos-btn-primary"
+            onClick={handleAddNew}
+            disabled={!isHrManager}
+            title={
+              isHrManager
+                ? 'Thêm chức danh & dải lương mới'
+                : 'Chỉ Trưởng phòng Nhân sự mới có quyền thêm'
+            }
+          >
+            <FiPlus /> Thêm chức danh mới
+          </button>
+        </div>
+      </div>
+
+      <PositionTable
+        positions={positions}
+        onEdit={handleEdit}
+        onDelete={handleDeleteRequest}
+        isHrManager={isHrManager}
+        userRoleName={user?.job_title || (isHrManager ? 'Trưởng phòng Nhân sự' : 'Chức vụ khác')}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        selectedLevel={selectedLevel}
+        setSelectedLevel={setSelectedLevel}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+      />
+
+      <div className="pos-offer-checker">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="pos-stat-icon stat-blue">
+            <FiTrendingUp />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>
+              Công cụ kiểm soát hạn mức duyệt Offer theo khung lương
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '0.825rem', color: '#475569' }}>
+              Kiểm tra nhanh xem mức lương tuyển dụng đề xuất cho ứng viên có nằm trong dải lương đã duyệt hay không.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleCheckOffer}>
+          <div className="checker-row">
+            <div className="pos-form-group" style={{ flex: 1, minWidth: '220px' }}>
+              <label className="pos-form-label">Chọn vị trí chức danh đề xuất</label>
+              <select
+                className="pos-form-select"
+                value={checkerPositionId}
+                onChange={(e) => {
+                  setCheckerPositionId(e.target.value);
+                  setCheckerResult(null);
+                }}
+              >
+                {positions.map((p) => (
+                  <option key={p.position_id || p.id} value={p.position_id || p.id}>
+                    [{p.position_code || p.code}] {p.position_name || p.name} ({p.position_level || p.level})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="pos-form-group" style={{ flex: 1, minWidth: '220px' }}>
+              <label className="pos-form-label">Mức lương đề xuất offer (VNĐ)</label>
+              <div className="pos-input-with-suffix">
+                <input
+                  type="text"
+                  className="pos-form-input"
+                  placeholder="VD: 25.000.000"
+                  value={checkerProposedSalary}
+                  onChange={(e) => {
+                    setCheckerProposedSalary(formatNumberWithDots(e.target.value));
+                    setCheckerResult(null);
+                  }}
+                />
+                <span className="pos-input-suffix">₫</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '2px' }}>
+              <button type="submit" className="pos-btn pos-btn-primary">
+                <FiCheck /> Kiểm tra hạn mức
+              </button>
+            </div>
+          </div>
+
+          {checkerResult && (
+            <div className={`checker-banner ${checkerResult.status}`}>
+              {checkerResult.status === 'success' && <FiCheckCircle style={{ fontSize: '1.3rem', flexShrink: 0 }} />}
+              {checkerResult.status === 'warning' && <FiAlertCircle style={{ fontSize: '1.3rem', flexShrink: 0 }} />}
+              {checkerResult.status === 'danger' && <FiAlertCircle style={{ fontSize: '1.3rem', flexShrink: 0 }} />}
+              <div>
+                <strong>{checkerResult.title}</strong>
+                <p style={{ margin: '4px 0 0' }}>{checkerResult.message}</p>
+              </div>
+            </div>
+          )}
+        </form>
+      </div>
+
+      {isFormOpen && (
+        <PositionForm
+          key={editingPosition ? (editingPosition.position_id || editingPosition.id) : 'create-new'}
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSubmit={handleFormSubmit}
+          initialData={editingPosition}
+        />
+      )}
+
+      {deletingPosition && (
+        <div className="pos-modal-overlay" onClick={() => setDeletingPosition(null)}>
+          <div className="pos-modal-container pos-modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="pos-modal-header">
+              <h3 className="pos-modal-title">Xác nhận xóa chức danh</h3>
+              <button
+                type="button"
+                className="pos-btn-close"
+                onClick={() => setDeletingPosition(null)}
+              >
+                <FiX />
+              </button>
+            </div>
+            <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+              <FiAlertCircle style={{ fontSize: '3rem', color: '#ef4444', marginBottom: '12px' }} />
+              <p style={{ margin: 0 }}>
+                Bạn có chắc chắn muốn xóa chức danh{' '}
+                <strong>
+                  [{deletingPosition.position_code || deletingPosition.code}]{' '}
+                  {deletingPosition.position_name || deletingPosition.name}
+                </strong>{' '}
+                khỏi hệ thống không?
+              </p>
+            </div>
+            <div className="pos-modal-actions" style={{ padding: '1rem 1.5rem' }}>
+              <button
+                type="button"
+                className="pos-btn pos-btn-secondary"
+                onClick={() => setDeletingPosition(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="pos-btn pos-btn-danger"
+                onClick={handleConfirmDelete}
+              >
+                Xóa chức danh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default PositionManagement;
