@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import authApi from '../api/authApi';
+import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [companyProfile, setCompanyProfile] = useState(null);
   const { user, login } = useContext(AuthContext);
   const navigate = useNavigate();
   const timerRef = useRef(null);
@@ -35,6 +37,20 @@ const Login = () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [countdown]);
+
+  useEffect(() => {
+    const fetchCompanyProfile = async () => {
+      try {
+        const res = await axios.get('http://localhost:3000/api/company-profile');
+        if (res.data.success) {
+          setCompanyProfile(res.data.data);
+        }
+      } catch (err) {
+        console.error('Could not load company profile', err);
+      }
+    };
+    fetchCompanyProfile();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,18 +87,36 @@ const Login = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-banner">
-        <div className="auth-banner-content" style={{ textAlign: 'left', maxWidth: '550px', background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(20px)', padding: '50px', borderRadius: '30px', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transform: 'translateY(-10px)' }}>
-          <div style={{ display: 'inline-block', padding: '8px 16px', background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(67, 56, 202, 0.9))', borderRadius: '30px', fontSize: '0.75rem', marginBottom: '24px', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.4)' }}>
-            Hệ sinh thái số TechCorp
+      <div className="auth-banner" style={{ 
+        backgroundImage: companyProfile?.banner_url ? `url(http://localhost:3000${companyProfile.banner_url})` : undefined, 
+        backgroundSize: 'cover', 
+        backgroundPosition: 'center',
+        position: 'relative'
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.7) 50%, rgba(15, 23, 42, 0.3) 100%)', zIndex: 0 }}></div>
+        <div className="auth-banner-content" style={{ textAlign: 'left', maxWidth: '600px', padding: '50px', transform: 'translateY(-10px)', position: 'relative', zIndex: 1 }}>
+          
+          {companyProfile?.logo_url && (
+            <div style={{ width: '80px', height: '80px', backgroundColor: 'white', borderRadius: '16px', padding: '8px', marginBottom: '24px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+              <img src={`http://localhost:3000${companyProfile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+          )}
+
+          <div style={{ display: 'inline-block', padding: '8px 16px', background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(67, 56, 202, 0.9))', borderRadius: '30px', fontSize: '0.75rem', marginBottom: '20px', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.4)' }}>
+            {companyProfile?.name || 'Hệ sinh thái số TechCorp'}
           </div>
           
-          <h1 style={{ fontSize: '2.8rem', marginBottom: '15px', fontWeight: '800', lineHeight: '1.15', letterSpacing: '-1px' }}>Hệ thống Tuyển dụng Nội bộ</h1>
+          <h1 style={{ fontSize: '2.8rem', marginBottom: '20px', fontWeight: '800', lineHeight: '1.15', letterSpacing: '-1px', textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>Hệ thống Tuyển dụng Nội bộ</h1>
           
-          <p style={{ fontSize: '1rem', opacity: '0.9', marginBottom: '25px', lineHeight: '1.6', color: '#f1f5f9' }}>
-            Chào mừng bạn đến với Hệ thống Quản trị Nhân sự thế hệ mới. Nơi kết nối các thành viên, tối ưu hóa quy trình tuyển dụng và kiến tạo môi trường làm việc thông minh.
+          <p style={{ fontSize: '1.05rem', opacity: '0.95', marginBottom: '20px', lineHeight: '1.7', color: '#f1f5f9', whiteSpace: 'pre-wrap' }}>
+            {companyProfile?.description || 'Chào mừng bạn đến với Hệ thống Quản trị Nhân sự thế hệ mới. Nơi kết nối các thành viên, tối ưu hóa quy trình tuyển dụng và kiến tạo môi trường làm việc thông minh.'}
           </p>
 
+          {companyProfile?.website && (
+            <a href={companyProfile.website} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#60a5fa', textDecoration: 'none', fontWeight: '700', marginBottom: '30px', fontSize: '0.95rem' }}>
+              🌐 Truy cập Website Công ty
+            </a>
+          )}
           <div style={{ display: 'flex', gap: '40px', marginTop: '20px', paddingTop: '25px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <div>
               <div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#60a5fa', marginBottom: '4px', textShadow: '0 2px 10px rgba(96, 165, 250, 0.3)' }}>99%</div>

@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
   const { user } = useContext(AuthContext);
@@ -20,7 +21,8 @@ const Home = () => {
             Chúc bạn một ngày làm việc hiệu quả. Dưới đây là thông tin và đặc quyền của bạn.
           </p>
         </div>
-        <div style={{ display: 'none' /* Can add an illustration or extra stats here later */ }}></div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+        </div>
       </div>
 
       {/* Profile Card (Bottom Area) */}
