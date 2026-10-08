@@ -46,6 +46,7 @@ app.get('/', (req, res) => {
 
 const departmentRoutes = require('./routes/departmentRoutes');
 const recruitmentRequestRoutes = require('./routes/recruitmentRequestRoutes');
+const positionRoutes = require('./routes/positionRoutes');
 // ── API Routes ────────────────────────────────────────────────
 
 app.use('/api/auth', authRoutes);
@@ -57,6 +58,7 @@ app.use('/api/recruitment-requests', recruitmentRequestRoutes);
 app.use('/api/job-positions', jobPositionRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/competencies', competencyRoutes);
+app.use('/api/positions', positionRoutes);
 
 const companyProfileRoutes = require('./routes/companyProfileRoutes');
 app.use('/api/company-profile', companyProfileRoutes);

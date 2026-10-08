@@ -94,6 +94,7 @@ const authenticate = async (req, res, next) => {
       full_name:     user.full_name,
       company_email: user.company_email,
       department_id: user.department_id,
+      job_title:     user.job_title,
       status:        user.status,
       sessionToken,                        // needed for logout
       roles:       Array.from(rolesMap.values()),
