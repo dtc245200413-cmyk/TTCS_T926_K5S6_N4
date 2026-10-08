@@ -106,7 +106,53 @@ const unlockUser = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const path = require('path');
+const fs = require('fs');
+const sharp = require('sharp');
+
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return sendError(res, 'Vui lòng chọn một ảnh để tải lên.', 400);
+    }
+
+    const userId = req.user.user_id;
+    const uploadDir = path.join(__dirname, '../../uploads/avatars');
+    
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const fileName = `avatar_${userId}_${Date.now()}.jpg`;
+    const outputPath = path.join(uploadDir, fileName);
+
+    // Crop to square and resize
+    await sharp(req.file.path)
+      .resize(256, 256, {
+        fit: sharp.fit.cover,
+        position: sharp.strategy.entropy
+      })
+      .jpeg({ quality: 90 })
+      .toFile(outputPath);
+
+    // Delete temp file
+    fs.unlinkSync(req.file.path);
+
+    const avatarUrl = `/uploads/avatars/${fileName}`;
+    
+    // Update DB
+    await userService.updateUserAvatar(userId, avatarUrl);
+
+    return sendSuccess(res, 'Cập nhật ảnh đại diện thành công.', { avatar_url: avatarUrl });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers, getUserById, createUser, updateUser,
-  getUserRoles, assignRole, revokeRole, lockUser, unlockUser
+  getUserRoles, assignRole, revokeRole, lockUser, unlockUser, uploadAvatar
 };

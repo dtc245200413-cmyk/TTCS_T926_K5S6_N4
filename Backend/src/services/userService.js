@@ -395,6 +395,10 @@ async function unlockUser(targetUserId, performedByUserId, ipAddress) {
   return getUserById(targetUserId);
 }
 
+async function updateUserAvatar(userId, avatarUrl) {
+  await userRepository.updateAvatarUrl(userId, avatarUrl);
+}
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -402,4 +406,5 @@ module.exports = {
   updateUser,
   lockUser,
   unlockUser,
+  updateUserAvatar,
 };

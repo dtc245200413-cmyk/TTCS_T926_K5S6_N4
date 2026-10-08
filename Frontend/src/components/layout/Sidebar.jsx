@@ -33,6 +33,51 @@ const Sidebar = () => {
           <span style={{ marginRight: '10px' }}>📊</span> Tổng Quan
         </NavLink>
         
+        {(user?.roles?.some(r => r.role_code === 'HIRING_MANAGER' || r.role_code === 'RECRUITER') || user?.job_title?.toLowerCase().includes('trưởng bộ phận')) && (
+          <NavLink 
+            to="/recruitment-requests" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            end
+          >
+            <span style={{ marginRight: '10px' }}>📝</span> Quản lý Yêu Cầu
+          </NavLink>
+        )}
+
+        {(user?.roles?.some(r => r.role_code === 'RECRUITER' || r.role_code === 'HR_MANAGER')) && (
+          <NavLink 
+            to="/candidates" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <span style={{ marginRight: '10px' }}>🧑‍💼</span> Quản lý Ứng viên
+          </NavLink>
+        )}
+        
+        {(user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt')) && (
+          <NavLink 
+            to="/recruitment-requests/approvals" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <span style={{ marginRight: '10px' }}>✅</span> Duyệt Yêu Cầu
+          </NavLink>
+        )}
+
+        {(user?.roles?.some(r => r.role_code === 'HR_MANAGER')) && (
+          <>
+            <NavLink 
+              to="/company-profile" 
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            >
+              <span style={{ marginRight: '10px' }}>🏢</span> Hồ sơ Công ty
+            </NavLink>
+            <NavLink 
+              to="/master-data" 
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            >
+              <span style={{ marginRight: '10px' }}>📋</span> Danh mục hệ thống
+            </NavLink>
+          </>
+        )}
+        
         {isAdmin && (
           <NavLink 
             to="/users" 
