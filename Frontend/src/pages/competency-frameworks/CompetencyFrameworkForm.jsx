@@ -693,9 +693,7 @@ const CompetencyFrameworkForm = () => {
                     key={position.position_id}
                     value={position.position_id}
                   >
-                    {position.position_code
-                      ? `${position.position_code} - ${position.position_name}`
-                      : position.position_name}
+                    {position.position_name}
                   </option>
                 ))}
               </select>
