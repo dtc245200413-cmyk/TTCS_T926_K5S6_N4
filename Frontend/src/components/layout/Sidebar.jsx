@@ -183,15 +183,17 @@ const Sidebar = () => {
         )}
 
         {/* KHUNG NĂNG LỰC */}
-        <NavLink
-          to="/competency-frameworks"
-          className={({ isActive }) =>
-            isActive ? 'nav-link active' : 'nav-link'
-          }
-        >
-          <span style={{ marginRight: '10px' }}>📋</span>
-          Khung Năng Lực
-        </NavLink>
+        {isHrManager && (
+          <NavLink
+            to="/competency-frameworks"
+            className={({ isActive }) =>
+              isActive ? 'nav-link active' : 'nav-link'
+            }
+          >
+            <span style={{ marginRight: '10px' }}>📋</span>
+            Khung Năng Lực
+          </NavLink>
+        )}
 
         {/* Ngân Hàng Câu Hỏi */}
         {isHrManager && (
