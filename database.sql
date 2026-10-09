@@ -595,6 +595,20 @@ CREATE TABLE work_types (
 -- ============================================================
 -- 8. COMPANY INTRODUCTION CONFIG (S2-09)
 -- ============================================================
+CREATE TABLE master_data (
+    id INT NOT NULL AUTO_INCREMENT,
+    category_group VARCHAR(50) NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT pk_master_data PRIMARY KEY (id),
+    CONSTRAINT uq_md_group_code UNIQUE (category_group, code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE company_introductions (
     intro_id INT NOT NULL AUTO_INCREMENT,
     content TEXT NOT NULL,
