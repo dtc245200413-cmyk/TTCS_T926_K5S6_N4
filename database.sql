@@ -23,7 +23,11 @@ CREATE TABLE departments (
     department_code VARCHAR(20)  NOT NULL,
     department_name VARCHAR(100) NOT NULL,
     description     TEXT             NULL,
+    parent_department_id INT         NULL,
+    manager_user_id INT              NULL,
+    status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
     created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_departments     PRIMARY KEY (department_id),
     CONSTRAINT uq_department_code UNIQUE      (department_code)
@@ -400,8 +404,6 @@ USE internal_recruitment_system;
 -- Adding parent-child hierarchy and manager to existing departments table.
 
 ALTER TABLE departments
-ADD COLUMN parent_department_id INT NULL AFTER description,
-ADD COLUMN manager_user_id INT NULL AFTER parent_department_id,
 ADD CONSTRAINT fk_dept_parent FOREIGN KEY (parent_department_id) 
     REFERENCES departments(department_id) ON DELETE SET NULL ON UPDATE CASCADE,
 ADD CONSTRAINT fk_dept_manager FOREIGN KEY (manager_user_id) 
