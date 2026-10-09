@@ -194,12 +194,14 @@ const Sidebar = () => {
         </NavLink>
 
         {/* Ngân Hàng Câu Hỏi */}
-        <NavLink 
-          to="/questions" 
-          className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-        >
-          <span style={{ marginRight: '10px' }}>❓</span> Ngân Hàng Câu Hỏi
-        </NavLink>
+        {isHrManager && (
+          <NavLink 
+            to="/questions" 
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <span style={{ marginRight: '10px' }}>❓</span> Ngân Hàng Câu Hỏi
+          </NavLink>
+        )}
 
         {/* Chức Danh & Dải Lương */}
         {isHrManager && (
