@@ -35,6 +35,7 @@ import CandidateCreate from './pages/candidates/CandidateCreate';
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
 import CompetencyFrameworkForm from './pages/competency-frameworks/CompetencyFrameworkForm';
 import PositionManagement from './pages/positions/PositionManagement';
+import DepartmentList from './pages/departments/DepartmentList';
 
 function App() {
   return (
@@ -109,6 +110,11 @@ function App() {
             {/* Roles Management Route */}
             <Route path="/roles" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<RoleList />} />
+            </Route>
+
+            {/* Department Management Route */}
+            <Route path="/departments" element={<ProtectedRoute requireHrManager={true}><Outlet /></ProtectedRoute>}>
+              <Route index element={<DepartmentList />} />
             </Route>
 
             {/* Company Profile */}
