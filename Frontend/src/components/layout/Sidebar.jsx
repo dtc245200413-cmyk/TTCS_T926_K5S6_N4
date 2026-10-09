@@ -135,6 +135,12 @@ const Sidebar = () => {
               <span style={{ marginRight: '10px' }}>🏢</span> Hồ sơ Công ty
             </NavLink>
             <NavLink 
+              to="/departments" 
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            >
+              <span style={{ marginRight: '10px' }}>🏢</span> Quản lý Phòng Ban
+            </NavLink>
+            <NavLink 
               to="/master-data" 
               className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
             >
