@@ -30,7 +30,7 @@ exports.create = async (req, res, next) => {
     );
     
     if (existing.length > 0) {
-      return sendError(res, 400, 'Mã (Code) đã tồn tại trong nhóm danh mục này');
+      return sendError(res, 'Mã (Code) đã tồn tại trong nhóm danh mục này', 400);
     }
     
     const order = display_order || 0;
@@ -78,7 +78,7 @@ exports.remove = async (req, res, next) => {
     return sendSuccess(res, 'Xóa thành công');
   } catch (error) {
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return sendError(res, 400, 'Không thể xóa vì danh mục này đang được sử dụng (tham chiếu)');
+      return sendError(res, 'Không thể xóa vì danh mục này đang được sử dụng (tham chiếu)', 400);
     }
     next(error);
   }
@@ -89,7 +89,7 @@ exports.reorder = async (req, res, next) => {
     const { items } = req.body; // Array of { id, display_order }
     
     if (!Array.isArray(items)) {
-      return sendError(res, 400, 'Invalid data format');
+      return sendError(res, 'Invalid data format', 400);
     }
 
     const connection = await db.pool.getConnection();

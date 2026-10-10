@@ -152,6 +152,38 @@ const RoleList = () => {
     }
   };
 
+  const handleAddRole = async () => {
+    const roleName = window.prompt('Nhập tên chức danh/role mới (Ví dụ: Trưởng nhóm Kế toán, Chuyên viên MKT):');
+    if (!roleName) return;
+    
+    // Tạo mã code ngẫu nhiên dựa trên tên (viết hoa không dấu thay khoảng trắng bằng gạch dưới)
+    let roleCode = roleName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, '_');
+    if (!roleCode) roleCode = 'ROLE_' + Date.now();
+
+    try {
+      await roleApi.create({
+        role_code: roleCode,
+        role_name: roleName,
+        description: 'Chức danh mới tạo từ giao diện'
+      });
+      alert('Thêm chức danh thành công!');
+      fetchRoles();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi thêm chức danh.');
+    }
+  };
+
+  const handleDeleteRole = async (roleId, roleName) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa chức danh "${roleName}" không?`)) return;
+    try {
+      await roleApi.delete(roleId);
+      alert('Xóa chức danh thành công!');
+      fetchRoles();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi xóa chức danh.');
+    }
+  };
+
   useEffect(() => {
     fetchRoles();
   }, []);
@@ -178,9 +210,9 @@ const RoleList = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="g-page-header">
         <h1 className="page-title">Quản Lý Phân Quyền</h1>
-        <button className="btn-primary" onClick={() => alert('Chức năng thêm role mới')} style={{ width: 'auto', padding: '12px 24px', margin: 0 }}>+ Thêm Chức danh</button>
+        <button className="btn-primary" onClick={handleAddRole} style={{ width: 'auto', padding: '12px 24px', margin: 0 }}>+ Thêm Chức danh</button>
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: '20px' }}>{error}</div>}
@@ -194,8 +226,17 @@ const RoleList = () => {
               <tr>
                 <th style={{ minWidth: '150px' }}>Module</th>
                 {roles.map(r => (
-                  <th key={r.role_id} style={{ textAlign: 'center', minWidth: '120px' }}>
-                    {r.role_name}
+                  <th key={r.role_id} style={{ textAlign: 'center', minWidth: '140px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      {r.role_name}
+                      <button 
+                        onClick={() => handleDeleteRole(r.role_id, r.role_name)}
+                        style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}
+                        title="Xóa chức danh"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -231,7 +272,7 @@ const RoleList = () => {
         </div>
         
         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn-primary" onClick={handleSaveAll} style={{ width: 'auto', padding: '12px 32px', fontSize: '1rem', margin: 0 }}>Lưu Toàn Bộ Bảng Quyền</button>
+          <button className="g-btn-primary" onClick={handleSaveAll} >Lưu Toàn Bộ Bảng Quyền</button>
         </div>
       </div>
     </div>

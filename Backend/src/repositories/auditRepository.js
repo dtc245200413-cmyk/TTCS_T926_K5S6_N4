@@ -41,13 +41,13 @@ async function createLog({
   `;
 
   await pool.execute(sql, [
-    userId,
-    performedBy,
-    action,
-    entityType,
-    entityId,
-    description,
-    ipAddress
+    userId ?? null,
+    performedBy ?? null,
+    action ?? null,
+    entityType ?? null,
+    entityId ?? null,
+    description ?? null,
+    ipAddress ?? null
   ]);
 }
 

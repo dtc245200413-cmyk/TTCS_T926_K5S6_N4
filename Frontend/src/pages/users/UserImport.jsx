@@ -87,7 +87,7 @@ function UserImport() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="g-page-header">
         <h1>Nhập danh sách nhân sự (Excel)</h1>
         <Link to="/users" className="btn-secondary">Quay lại danh sách</Link>
       </div>

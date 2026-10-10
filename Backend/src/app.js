@@ -68,10 +68,14 @@ const masterDataRoutes = require('./routes/masterDataRoutes');
 app.use('/api/master-data', masterDataRoutes);
 
 const candidateRoutes = require('./routes/candidateRoutes');
+const auditLogRoutes = require('./routes/auditLogRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/candidates', candidateRoutes);
 
 app.use('/api/competency-frameworks', competencyFrameworkRoutes);
 app.use('/api/interview-questions', interviewQuestionRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ── 404 Handler ─────────────────────────────────────────────
 

@@ -6,7 +6,7 @@ const INITIAL_POSITIONS = [
   {
     position_id: 1,
     position_code: 'DEV-FE-JR',
-    position_name: 'Frontend Developer (Junior)',
+    position_name: 'Lập trình viên Frontend (Junior)',
     position_level: 'Junior',
     min_salary: 12000000,
     max_salary: 18000000,
@@ -16,7 +16,7 @@ const INITIAL_POSITIONS = [
   {
     position_id: 2,
     position_code: 'DEV-FE-SR',
-    position_name: 'Senior Frontend Developer',
+    position_name: 'Lập trình viên Senior Frontend',
     position_level: 'Senior',
     min_salary: 30000000,
     max_salary: 45000000,
@@ -26,7 +26,7 @@ const INITIAL_POSITIONS = [
   {
     position_id: 3,
     position_code: 'DEV-BE-MID',
-    position_name: 'Backend Developer (Middle)',
+    position_name: 'Lập trình viên Backend (Middle)',
     position_level: 'Middle',
     min_salary: 20000000,
     max_salary: 32000000,
@@ -36,7 +36,7 @@ const INITIAL_POSITIONS = [
   {
     position_id: 4,
     position_code: 'QA-LEAD',
-    position_name: 'Quality Assurance Lead',
+    position_name: 'Trưởng nhóm Kiểm thử (QA Lead)',
     position_level: 'Lead',
     min_salary: 28000000,
     max_salary: 42000000,

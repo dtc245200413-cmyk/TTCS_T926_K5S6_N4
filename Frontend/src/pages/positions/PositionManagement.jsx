@@ -28,10 +28,11 @@ import '../../styles/positions.css';
 function PositionManagement() {
   const { user } = useContext(AuthContext);
 
-  // Phân quyền: CHỈ Trưởng phòng Nhân sự mới có quyền xem dải lương và quản lý danh mục
+  // Phân quyền: CHỈ Trưởng phòng Nhân sự và Admin mới có quyền xem dải lương và quản lý danh mục
   const isHrManager = Boolean(
     user?.roles?.some(
       (r) =>
+        r.role_code === 'ADMIN' ||
         r.role_code === 'HR_MANAGER' ||
         (r.role_name && (
           r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
@@ -221,7 +222,7 @@ function PositionManagement() {
         <h2 style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '800', marginBottom: '12px' }}>
           Quyền truy cập bị giới hạn
         </h2>
-        <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '25px' }}>
+        <p className="g-page-subtitle">
           Theo quy định phân quyền hệ thống, chỉ <strong>Trưởng phòng Nhân sự</strong> mới có thẩm quyền truy cập và xem thông tin dải lương.
           Tài khoản hiện tại của bạn: <strong>{user?.full_name || 'Người dùng'} ({user?.job_title || 'Nhân viên'})</strong> không có quyền truy cập trang này.
         </p>
@@ -393,7 +394,7 @@ function PositionManagement() {
             <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>
               Công cụ kiểm soát hạn mức duyệt Offer theo khung lương
             </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '0.825rem', color: '#475569' }}>
+            <p className="g-page-subtitle">
               Kiểm tra nhanh xem mức lương tuyển dụng đề xuất cho ứng viên có nằm trong dải lương đã duyệt hay không.
             </p>
           </div>
@@ -450,7 +451,7 @@ function PositionManagement() {
               {checkerResult.status === 'danger' && <FiAlertCircle style={{ fontSize: '1.3rem', flexShrink: 0 }} />}
               <div>
                 <strong>{checkerResult.title}</strong>
-                <p style={{ margin: '4px 0 0' }}>{checkerResult.message}</p>
+                <p className="g-page-subtitle">{checkerResult.message}</p>
               </div>
             </div>
           )}
@@ -482,7 +483,7 @@ function PositionManagement() {
             </div>
             <div style={{ padding: '1.5rem', textAlign: 'center' }}>
               <FiAlertCircle style={{ fontSize: '3rem', color: '#ef4444', marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>
+              <p className="g-page-subtitle">
                 Bạn có chắc chắn muốn xóa chức danh{' '}
                 <strong>
                   [{deletingPosition.position_code || deletingPosition.code}]{' '}

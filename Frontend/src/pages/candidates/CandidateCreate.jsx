@@ -78,12 +78,12 @@ const CandidateCreate = () => {
 
   return (
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
-      <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '20px 24px', borderRadius: '16px', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#10b981', padding: '20px 24px', borderRadius: '16px', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800' }}>Thêm Hồ sơ Ứng viên</h2>
-            <p style={{ color: '#d1fae5', margin: '4px 0 0 0', fontSize: '0.9rem' }}>Nhập thông tin ứng viên mới vào hệ thống</p>
+            <p className="g-page-subtitle">Nhập thông tin ứng viên mới vào hệ thống</p>
           </div>
           <button 
             onClick={() => navigate(-1)}

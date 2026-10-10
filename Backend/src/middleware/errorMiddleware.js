@@ -7,7 +7,7 @@
 
 const errorHandler = (err, req, res, next) => {
   // Log the full error on the server side (for debugging)
-  console.error('❌ Unhandled error:', err.message);
+  console.error('❌ Unhandled error:', err.stack);
 
   // Use a custom statusCode if the error was created with one,
   // otherwise default to 500 (Internal Server Error)
@@ -18,7 +18,7 @@ const errorHandler = (err, req, res, next) => {
   const message =
     statusCode < 500
       ? err.message
-      : 'An internal server error occurred. Please try again later.';
+      : 'Hệ thống đang gặp sự cố (Internal Server Error). Vui lòng thử lại sau.';
 
   return res.status(statusCode).json({
     success: false,

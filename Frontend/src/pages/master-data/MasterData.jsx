@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { FaPlus, FaEdit, FaTrash, FaSave, FaGripVertical } from 'react-icons/fa';
 
 const GROUPS = [
   { value: 'CANDIDATE_SOURCE', label: 'Nguồn ứng viên' },
@@ -190,14 +191,15 @@ const MasterData = () => {
       <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
-            <h1 style={{ margin: '0 0 8px 0', fontSize: '1.75rem', color: '#0f172a' }}>Danh mục Hệ thống</h1>
-            <p style={{ margin: 0, color: '#64748b' }}>Quản lý các danh mục dùng chung cho toàn bộ hệ thống</p>
+            <h1 className="g-page-title">Danh mục Hệ thống</h1>
+            <p className="g-page-subtitle">Quản lý các danh mục dùng chung cho toàn bộ hệ thống</p>
           </div>
           <button 
             onClick={() => handleOpenModal()}
-            style={{ padding: '10px 20px', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)' }}
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', padding: '10px 20px', fontWeight: '600', borderRadius: '8px' }}
           >
-            <span>➕</span> Thêm danh mục mới
+            <span style={{ fontSize: '1.2rem', fontWeight: 'bold', marginRight: '6px' }}>+</span> Thêm danh mục mới
           </button>
         </div>
 
@@ -255,7 +257,7 @@ const MasterData = () => {
                     onDragLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <td style={{ padding: '16px', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                      <span style={{ color: '#cbd5e1', fontSize: '1.2rem' }}>⋮⋮</span>
+                      <FaGripVertical style={{ color: '#cbd5e1', fontSize: '1.2rem' }} />
                       <span style={{ display: 'inline-block', width: '28px', height: '28px', lineHeight: '28px', backgroundColor: '#e2e8f0', borderRadius: '50%', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>
                         {item.display_order}
                       </span>
@@ -273,24 +275,27 @@ const MasterData = () => {
                       )}
                     </td>
                     <td style={{ padding: '16px', textAlign: 'right' }}>
-                      <button onClick={() => handleOpenModal(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', marginRight: '12px' }} title="Sửa">✏️</button>
-                      
-                      {item.is_referenced ? (
-                        <div style={{ display: 'inline-block', position: 'relative' }} className="tooltip-container">
-                          <button 
-                            disabled
-                            style={{ background: 'none', border: 'none', cursor: 'not-allowed', fontSize: '1.2rem', opacity: 0.3, filter: 'grayscale(100%)' }}
-                          >
-                            🗑️
-                          </button>
-                          <div className="tooltip-text" style={{ visibility: 'hidden', width: '220px', backgroundColor: '#1e293b', color: '#fff', textAlign: 'center', borderRadius: '6px', padding: '8px', position: 'absolute', zIndex: 1, bottom: '125%', left: '50%', transform: 'translateX(-50%)', opacity: 0, transition: 'opacity 0.3s', fontSize: '0.8rem', pointerEvents: 'none' }}>
-                            Không thể xóa do danh mục đang được sử dụng
-                            <div style={{ content: '""', position: 'absolute', top: '100%', left: '50%', marginLeft: '-5px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#1e293b transparent transparent transparent' }}></div>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <button onClick={() => handleOpenModal(item)} className="btn-action-edit">Sửa</button>
+                        
+                        {item.is_referenced ? (
+                          <div style={{ display: 'inline-block', position: 'relative' }} className="tooltip-container">
+                            <button 
+                              disabled
+                              className="btn-action-delete"
+                              style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                            >
+                              Xóa
+                            </button>
+                            <div className="tooltip-text" style={{ visibility: 'hidden', width: '220px', backgroundColor: '#1e293b', color: '#fff', textAlign: 'center', borderRadius: '6px', padding: '8px', position: 'absolute', zIndex: 1, bottom: '125%', left: '50%', transform: 'translateX(-50%)', opacity: 0, transition: 'opacity 0.3s', fontSize: '0.8rem', pointerEvents: 'none' }}>
+                              Không thể xóa do danh mục đang được sử dụng
+                              <div style={{ content: '""', position: 'absolute', top: '100%', left: '50%', marginLeft: '-5px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#1e293b transparent transparent transparent' }}></div>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }} title="Xóa">🗑️</button>
-                      )}
+                        ) : (
+                          <button onClick={() => handleDelete(item.id)} className="btn-action-delete">Xóa</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -312,10 +317,17 @@ const MasterData = () => {
                 <label style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>
                   {editItem ? 'Đang cập nhật trong nhóm' : 'Đang thêm mới vào nhóm'}
                 </label>
-                {activeGroup === 'CANDIDATE_SOURCE' && !editItem ? (
+                {activeGroup === 'CANDIDATE_SOURCE' ? (
                   <select 
                     value={selectedTemplate} 
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value);
+                      if (e.target.value) {
+                        const label = e.target.options[e.target.selectedIndex].text;
+                        if (!editItem) setFormData(prev => ({...prev, code: e.target.value, name: label}));
+                        else setFormData(prev => ({...prev, name: label}));
+                      }
+                    }}
                     style={{ width: '100%', padding: '4px 0', border: 'none', outline: 'none', backgroundColor: 'transparent', color: '#0f172a', fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', appearance: 'none', textOverflow: 'ellipsis' }}
                   >
                     <option value="">Nguồn ứng viên</option>
@@ -326,10 +338,17 @@ const MasterData = () => {
                     <option value="AGENCY">Đơn vị tuyển dụng bên ngoài (Headhunter / Agency)</option>
                     <option value="EVENTS">Sự kiện & Trực tiếp</option>
                   </select>
-                ) : activeGroup === 'REJECTION_REASON' && !editItem ? (
+                ) : activeGroup === 'REJECTION_REASON' ? (
                   <select 
                     value={selectedTemplate} 
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value);
+                      if (e.target.value) {
+                        const label = e.target.options[e.target.selectedIndex].text;
+                        if (!editItem) setFormData(prev => ({...prev, code: e.target.value, name: label}));
+                        else setFormData(prev => ({...prev, name: label}));
+                      }
+                    }}
                     style={{ width: '100%', padding: '4px 0', border: 'none', outline: 'none', backgroundColor: 'transparent', color: '#0f172a', fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', appearance: 'none', textOverflow: 'ellipsis' }}
                   >
                     <option value="">Lý do loại hồ sơ</option>
@@ -341,10 +360,17 @@ const MasterData = () => {
                     <option value="WITHDRAW">Ứng viên tự rút / Nhận việc khác</option>
                     <option value="CANNOT_CONTACT">Không liên lạc được</option>
                   </select>
-                ) : activeGroup === 'WORK_LOCATION' && !editItem ? (
+                ) : activeGroup === 'WORK_LOCATION' ? (
                   <select 
                     value={selectedTemplate} 
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value);
+                      if (e.target.value) {
+                        const label = e.target.options[e.target.selectedIndex].text;
+                        if (!editItem) setFormData(prev => ({...prev, code: e.target.value, name: label}));
+                        else setFormData(prev => ({...prev, name: label}));
+                      }
+                    }}
                     style={{ width: '100%', padding: '4px 0', border: 'none', outline: 'none', backgroundColor: 'transparent', color: '#0f172a', fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', appearance: 'none', textOverflow: 'ellipsis' }}
                   >
                     <option value="">Địa điểm làm việc</option>
@@ -352,10 +378,17 @@ const MasterData = () => {
                     <option value="HCM">TP. HCM</option>
                     <option value="DN">Đà Nẵng</option>
                   </select>
-                ) : activeGroup === 'WORK_TYPE' && !editItem ? (
+                ) : activeGroup === 'WORK_TYPE' ? (
                   <select 
                     value={selectedTemplate} 
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value);
+                      if (e.target.value) {
+                        const label = e.target.options[e.target.selectedIndex].text;
+                        if (!editItem) setFormData(prev => ({...prev, code: e.target.value, name: label}));
+                        else setFormData(prev => ({...prev, name: label}));
+                      }
+                    }}
                     style={{ width: '100%', padding: '4px 0', border: 'none', outline: 'none', backgroundColor: 'transparent', color: '#0f172a', fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', appearance: 'none', textOverflow: 'ellipsis' }}
                   >
                     <option value="">Hình thức làm việc</option>
@@ -443,8 +476,8 @@ const MasterData = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button type="button" onClick={handleCloseModal} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', fontWeight: '600', cursor: 'pointer', color: '#475569' }}>Hủy</button>
-                <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#4f46e5', fontWeight: '600', cursor: 'pointer', color: 'white' }}>Lưu thay đổi</button>
+                <button type="button" onClick={handleCloseModal} className="btn-secondary">Hủy</button>
+                <button type="submit" className="g-btn-primary"><FaSave /> Lưu thay đổi</button>
               </div>
             </form>
           </div>

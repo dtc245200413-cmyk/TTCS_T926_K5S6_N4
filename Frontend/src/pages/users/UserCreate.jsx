@@ -60,7 +60,7 @@ const UserCreate = () => {
         <h1>Thêm Nhân Viên Mới</h1>
       </div>
 
-      <div className="card" style={{ maxWidth: '800px' }}>
+      <div className="card" style={{ width: '100%' }}>
         {status.message && (
           <div className={`alert ${status.type === 'error' ? 'alert-error' : 'alert-success'}`}>
             {status.message}
@@ -165,7 +165,7 @@ const UserCreate = () => {
           </div>
           
           <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={loading}>
+            <button type="submit" className="g-btn-primary" disabled={loading}>
               {loading ? 'Đang lưu...' : 'Thêm Nhân Viên'}
             </button>
             <Link to="/users" className="btn-secondary">Hủy</Link>

@@ -14,11 +14,12 @@ const ProtectedRoute = ({ requiredPermission, requiredRole, requireAdmin, requir
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin) {
-    const isAdmin = user?.roles?.some(r => r.role_code === 'ADMIN');
-    if (!isAdmin) {
-      return <Navigate to="/unauthorized" replace />;
-    }
+  const isAdmin = user?.roles?.some(r => r.role_code === 'ADMIN');
+
+  // Check Admin specific requirement
+
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   if (requireHrManager) {
@@ -43,7 +44,7 @@ const ProtectedRoute = ({ requiredPermission, requiredRole, requireAdmin, requir
       )) ||
       user?.company_email === 'dtc245200002@ictu.edu.vn'
     );
-    if (!isHrManager) {
+    if (!isHrManager && !isAdmin) {
       return <Navigate to="/unauthorized" replace />;
     }
   }

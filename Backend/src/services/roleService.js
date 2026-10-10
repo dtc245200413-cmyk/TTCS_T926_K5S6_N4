@@ -145,6 +145,17 @@ async function revokeRole(targetUserId, roleId, performedByUserId, ipAddress) {
     );
   }
 
+  // Prevent revoking the last ADMIN role
+  if (role.role_code === 'ADMIN') {
+    const { pool } = require('../config/database');
+    const [rows] = await pool.query(
+      `SELECT COUNT(*) as count FROM user_roles ur JOIN roles r ON ur.role_id = r.role_id WHERE r.role_code = 'ADMIN'`
+    );
+    if (rows[0].count <= 1) {
+      throw createError('Không thể thu hồi quyền ADMIN cuối cùng của hệ thống.', 403);
+    }
+  }
+
   // Step 4: Remove the assignment
   await roleRepository.revokeRole(targetUserId, roleId);
 

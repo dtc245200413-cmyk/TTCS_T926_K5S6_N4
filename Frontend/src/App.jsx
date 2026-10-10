@@ -12,8 +12,10 @@ import Home from './pages/Home';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import ChangePassword from './pages/ChangePassword';
+import AdminDashboard from './pages/AdminDashboard';
 import Reports from './pages/Reports';
 import QuestionBank from './pages/questions/QuestionBank';
+import Notifications from './pages/Notifications';
 
 // User Pages
 import UserList from './pages/users/UserList';
@@ -21,6 +23,8 @@ import UserDetail from './pages/users/UserDetail';
 import UserCreate from './pages/users/UserCreate';
 import UserEdit from './pages/users/UserEdit';
 import UserImport from './pages/users/UserImport';
+import AccountList from './pages/accounts/AccountList';
+import AuditLogList from './pages/audit-logs/AuditLogList';
 import RoleList from './pages/roles/RoleList';
 import RecruitmentRequestCreate from './pages/recruitment-requests/RecruitmentRequestCreate';
 import RecruitmentRequestList from './pages/recruitment-requests/RecruitmentRequestList';
@@ -53,6 +57,9 @@ function App() {
 
             {/* Dashboard */}
             <Route path="/" element={<Home />} />
+            
+            <Route path="/admin-dashboard" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
+            
             {/* Reports */}
             <Route path="/positions" element={<ProtectedRoute requireHrManager={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<PositionManagement />} />
@@ -60,6 +67,7 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/questions" element={<QuestionBank />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/notifications" element={<Notifications />} />
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}
@@ -73,7 +81,7 @@ function App() {
             <Route
               path="/competency-frameworks/create"
               element={
-                <ProtectedRoute requiredRole="HR_MANAGER">
+                <ProtectedRoute requiredPermission="COMPETENCY_MANAGE">
                   <CompetencyFrameworkForm />
                 </ProtectedRoute>
               }
@@ -94,6 +102,11 @@ function App() {
               <Route path=":id" element={<UserDetail />} />
             </Route>
 
+            {/* Account Management Route */}
+            <Route path="/accounts" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
+              <Route index element={<AccountList />} />
+            </Route>
+
             {/* User Creation Route (Admin only) */}
             <Route path="/users/create" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<UserCreate />} />
@@ -110,6 +123,12 @@ function App() {
             {/* Roles Management Route */}
             <Route path="/roles" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
               <Route index element={<RoleList />} />
+            </Route>
+
+
+            {/* Audit Logs Route */}
+            <Route path="/audit-logs" element={<ProtectedRoute requireAdmin={true}><Outlet /></ProtectedRoute>}>
+              <Route index element={<AuditLogList />} />
             </Route>
 
             {/* Department Management Route */}

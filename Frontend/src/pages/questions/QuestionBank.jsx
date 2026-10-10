@@ -320,12 +320,12 @@ const QuestionBank = () => {
       )}
 
       {/* Page Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="g-page-header">
         <div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>
+          <h1 className="g-page-title">
             Quản Lý Ngân Hàng Câu Hỏi
           </h1>
-          <p style={{ color: '#64748b', margin: '6px 0 0 0', fontSize: '0.95rem' }}>
+          <p className="g-page-subtitle">
             Hệ thống quản lý câu hỏi phỏng vấn chuẩn hóa theo khung tiêu chí năng lực và độ khó (SCRUM-73/74/75)
           </p>
         </div>
@@ -628,15 +628,15 @@ const QuestionBank = () => {
                   <td colSpan="6" style={{ textAlign: 'center', padding: '60px 20px' }}>
                     <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
                     <h3 style={{ fontSize: '1.1rem', color: '#1e293b', marginBottom: '6px' }}>Không tìm thấy câu hỏi nào</h3>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '16px' }}>
+                    <p className="g-page-subtitle">
                       {search || selectedCriteria || selectedDifficulty ? 'Không có câu hỏi nào khớp với bộ lọc hiện tại.' : 'Ngân hàng câu hỏi hiện đang trống.'}
                     </p>
                     {(search || selectedCriteria || selectedDifficulty) ? (
-                      <button onClick={handleResetFilters} className="btn-secondary" style={{ fontSize: '0.9rem' }}>
+                      <button onClick={handleResetFilters} className="g-btn-secondary">
                         Xóa bộ lọc
                       </button>
                     ) : (
-                      <button onClick={handleOpenAddModal} className="btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem' }}>
+                      <button onClick={handleOpenAddModal} className="g-btn-primary">
                         + Thêm câu hỏi đầu tiên
                       </button>
                     )}
@@ -678,36 +678,8 @@ const QuestionBank = () => {
                       {q.sample_answer ? (
                         <button
                           onClick={() => setViewingQuestion(q)}
-                          style={{
-                            background: '#f5f3ff',
-                            color: '#6366f1',
-                            border: '1px solid #ddd6fe',
-                            borderRadius: '10px',
-                            padding: '6px 14px',
-                            fontSize: '0.82rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            whiteSpace: 'nowrap'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#ede9fe';
-                            e.currentTarget.style.borderColor = '#c4b5fd';
-                            e.currentTarget.style.color = '#4f46e5';
-                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.15)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#f5f3ff';
-                            e.currentTarget.style.borderColor = '#ddd6fe';
-                            e.currentTarget.style.color = '#6366f1';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
+                          className="btn-action-view"
                         >
-                          <FiEye size={15} />
                           <span>Xem đáp án</span>
                         </button>
                       ) : (
@@ -719,63 +691,17 @@ const QuestionBank = () => {
                         <button
                           onClick={() => handleOpenEditModal(q)}
                           title="Chỉnh sửa câu hỏi"
-                          style={{
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '10px',
-                            width: '36px',
-                            height: '36px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '0.95rem',
-                            color: '#2563eb',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#eff6ff';
-                            e.currentTarget.style.borderColor = '#bfdbfe';
-                            e.currentTarget.style.color = '#1d4ed8';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#f8fafc';
-                            e.currentTarget.style.borderColor = '#e2e8f0';
-                            e.currentTarget.style.color = '#2563eb';
-                          }}
+                          className="btn-action-edit"
                         >
-                          <FiEdit2 size={16} />
+                          Sửa
                         </button>
 
                         <button
                           onClick={() => setDeletingQuestion(q)}
                           title="Xóa câu hỏi"
-                          style={{
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
-                            borderRadius: '10px',
-                            width: '36px',
-                            height: '36px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '0.95rem',
-                            color: '#dc2626',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#fee2e2';
-                            e.currentTarget.style.borderColor = '#f87171';
-                            e.currentTarget.style.color = '#b91c1c';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#fef2f2';
-                            e.currentTarget.style.borderColor = '#fecaca';
-                            e.currentTarget.style.color = '#dc2626';
-                          }}
+                          className="btn-action-delete"
                         >
-                          <FiTrash2 size={16} />
+                          Xóa
                         </button>
                       </div>
                     </td>
@@ -868,7 +794,7 @@ const QuestionBank = () => {
                 <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                   {editingQuestion ? `Chỉnh Sửa Câu Hỏi #${editingQuestion.id}` : 'Thêm Câu Hỏi Phỏng Vấn Mới'}
                 </h2>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+                <p className="g-page-subtitle">
                   Điền thông tin chi tiết và tiêu chuẩn gợi ý đánh giá ứng viên
                 </p>
               </div>
@@ -1221,7 +1147,7 @@ const QuestionBank = () => {
             <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>
               Xác Nhận Xóa Câu Hỏi?
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '20px' }}>
+            <p className="g-page-subtitle">
               Bạn có chắc chắn muốn xóa câu hỏi <strong>#{deletingQuestion.id}</strong>? Hành động này không thể hoàn tác.
             </p>
             <div style={{
@@ -1277,7 +1203,7 @@ const QuestionBank = () => {
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>🎯</span> Thêm Tiêu Chí Năng Lực Mới
                 </h3>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                <p className="g-page-subtitle">
                   Tiêu chí sẽ tự động được chọn vào form câu hỏi sau khi lưu
                 </p>
               </div>

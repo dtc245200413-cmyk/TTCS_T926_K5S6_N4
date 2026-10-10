@@ -41,10 +41,17 @@ const RecruitmentRequestCreate = () => {
         axios.get('http://localhost:3000/api/job-positions', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:3000/api/master-data', { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      if (deptRes.data.success) setDepartments(deptRes.data.data);
-      if (posRes.data.success) setPositions(posRes.data.data);
+      if (deptRes.data.success) {
+        const deptData = deptRes.data.data;
+        setDepartments(Array.isArray(deptData) ? deptData : (deptData.departments || []));
+      }
+      if (posRes.data.success) {
+        const posData = posRes.data.data;
+        setPositions(Array.isArray(posData) ? posData : (posData.data || []));
+      }
       if (masterDataRes.data.success) {
-        const md = masterDataRes.data.data;
+        const mdData = masterDataRes.data.data;
+        const md = Array.isArray(mdData) ? mdData : (mdData.data || mdData.items || []);
         setLocations(md.filter(x => x.category_group === 'WORK_LOCATION' && x.is_active));
         setWorkTypes(md.filter(x => x.category_group === 'WORK_TYPE' && x.is_active));
       }
@@ -156,17 +163,17 @@ const RecruitmentRequestCreate = () => {
   };
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)', backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)', padding: '16px 24px', borderRadius: '16px', color: 'white', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#4f46e5', padding: '16px 24px', borderRadius: '16px', color: 'white', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ background: 'rgba(255,255,255,0.2)', padding: '6px', borderRadius: '8px', display: 'flex' }}>✨</span> 
               Tạo yêu cầu tuyển dụng
             </h2>
-            <p style={{ color: '#e0e7ff', margin: '4px 0 0 0', fontSize: '0.85rem' }}>Điền các thông tin cần thiết để đăng tuyển vị trí mới</p>
+            <p className="g-page-subtitle">Điền các thông tin cần thiết để đăng tuyển vị trí mới</p>
           </div>
           <button 
             onClick={() => navigate(-1)}

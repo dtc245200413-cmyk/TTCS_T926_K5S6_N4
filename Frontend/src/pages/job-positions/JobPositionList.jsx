@@ -59,19 +59,19 @@ const JobPositionList = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="g-page-header">
         <div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Quản Lý Chức Danh</h1>
-          <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.95rem' }}>Quản lý chức danh và khoảng lương chuẩn</p>
+          <h1 className="g-page-title">Quản Lý Chức Danh</h1>
+          <p className="g-page-subtitle">Quản lý chức danh và khoảng lương chuẩn</p>
         </div>
         {hasPermission('USER_CREATE') && (
-          <Link to="/job-positions/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link to="/job-positions/create" className="g-btn-primary">
             <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Chức Danh
           </Link>
         )}
       </div>
 
-      <div style={{ background: '#ffffff', borderRadius: '20px', padding: '16px', marginBottom: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+      <div className="g-card" style={{ padding: "16px" }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 320px', position: 'relative' }}>
             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '1.1rem' }}>🔍</span>
@@ -96,8 +96,8 @@ const JobPositionList = () => {
               <option value="INACTIVE">Vô hiệu hóa</option>
             </select>
           </div>
-          <button type="submit" className="btn-primary" style={{ padding: '0 24px', height: '48px', borderRadius: '12px', margin: 0 }}>Tìm kiếm</button>
-          <button type="button" onClick={handleReset} className="btn-secondary" style={{ padding: '0 24px', height: '48px', borderRadius: '12px', margin: 0 }}>Làm mới</button>
+          <button type="submit" className="g-btn-primary">Tìm kiếm</button>
+          <button type="button" onClick={handleReset} className="g-btn-secondary">Làm mới</button>
         </form>
       </div>
 
@@ -110,7 +110,7 @@ const JobPositionList = () => {
           <div style={{ padding: '60px 40px', textAlign: 'center' }}>
             <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📭</div>
             <h3 style={{ color: '#1e293b', marginBottom: '8px' }}>Không tìm thấy chức danh nào</h3>
-            <p style={{ color: '#64748b' }}>Thử thay đổi bộ lọc hoặc thêm mới.</p>
+            <p className="g-page-subtitle">Thử thay đổi bộ lọc hoặc thêm mới.</p>
           </div>
         ) : (
           <div className="table-responsive">

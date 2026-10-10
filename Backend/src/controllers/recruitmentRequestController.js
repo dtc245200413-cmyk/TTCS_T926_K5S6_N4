@@ -18,7 +18,7 @@ const createRequest = async (req, res, next) => {
 
 const getMyRequests = async (req, res, next) => {
   try {
-    const result = await requestService.getMyRequests(req.user.user_id);
+    const result = await requestService.getMyRequests(req.user.user_id, req.user.roles);
     return sendSuccess(res, 'Lấy danh sách thành công.', result);
   } catch (error) { next(error); }
 };

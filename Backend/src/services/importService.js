@@ -1,6 +1,7 @@
 const xlsx = require('xlsx');
 const { pool } = require('../config/database');
 const userRepository = require('../repositories/userRepository');
+const auditRepository = require('../repositories/auditRepository');
 const bcrypt = require('bcrypt');
 
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS, 10) || 10;
@@ -165,6 +166,17 @@ async function confirmImport(validRows, performedByUserId, ipAddress) {
       errors.push(`Dòng ${row.row_index}: Lỗi hệ thống (${error.message})`);
     }
   }
+
+  // Audit log for the batch import
+  await auditRepository.createLog({
+    userId: performedByUserId,
+    performedBy: performedByUserId,
+    action: 'USER_IMPORT_EXCEL',
+    entityType: 'users',
+    entityId: 'batch',
+    description: `Imported ${successCount} accounts from Excel. Failed: ${failedCount}.`,
+    ipAddress,
+  });
 
   return { successCount, failedCount, errors };
 }

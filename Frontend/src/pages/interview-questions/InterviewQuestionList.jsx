@@ -92,13 +92,13 @@ const InterviewQuestionList = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="g-page-header">
         <div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Ngân Hàng Câu Hỏi</h1>
-          <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.95rem' }}>Quản lý câu hỏi phỏng vấn theo khung năng lực</p>
+          <h1 className="g-page-title">Ngân Hàng Câu Hỏi</h1>
+          <p className="g-page-subtitle">Quản lý câu hỏi phỏng vấn theo khung năng lực</p>
         </div>
         {hasPermission('USER_CREATE') && (
-          <Link to="/interview-questions/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link to="/interview-questions/create" className="g-btn-primary">
             <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Câu Hỏi
           </Link>
         )}
@@ -154,8 +154,8 @@ const InterviewQuestionList = () => {
           </div>
 
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
-            <button type="button" onClick={handleReset} className="btn-secondary" style={{ padding: '0 24px', height: '44px', borderRadius: '10px', margin: 0 }}>Làm mới</button>
-            <button type="submit" className="btn-primary" style={{ padding: '0 24px', height: '44px', borderRadius: '10px', margin: 0 }}>Lọc Dữ Liệu</button>
+            <button type="button" onClick={handleReset} className="g-btn-secondary">Làm mới</button>
+            <button type="submit" className="g-btn-primary">Lọc Dữ Liệu</button>
           </div>
         </form>
       </div>
@@ -169,7 +169,7 @@ const InterviewQuestionList = () => {
           <div style={{ padding: '60px 40px', textAlign: 'center' }}>
             <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📝</div>
             <h3 style={{ color: '#1e293b', marginBottom: '8px' }}>Không có câu hỏi nào</h3>
-            <p style={{ color: '#64748b' }}>Thử thay đổi bộ lọc hoặc thêm câu hỏi mới vào ngân hàng.</p>
+            <p className="g-page-subtitle">Thử thay đổi bộ lọc hoặc thêm câu hỏi mới vào ngân hàng.</p>
           </div>
         ) : (
           <div className="table-responsive">
@@ -207,8 +207,10 @@ const InterviewQuestionList = () => {
                     </td>
                     {hasPermission('USER_UPDATE') && (
                       <td>
-                        <Link to={`/interview-questions/${q.question_id}/edit`} className="action-link" style={{ marginRight: '16px' }}>Sửa</Link>
-                        <span className="action-link" style={{ color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDelete(q.question_id)}>Xóa</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <Link to={`/interview-questions/${q.question_id}/edit`} className="btn-action-edit">Sửa</Link>
+                          <button className="btn-action-delete" onClick={() => handleDelete(q.question_id)}>Xóa</button>
+                        </div>
                       </td>
                     )}
                   </tr>

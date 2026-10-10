@@ -22,9 +22,7 @@ const CompetencyFrameworkList = () => {
 
   // Có COMPETENCY_MANAGE -> được thêm / sửa / xóa
   const canManage = hasPermission('COMPETENCY_MANAGE');
-  const canCreate = user?.roles?.some(
-    (role) => role.role_code === 'HR_MANAGER'
-  );
+  const canCreate = canManage;
 
   // =========================================================
   // LẤY DANH SÁCH KHUNG NĂNG LỰC
@@ -485,47 +483,27 @@ const CompetencyFrameworkList = () => {
                     {/* CHỈ CÓ THỂ SỬA / XÓA KHI CÓ MANAGE */}
                     {canManage && (
                       <td>
-                        <Link
-                          to={`/competency-frameworks/${fw.framework_id}/edit`}
-                          className="action-link"
-                          style={{
-                            marginRight: '16px'
-                          }}
-                        >
-                          Sửa
-                        </Link>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <Link
+                            to={`/competency-frameworks/${fw.framework_id}/edit`}
+                            className="btn-action-edit"
+                          >
+                            Sửa
+                          </Link>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDelete(fw)
-                          }
-                          disabled={
-                            deletingId ===
-                            fw.framework_id
-                          }
-                          style={{
-                            border: 'none',
-                            background: 'none',
-                            padding: 0,
-                            color:
-                              deletingId ===
-                              fw.framework_id
-                                ? '#94a3b8'
-                                : '#ef4444',
-                            cursor:
-                              deletingId ===
-                              fw.framework_id
-                                ? 'not-allowed'
-                                : 'pointer',
-                            fontWeight: '500'
-                          }}
-                        >
-                          {deletingId ===
-                          fw.framework_id
-                            ? 'Đang xóa...'
-                            : 'Xóa'}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(fw)}
+                            disabled={deletingId === fw.framework_id}
+                            className="btn-action-delete"
+                            style={{
+                              opacity: deletingId === fw.framework_id ? 0.5 : 1,
+                              cursor: deletingId === fw.framework_id ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            {deletingId === fw.framework_id ? 'Đang xóa...' : 'Xóa'}
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>

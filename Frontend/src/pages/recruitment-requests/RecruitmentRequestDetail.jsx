@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
+import { FaFileAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser, FaEdit, FaBuilding, FaMoneyBillWave, FaExclamationTriangle, FaClipboardList, FaBullseye } from 'react-icons/fa';
 
 const RecruitmentRequestDetail = () => {
   const { id } = useParams();
@@ -42,10 +43,10 @@ const RecruitmentRequestDetail = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'DRAFT': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>📝 Lưu nháp</span>;
-      case 'PENDING': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>⏳ Chờ duyệt</span>;
-      case 'APPROVED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>✅ Đã duyệt</span>;
-      case 'REJECTED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>❌ Từ chối</span>;
+      case 'DRAFT': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}><FaFileAlt /> Lưu nháp</span>;
+      case 'PENDING': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '6px' }}><FaHourglassHalf /> Chờ duyệt</span>;
+      case 'APPROVED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '6px' }}><FaCheckCircle /> Đã duyệt</span>;
+      case 'REJECTED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px' }}><FaTimesCircle /> Từ chối</span>;
       default: return <span>{status}</span>;
     }
   };
@@ -84,22 +85,22 @@ const RecruitmentRequestDetail = () => {
   const isApprover = user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt');
 
   return (
-    <div style={{ padding: '30px', backgroundColor: '#f4f7fb', minHeight: 'calc(100vh - 80px)', backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ padding: '30px', backgroundColor: '#f4f7fb', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Top Action Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => window.history.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', textDecoration: 'none', fontWeight: '600', transition: 'color 0.2s', padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>←</span> Quay lại
+            <FaArrowLeft /> Quay lại
           </button>
           <div style={{ display: 'flex', gap: '10px' }}>
              {isApprover && request.status === 'PENDING' && (
                <>
                  <button onClick={() => handleUpdateStatus('APPROVED')} disabled={actionLoading} style={{ background: '#15803d', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(21, 128, 61, 0.3)' }}>
-                   ✅ Phê duyệt
+                   Phê duyệt
                  </button>
                  <button onClick={() => handleUpdateStatus('REJECTED')} disabled={actionLoading} style={{ background: '#b91c1c', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(185, 28, 28, 0.3)' }}>
-                   ❌ Từ chối
+                   Từ chối
                  </button>
                </>
              )}
@@ -117,16 +118,16 @@ const RecruitmentRequestDetail = () => {
                 </span>
                 {getStatusBadge(request.status)}
               </div>
-              <h1 style={{ margin: '0 0 10px 0', fontSize: '2rem', fontWeight: '800', color: '#0f172a' }}>
+              <h1 className="g-page-title">
                 {request.position_name ? `Tuyển dụng ${request.position_name}` : 'Chưa cập nhật chức danh'}
               </h1>
-              <p style={{ margin: '0', color: '#64748b', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>👤</span> Tạo bởi <strong>{request.created_by_name}</strong> vào ngày {new Date(request.created_at).toLocaleString('vi-VN')}
+              <p className="g-page-subtitle">
+                <span><FaUser /></span> Tạo bởi <strong>{request.created_by_name}</strong> vào ngày {new Date(request.created_at).toLocaleString('vi-VN')}
               </p>
             </div>
             {request.status === 'DRAFT' && (
               <Link to={`/recruitment-requests/${request.id}/edit`} style={{ background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ✏️ Sửa bản nháp
+                Sửa bản nháp
               </Link>
             )}
           </div>
@@ -135,7 +136,7 @@ const RecruitmentRequestDetail = () => {
         {request.status === 'REJECTED' && request.rejection_reason && (
           <div style={{ background: '#fef2f2', padding: '20px 24px', borderRadius: '16px', borderLeft: '5px solid #ef4444', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#b91c1c', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>❌</span> LÝ DO TỪ CHỐI
+              <span><FaTimesCircle /></span> LÝ DO TỪ CHỐI
             </span>
             <span style={{ fontSize: '1.05rem', color: '#7f1d1d', lineHeight: '1.5' }}>
               {request.rejection_reason}
@@ -148,7 +149,7 @@ const RecruitmentRequestDetail = () => {
           {/* General Info Card */}
           <div style={{ background: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
-              <span>🏢</span> Thông tin chung
+              <span><FaBuilding /></span> Thông tin chung
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -176,7 +177,7 @@ const RecruitmentRequestDetail = () => {
           {/* Salary Info Card */}
           <div style={{ background: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
-              <span>💰</span> Thông tin Lương
+              <span><FaMoneyBillWave /></span> Thông tin Lương
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -189,7 +190,7 @@ const RecruitmentRequestDetail = () => {
             {request.salary_explanation && (
               <div style={{ marginTop: '10px', background: 'linear-gradient(to right, #fef2f2, #fff1f2)', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #ef4444' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: '800', color: '#b91c1c', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  <span>⚠️</span> Giải trình lương ngoài dải chuẩn
+                  <span><FaExclamationTriangle style={{ color: '#d97706' }} /></span> Giải trình lương ngoài dải chuẩn
                 </span>
                 <span style={{ fontSize: '0.95rem', color: '#7f1d1d', lineHeight: '1.5' }}>{request.salary_explanation}</span>
               </div>
@@ -202,7 +203,7 @@ const RecruitmentRequestDetail = () => {
           
           <div>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📋</span> Mô tả công việc
+              <span><FaClipboardList /></span> Mô tả công việc
             </h3>
             <div style={{ fontSize: '0.95rem', color: '#334155', background: '#f8fafc', padding: '20px', borderRadius: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', border: '1px solid #f1f5f9' }}>
               {request.job_description || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa cập nhật mô tả công việc...</span>}
@@ -211,7 +212,7 @@ const RecruitmentRequestDetail = () => {
 
           <div>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🎯</span> Yêu cầu ứng viên
+              <span><FaBullseye /></span> Yêu cầu ứng viên
             </h3>
             <div style={{ fontSize: '0.95rem', color: '#334155', background: '#f8fafc', padding: '20px', borderRadius: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', border: '1px solid #f1f5f9' }}>
               {request.candidate_requirements || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa cập nhật yêu cầu ứng viên...</span>}
