@@ -1,6 +1,12 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { 
+  FiGrid, FiUsers, FiUser, FiList, FiFileText, 
+  FiShield, FiHome, FiShare2, FiBriefcase, 
+  FiClipboard, FiEdit, FiCheckSquare, FiBookOpen, 
+  FiClock, FiKey, FiLogOut, FiBell, FiBarChart2, FiCheckCircle
+} from 'react-icons/fi';
 import '../../styles/global.css';
 
 const Sidebar = () => {
@@ -12,21 +18,30 @@ const Sidebar = () => {
         r.role_code === 'HR_MANAGER' ||
         (r.role_name && (
           r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
-          r.role_name.toLowerCase().includes('trưởng phòng ns') ||
-          r.role_name.toLowerCase().includes('tp nhân sự') ||
-          r.role_name.toLowerCase().includes('tp ns') ||
           r.role_name.toLowerCase().includes('hr manager')
         ))
     ) ||
-    (user?.job_title && (
-      user.job_title.toLowerCase().includes('trưởng phòng nhân sự') ||
-      user.job_title.toLowerCase().includes('trưởng phòng ns') ||
-      user.job_title.toLowerCase().includes('tp nhân sự') ||
-      user.job_title.toLowerCase().includes('tp ns') ||
-      user.job_title.toLowerCase().includes('hr manager')
-    )) ||
     user?.company_email === 'dtc245200002@ictu.edu.vn'
   );
+  
+  const isHiringManager = user?.roles?.some(r => r.role_code === 'HIRING_MANAGER') || user?.job_title?.toLowerCase().includes('trưởng bộ phận');
+  const isRecruiterRole = user?.roles?.some(r => r.role_code === 'RECRUITER') || user?.job_title?.toLowerCase().includes('tuyển dụng');
+  const isApprover = user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt') || user?.job_title?.toLowerCase().includes('giám đốc');
+
+  const getSubtitle = () => {
+    if (isAdmin) return 'QUẢN TRỊ HỆ THỐNG';
+    if (isHrManager) return 'TRƯỞNG PHÒNG NHÂN SỰ';
+    if (isHiringManager) return 'TRƯỞNG BỘ PHẬN';
+    if (isRecruiterRole) return 'NHÂN VIÊN TUYỂN DỤNG';
+    return 'HỆ THỐNG NỘI BỘ';
+  };
+  
+  const getLogoIcon = () => {
+    if (isAdmin) return <FiShield size={20} />;
+    if (isRecruiterRole && !isHrManager && !isAdmin) return <FiUsers size={20} />;
+    return <FiHome size={20} />;
+  };
+  
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -34,249 +49,236 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  const navLinkStyle = ({ isActive }) => ({
+    display: 'flex', alignItems: 'center', gap: '12px',
+    padding: '12px 16px', margin: '4px 12px',
+    borderRadius: '8px', textDecoration: 'none',
+    color: isActive ? '#fff' : '#94a3b8',
+    background: isActive ? '#2e325a' : 'transparent',
+    fontWeight: isActive ? '600' : '500',
+    fontSize: '0.9rem',
+    transition: 'all 0.2s',
+    border: 'none',
+    boxShadow: 'none'
+  });
+
+  const getClassName = () => '';
+
+  const [openMenus, setOpenMenus] = useState({
+    account: true,
+    org: true,
+    recruit: true
+  });
+
+  const toggleMenu = (menu) => {
+    setOpenMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
+  };
+
+  const headerStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '12px 16px', margin: '4px 12px',
+    borderRadius: '8px', cursor: 'pointer',
+    color: '#f8fafc', fontWeight: '600', fontSize: '0.9rem',
+    background: 'transparent', transition: 'all 0.2s', userSelect: 'none'
+  };
+
+  const sectionHeader = (text) => (
+    <div style={{ padding: '0 24px', marginTop: '16px', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>
+      {text}
+    </div>
+  );
+
+  const renderAdminMenu = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
+      <NavLink to="/" className={getClassName} style={navLinkStyle} end>
+        <FiGrid size={18} /> Tổng quan
+      </NavLink>
+      
+      <NavLink to="/users" className={getClassName} style={navLinkStyle}>
+        <FiUsers size={18} /> Quản lý nhân sự
+      </NavLink>
+
+      <div onClick={() => toggleMenu('account')} style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FiUser size={18} /> Quản lý tài khoản
+        </div>
+        <span style={{ fontSize: '0.8rem', opacity: 0.7, transform: openMenus.account ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+      </div>
+      {openMenus.account && (
+        <div style={{ paddingLeft: '24px' }}>
+          <NavLink to="/accounts" className={getClassName} style={navLinkStyle}>
+            <FiList size={18} /> Danh sách tài khoản
+          </NavLink>
+          <NavLink to="/users/import" className={getClassName} style={navLinkStyle}>
+            <FiFileText size={18} /> Nhập Excel hàng loạt
+          </NavLink>
+        </div>
+      )}
+
+      <NavLink to="/roles" className={getClassName} style={navLinkStyle}>
+        <FiShield size={18} /> Quản lý phân quyền
+      </NavLink>
+
+      <div onClick={() => toggleMenu('org')} style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FiHome size={18} /> Quản lý tổ chức
+        </div>
+        <span style={{ fontSize: '0.8rem', opacity: 0.7, transform: openMenus.org ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+      </div>
+      {openMenus.org && (
+        <div style={{ paddingLeft: '24px' }}>
+          <NavLink to="/departments" className={getClassName} style={navLinkStyle}>
+            <FiShare2 size={18} /> Phòng ban
+          </NavLink>
+          <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
+            <FiBriefcase size={18} /> Chức danh & dải lương
+          </NavLink>
+        </div>
+      )}
+
+      <div onClick={() => toggleMenu('recruit')} style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FiClipboard size={18} /> Quản lý tuyển dụng
+        </div>
+        <span style={{ fontSize: '0.8rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+      </div>
+      {openMenus.recruit && (
+        <div style={{ paddingLeft: '24px' }}>
+          <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle}>
+            <FiEdit size={18} /> Yêu cầu tuyển dụng
+          </NavLink>
+          <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
+            <FiCheckSquare size={18} /> Khung năng lực
+          </NavLink>
+          <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
+            <FiBookOpen size={18} /> Ngân hàng câu hỏi
+          </NavLink>
+          <NavLink to="/master-data" className={getClassName} style={navLinkStyle}>
+            <FiList size={18} /> Danh mục tuyển dụng
+          </NavLink>
+          <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
+            <FiHome size={18} /> Hồ sơ công ty
+          </NavLink>
+        </div>
+      )}
+
+      <NavLink to="/audit-logs" className={getClassName} style={navLinkStyle}>
+        <FiClock size={18} /> Nhật ký hoạt động
+      </NavLink>
+    </div>
+  );
+
+  const renderHrMenu = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
+      <NavLink to="/" className={getClassName} style={navLinkStyle} end>
+        <FiGrid size={18} /> Tổng quan
+      </NavLink>
+      <NavLink to="/departments" className={getClassName} style={navLinkStyle}>
+        <FiHome size={18} /> Quản lý phòng ban
+      </NavLink>
+      <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
+        <FiBriefcase size={18} /> Chức danh & dải lương
+      </NavLink>
+      <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
+        <FiCheckSquare size={18} /> Khung năng lực
+      </NavLink>
+      <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
+        <FiBookOpen size={18} /> Ngân hàng câu hỏi
+      </NavLink>
+      <NavLink to="/master-data" className={getClassName} style={navLinkStyle}>
+        <FiList size={18} /> Danh mục tuyển dụng
+      </NavLink>
+      <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
+        <FiFileText size={18} /> Hồ sơ công ty
+      </NavLink>
+    </div>
+  );
+
+  const renderRecruiterMenu = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
+      <NavLink to="/" className={getClassName} style={navLinkStyle} end>
+        <FiGrid size={18} /> Tổng quan
+      </NavLink>
+      <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle} end>
+        <FiEdit size={18} /> Quản lý yêu cầu
+      </NavLink>
+      <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
+        <FiUsers size={18} /> Quản lý ứng viên
+      </NavLink>
+    </div>
+  );
+
+  const renderApproverMenu = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
+      <NavLink to="/" className={getClassName} style={navLinkStyle} end>
+        <FiBarChart2 size={18} /> Tổng quan
+      </NavLink>
+      <NavLink to="/recruitment-requests/approvals" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Duyệt yêu cầu
+      </NavLink>
+    </div>
+  );
+
+  const renderStandardMenu = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
+      <NavLink to="/" className={getClassName} style={navLinkStyle} end>
+        <FiGrid size={18} /> Tổng quan
+      </NavLink>
+
+      {(isHiringManager || isRecruiterRole) && (
+        <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle} end>
+          <FiEdit size={18} /> Quản lý yêu cầu
+        </NavLink>
+      )}
+
+      {(isRecruiterRole || isHrManager) && (
+        <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
+          <FiUsers size={18} /> Quản lý ứng viên
+        </NavLink>
+      )}
+    </div>
+  );
+
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
+    <aside className="sidebar" style={{ background: '#111827', color: '#cbd5e1', width: '260px', display: 'flex', flexDirection: 'column' }}>
+      <div className="sidebar-header" style={{ padding: '24px 20px', borderBottom: '1px solid #1f2937' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #4f46e5 0%, #60a5fa 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '1.2rem',
-              boxShadow: '0 4px 10px rgba(79, 70, 229, 0.4)'
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontWeight: 'bold', fontSize: '1.2rem', boxShadow: '0 4px 10px rgba(79,70,229,0.3)'
             }}
           >
-            T
+            {getLogoIcon()}
           </div>
 
           <div>
-            <h2
-              style={{
-                fontSize: '1.15rem',
-                color: '#f8fafc',
-                margin: 0,
-                fontWeight: '800',
-                letterSpacing: '0.5px'
-              }}
-            >
+            <h2 style={{ fontSize: '1.15rem', color: '#f8fafc', margin: 0, fontWeight: '800', letterSpacing: '0.5px' }}>
               TechCorp
             </h2>
-
-            <p
-              style={{
-                fontSize: '0.75rem',
-                color: '#94a3b8',
-                margin: 0,
-                fontWeight: '500',
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
-              }}
-            >
-              Hệ Thống Nội Bộ
+            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {getSubtitle()}
             </p>
           </div>
         </div>
       </div>
 
-      <nav className="sidebar-nav" style={{ padding: '24px 12px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {isAdmin ? renderAdminMenu() : (isHrManager ? renderHrMenu() : (isRecruiterRole ? renderRecruiterMenu() : (isApprover ? renderApproverMenu() : renderStandardMenu())))}
 
-        {/* Tổng quan */}
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            isActive ? 'nav-link active' : 'nav-link'
-          }
-          end
-        >
-          <span style={{ marginRight: '10px' }}>📊</span>
-          Tổng Quan
-        </NavLink>
-        {(user?.roles?.some(r => r.role_code === 'HIRING_MANAGER' || r.role_code === 'RECRUITER') || user?.job_title?.toLowerCase().includes('trưởng bộ phận')) && (
-          <NavLink 
-            to="/recruitment-requests" 
-            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            end
-          >
-            <span style={{ marginRight: '10px' }}>📝</span> Quản lý Yêu Cầu
+        <div style={{ borderTop: '1px solid #1f2937', padding: '16px 0', marginTop: 'auto' }}>
+          {sectionHeader('TÀI KHOẢN')}
+          <NavLink to="/profile/edit" style={navLinkStyle} className={getClassName}>
+            <FiUser size={18} color="#c084fc" /> Hồ sơ cá nhân
           </NavLink>
-        )}
-
-        {(user?.roles?.some(r => r.role_code === 'RECRUITER' || r.role_code === 'HR_MANAGER')) && (
-          <NavLink 
-            to="/candidates" 
-            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-          >
-            <span style={{ marginRight: '10px' }}>🧑‍💼</span> Quản lý Ứng viên
+          <NavLink to="/change-password" style={navLinkStyle} className={getClassName}>
+            <FiKey size={18} color="#eab308" /> Đổi mật khẩu
           </NavLink>
-        )}
-        
-        {(user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt')) && (
-          <NavLink 
-            to="/recruitment-requests/approvals" 
-            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-          >
-            <span style={{ marginRight: '10px' }}>✅</span> Duyệt Yêu Cầu
-          </NavLink>
-        )}
-
-        {(user?.roles?.some(r => r.role_code === 'HR_MANAGER')) && (
-          <>
-            <NavLink 
-              to="/company-profile" 
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <span style={{ marginRight: '10px' }}>🏢</span> Hồ sơ Công ty
-            </NavLink>
-            <NavLink 
-              to="/departments" 
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <span style={{ marginRight: '10px' }}>🏢</span> Quản lý Phòng Ban
-            </NavLink>
-            <NavLink 
-              to="/master-data" 
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <span style={{ marginRight: '10px' }}>📋</span> Danh mục hệ thống
-            </NavLink>
-          </>
-        )}
-        
-        {/* Quản lý nhân sự */}
-        {isAdmin && (
-          <NavLink
-            to="/users"
-            className={({ isActive }) =>
-              isActive ? 'nav-link active' : 'nav-link'
-            }
-          >
-            <span style={{ marginRight: '10px' }}>👥</span>
-            Quản Lý Nhân Sự
-          </NavLink>
-        )}
-
-        {/* Quản lý phân quyền */}
-        {isAdmin && (
-          <NavLink
-            to="/roles"
-            className={({ isActive }) =>
-              isActive ? 'nav-link active' : 'nav-link'
-            }
-          >
-            <span style={{ marginRight: '10px' }}>🛡️</span>
-            Quản Lý Phân Quyền
-          </NavLink>
-        )}
-
-        {/* Báo cáo */}
-        {isAdmin && (
-          <NavLink
-            to="/reports"
-            className={({ isActive }) =>
-              isActive ? 'nav-link active' : 'nav-link'
-            }
-          >
-            <span style={{ marginRight: '10px' }}>📈</span>
-            Báo Cáo Thống Kê
-          </NavLink>
-        )}
-
-        {/* KHUNG NĂNG LỰC */}
-        {isHrManager && (
-          <NavLink
-            to="/competency-frameworks"
-            className={({ isActive }) =>
-              isActive ? 'nav-link active' : 'nav-link'
-            }
-          >
-            <span style={{ marginRight: '10px' }}>📋</span>
-            Khung Năng Lực
-          </NavLink>
-        )}
-
-        {/* Ngân Hàng Câu Hỏi */}
-        {isHrManager && (
-          <NavLink 
-            to="/questions" 
-            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-          >
-            <span style={{ marginRight: '10px' }}>❓</span> Ngân Hàng Câu Hỏi
-          </NavLink>
-        )}
-
-        {/* Chức Danh & Dải Lương */}
-        {isHrManager && (
-          <NavLink 
-            to="/positions" 
-            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-          >
-            <span style={{ marginRight: '10px' }}>💼</span> Chức Danh & Dải Lương
-          </NavLink>
-        )}
-
-        {/* Tài khoản */}
-        <div
-          style={{
-            marginTop: '30px',
-            marginBottom: '10px',
-            padding: '0 24px',
-            fontSize: '0.7rem',
-            color: '#64748b',
-            textTransform: 'uppercase',
-            fontWeight: '700',
-            letterSpacing: '1.5px'
-          }}
-        >
-          Tài Khoản
+          <div onClick={handleLogout} style={{ ...navLinkStyle({ isActive: false }), cursor: 'pointer' }}>
+            <FiLogOut size={18} color="#f97316" /> Đăng xuất
+          </div>
         </div>
-
-        {/* Đổi mật khẩu */}
-        <NavLink
-          to="/change-password"
-          className={({ isActive }) =>
-            isActive ? 'nav-link active' : 'nav-link'
-          }
-        >
-          <span
-            style={{
-              marginRight: '12px',
-              fontSize: '1.1rem'
-            }}
-          >
-            🔑
-          </span>
-          Đổi Mật Khẩu
-        </NavLink>
-
-        {/* Đăng xuất */}
-        <div
-          className="nav-link"
-          style={{ cursor: 'pointer' }}
-          onClick={handleLogout}
-        >
-          <span style={{ marginRight: '10px' }}>🚪</span>
-          Đăng Xuất
-        </div>
-      </nav>
-
-      <div
-        className="sidebar-footer"
-        style={{
-          padding: '20px',
-          marginTop: 'auto',
-          fontSize: '0.8rem',
-          color: '#6b7280',
-          borderTop: '1px solid #374151'
-        }}
-      >
-        &copy; 2026 Nội Bộ
       </div>
     </aside>
   );

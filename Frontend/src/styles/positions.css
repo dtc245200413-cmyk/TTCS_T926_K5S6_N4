@@ -488,8 +488,7 @@
 }
 
 .pos-action-btn {
-  width: 32px;
-  height: 32px;
+  padding: 6px 12px;
   border-radius: 6px;
   display: flex;
   align-items: center;

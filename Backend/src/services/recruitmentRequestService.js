@@ -99,7 +99,16 @@ async function createRequest(data, userId, ipAddress) {
   return newRequest;
 }
 
-async function getMyRequests(userId) {
+async function getMyRequests(userId, roles = []) {
+  const isAdminOrHR = roles.some(role => 
+    role.role_code === 'ADMIN' || 
+    role.role_code === 'HR_MANAGER' || 
+    role.role_code === 'RECRUITER'
+  );
+  
+  if (isAdminOrHR) {
+    return await requestRepo.getAllSystemWide();
+  }
   return await requestRepo.getAll(userId);
 }
 

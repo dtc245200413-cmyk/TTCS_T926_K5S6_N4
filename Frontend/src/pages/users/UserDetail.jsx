@@ -156,13 +156,13 @@ const UserDetail = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="g-page-header">
         <h1>Chi tiết nhân viên</h1>
         <div>
-          <Link to="/users" className="btn-secondary" style={{ marginRight: '10px' }}>Quay lại danh sách</Link>
+          <Link to="/users" className="g-btn-secondary">Quay lại danh sách</Link>
           
           {hasPermission('USER_UPDATE') && (
-            <Link to={`/users/${user.user_id}/edit`} className="btn-primary" style={{ textDecoration: 'none', marginRight: '10px' }}>
+            <Link to={`/users/${user.user_id}/edit`} className="g-btn-primary">
               Chỉnh sửa
             </Link>
           )}
@@ -174,12 +174,12 @@ const UserDetail = () => {
             </button>
           )}
           {user.status === 'LOCKED' && hasPermission('USER_UNLOCK') && (
-            <button onClick={handleUnlockAccount} className="btn-secondary" style={{ marginRight: '10px', borderColor: 'var(--success-color)', color: 'var(--success-color)' }}>
+            <button onClick={handleUnlockAccount} className="g-btn-secondary">
               Mở khoá tài khoản
             </button>
           )}
           {user.status === 'INACTIVE' && hasPermission('USER_UNLOCK') && (
-            <button onClick={handleUnlockAccount} className="btn-secondary" style={{ marginRight: '10px', borderColor: 'var(--success-color)', color: 'var(--success-color)' }}>
+            <button onClick={handleUnlockAccount} className="g-btn-secondary">
               Kích hoạt tài khoản
             </button>
           )}
@@ -238,14 +238,14 @@ const UserDetail = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h3>Vai trò được cấp</h3>
           {hasPermission('ROLE_ASSIGN') && (
-            <button onClick={openRoleModal} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>
+            <button onClick={openRoleModal} className="g-btn-secondary">
               + Gán vai trò
             </button>
           )}
         </div>
 
         {(!user.roles || user.roles.length === 0) ? (
-          <p style={{ color: 'var(--text-light)' }}>Chưa có vai trò nào được gán cho người dùng này.</p>
+          <p className="g-page-subtitle">Chưa có vai trò nào được gán cho người dùng này.</p>
         ) : (
           <table className="data-table" style={{ width: '100%', maxWidth: '600px' }}>
             <thead>
@@ -283,7 +283,7 @@ const UserDetail = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Khoá tài khoản nhân viên</h3>
-            <p style={{ marginBottom: '15px', fontSize: '0.9rem', color: 'var(--text-light)' }}>
+            <p className="g-page-subtitle">
               Bạn có chắc chắn muốn khoá tài khoản <strong>{user.full_name}</strong>? Họ sẽ bị đăng xuất ngay lập tức.
             </p>
             <form onSubmit={handleLockAccount}>
@@ -310,7 +310,7 @@ const UserDetail = () => {
                     <option key={u.user_id} value={u.user_id}>{u.full_name} ({u.employee_code})</option>
                   ))}
                 </select>
-                <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '5px' }}>
+                <p className="g-page-subtitle">
                   Nếu chọn, hệ thống sẽ tự động chuyển tất cả Vị trí tuyển dụng đang mở của nhân viên này sang cho người được chọn.
                 </p>
               </div>
@@ -345,7 +345,7 @@ const UserDetail = () => {
                   ))}
                 </select>
                 {availableRoles.length === 0 && (
-                  <p style={{ color: 'var(--error-color)', fontSize: '0.8rem', marginTop: '5px' }}>
+                  <p className="g-page-subtitle">
                     Nhân viên này đã có tất cả các vai trò.
                   </p>
                 )}

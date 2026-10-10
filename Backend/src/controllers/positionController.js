@@ -14,6 +14,7 @@ function isUserHrManager(req) {
   if (!req.user) return false;
   const hasHrRole = req.user.roles && req.user.roles.some((r) =>
     r.role_code === 'HR_MANAGER' ||
+    r.role_code === 'ADMIN' ||
     (r.role_name && (
       r.role_name.toLowerCase().includes('trưởng phòng nhân sự') ||
       r.role_name.toLowerCase().includes('trưởng phòng ns') ||

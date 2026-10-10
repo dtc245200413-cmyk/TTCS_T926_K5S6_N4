@@ -92,17 +92,17 @@ const JobPositionForm = () => {
   }
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #f1f5f9' }}>
+    <div style={{ width: '100%', padding: '20px' }}>
+      <div className="g-page-header">
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+          <h1 className="g-page-title">
             {isEditMode ? 'Cập Nhật Chức Danh' : 'Thêm Mới Chức Danh'}
           </h1>
-          <p style={{ color: '#64748b', marginTop: '8px', fontSize: '0.95rem' }}>
+          <p className="g-page-subtitle">
             {isEditMode ? 'Chỉnh sửa thông tin chức danh và khoảng lương' : 'Điền thông tin dưới đây để tạo chức danh mới'}
           </p>
         </div>
-        <Link to="/job-positions" className="btn-secondary" style={{ padding: '10px 20px', borderRadius: '12px', textDecoration: 'none', fontWeight: '600' }}>
+        <Link to="/job-positions" className="g-btn-secondary">
           ⬅ Quay lại
         </Link>
       </div>
@@ -234,7 +234,7 @@ const JobPositionForm = () => {
             <Link to="/job-positions" style={{ padding: '14px 28px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontWeight: '600', textDecoration: 'none', transition: 'background 0.2s' }}>
               Hủy Bỏ
             </Link>
-            <button type="submit" disabled={loading} style={{ padding: '14px 28px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white', fontWeight: '600', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)', opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ padding: '14px 28px', borderRadius: '12px', backgroundColor: '#3b82f6', color: 'white', fontWeight: '600', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)', opacity: loading ? 0.7 : 1 }}>
               {loading ? 'Đang xử lý...' : 'Lưu Thay Đổi'}
             </button>
           </div>

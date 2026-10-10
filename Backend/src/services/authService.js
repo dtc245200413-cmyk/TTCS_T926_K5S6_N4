@@ -60,6 +60,10 @@ function formatUser(user, rolesAndPermissions) {
     status:             user.status,
     last_login_at:      user.last_login_at,
     password_changed_at: user.password_changed_at,
+    created_at:         user.created_at,
+    address:            user.address,
+    gender:             user.gender,
+    date_of_birth:      user.date_of_birth,
     department: user.department_id
       ? {
           department_id:   user.department_id,

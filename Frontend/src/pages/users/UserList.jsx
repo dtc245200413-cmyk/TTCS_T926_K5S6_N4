@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { FiUserPlus, FiSearch, FiDownload, FiInfo } from 'react-icons/fi';
 import userApi from '../../api/userApi';
+import authApi from '../../api/authApi';
 import { AuthContext } from '../../context/AuthContext';
 
 const UserList = () => {
@@ -9,10 +11,12 @@ const UserList = () => {
   const [error, setError] = useState('');
   const { hasPermission } = useContext(AuthContext);
 
-  // Filters
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [departmentId, setDepartmentId] = useState('');
+  
+  // New state for modal/action status
+  const [actionMessage, setActionMessage] = useState(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -49,8 +53,6 @@ const UserList = () => {
     setSearch('');
     setStatus('');
     setDepartmentId('');
-    // Need to trigger fetch again without filters. 
-    // State updates are async, so we pass empty params directly.
     setLoading(true);
     userApi.getAll({})
       .then(res => setUsers(res.data.data.users))
@@ -67,34 +69,33 @@ const UserList = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="g-page-header">
         <div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Quản Lý Nhân Sự</h1>
-          <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.95rem' }}>Quản lý danh sách và quyền hạn của nhân viên</p>
+          <h1 className="g-page-title">Quản Lý Nhân Sự</h1>
+          <p className="g-page-subtitle">Quản lý danh sách và quyền hạn của nhân viên</p>
         </div>
         {hasPermission('USER_CREATE') && (
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Link to="/users/import" className="btn-secondary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>📥</span> Nhập từ Excel
+            <Link to="/users/import" className="g-btn-secondary">
+              <FiDownload style={{ fontSize: "1.2rem" }}/> Nhập từ Excel
             </Link>
-            <Link to="/users/create" className="btn-primary" style={{ width: 'auto', textDecoration: 'none', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 20px -10px rgba(59,130,246,0.5)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span> Thêm Nhân Viên
+            <Link to="/users/create" className="g-btn-primary">
+              <FiUserPlus style={{ fontSize: "1.2rem" }}/> Thêm Nhân Viên
             </Link>
           </div>
         )}
       </div>
 
-      <div style={{ background: '#ffffff', borderRadius: '20px', padding: '16px', marginBottom: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+      <div className="g-card" style={{ padding: '16px' }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 320px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '1.1rem' }}>🔍</span>
+            <FiSearch style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: "1.1rem" }}/>
             <input
               type="text"
               placeholder="Tìm kiếm theo tên, email, hoặc mã nhân viên..."
-              className="form-control"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ background: '#f8fafc', padding: '12px 16px 12px 48px', height: '48px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.95rem', width: '100%' }}
+              className="g-form-input" style={{ paddingLeft: '48px' }}
             />
           </div>
           <div style={{ flex: '0 0 190px' }}>
@@ -102,7 +103,7 @@ const UserList = () => {
               className="form-control"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              style={{ background: '#f8fafc', padding: '12px 16px', height: '48px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.95rem', width: '100%' }}
+              className="g-form-input"
             >
               <option value="">Tất cả trạng thái</option>
               <option value="ACTIVE">Hoạt động</option>
@@ -115,7 +116,7 @@ const UserList = () => {
               className="form-control"
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              style={{ background: '#f8fafc', padding: '12px 16px', height: '48px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.95rem', width: '100%' }}
+              className="g-form-input"
             >
               <option value="">Tất cả phòng ban</option>
               <option value="1">Công Nghệ (IT)</option>
@@ -126,8 +127,8 @@ const UserList = () => {
             </select>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0 24px', height: '48px', margin: 0, borderRadius: '12px', fontWeight: 'bold' }}>Tìm kiếm</button>
-            <button type="button" className="btn-secondary" onClick={handleReset} style={{ height: '48px', padding: '0 20px', display: 'flex', alignItems: 'center', borderRadius: '12px', fontWeight: '600', color: '#64748b', background: '#f1f5f9', border: 'none' }}>Làm mới</button>
+            <button type="submit" className="g-btn-primary">Tìm kiếm</button>
+            <button type="button" className="g-btn-secondary" onClick={handleReset} >Làm mới</button>
           </div>
         </form>
       </div>
@@ -139,6 +140,11 @@ const UserList = () => {
           <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>Đang tải danh sách...</div>
         ) : (
           <div className="table-responsive">
+            {actionMessage && (
+              <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: '8px', marginBottom: '16px', border: '1px solid #bbf7d0' }}>
+                {actionMessage}
+              </div>
+            )}
             <table className="data-table">
               <thead>
                 <tr>
@@ -154,7 +160,7 @@ const UserList = () => {
                 {users.length === 0 ? (
                   <tr>
                     <td colSpan="7" style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-                      <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🔍</div>
+                      <FiInfo style={{ fontSize: "3rem", marginBottom: "10px", color: "#cbd5e1" }}/>
                       <div>Không tìm thấy nhân viên nào phù hợp.</div>
                     </td>
                   </tr>
@@ -164,7 +170,7 @@ const UserList = () => {
                       <td style={{ fontWeight: 700, color: '#4f46e5', letterSpacing: '0.5px' }}>{u.employee_code}</td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', color: '#3730a3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#eff6ff', color: '#3730a3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
                             {u.full_name?.charAt(0) || 'U'}
                           </div>
                           <div>
@@ -182,9 +188,9 @@ const UserList = () => {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <Link to={`/users/${u.user_id}`} style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', background: '#eff6ff', transition: 'all 0.2s' }}>Xem</Link>
+                          <Link to={`/users/${u.user_id}`} className="btn-action-view">Xem</Link>
                           {hasPermission('USER_UPDATE') && (
-                            <Link to={`/users/${u.user_id}/edit`} style={{ color: '#10b981', textDecoration: 'none', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', background: '#ecfdf5', transition: 'all 0.2s' }}>Sửa</Link>
+                            <Link to={`/users/${u.user_id}/edit`} className="btn-action-edit">Sửa</Link>
                           )}
                         </div>
                       </td>

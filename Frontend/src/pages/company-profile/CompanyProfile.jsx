@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
+import { FaBuilding, FaGlobe, FaFileAlt, FaPalette, FaCheckCircle, FaImage, FaEye, FaEdit, FaHourglassHalf, FaSave } from 'react-icons/fa';
 const CompanyProfile = () => {
   const [profile, setProfile] = useState({ name: '', description: '', website: '', logo_url: '', banner_url: '' });
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ const CompanyProfile = () => {
       <div style={{ display: 'flex', gap: '20px' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ background: '#e0e7ff', padding: '6px', borderRadius: '8px', color: '#4f46e5' }}>🏢</span> Tên công ty
+            <span style={{ background: '#e0e7ff', padding: '6px', borderRadius: '8px', color: '#4f46e5', display: 'flex', alignItems: 'center' }}><FaBuilding /></span> Tên công ty
           </label>
           <input 
             type="text" 
@@ -80,7 +80,7 @@ const CompanyProfile = () => {
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ background: '#e0e7ff', padding: '6px', borderRadius: '8px', color: '#4f46e5' }}>🌐</span> Website
+            <span style={{ background: '#e0e7ff', padding: '6px', borderRadius: '8px', color: '#4f46e5', display: 'flex', alignItems: 'center' }}><FaGlobe /></span> Website
           </label>
           <input 
             type="text" 
@@ -96,7 +96,7 @@ const CompanyProfile = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ background: '#e0e7ff', padding: '6px', borderRadius: '8px', color: '#4f46e5' }}>📝</span> Mô tả công ty (Bài giới thiệu)
+          <span style={{ background: '#e0e7ff', padding: '6px', borderRadius: '8px', color: '#4f46e5', display: 'flex', alignItems: 'center' }}><FaFileAlt /></span> Mô tả công ty (Bài giới thiệu)
         </label>
         <textarea 
           value={profile.description} 
@@ -111,7 +111,7 @@ const CompanyProfile = () => {
       <div style={{ display: 'flex', gap: '20px' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: '#e0e7ff', padding: '4px', borderRadius: '6px', color: '#4f46e5', fontSize: '0.9rem' }}>🎨</span> Logo công ty
+            <span style={{ background: '#e0e7ff', padding: '4px', borderRadius: '6px', color: '#4f46e5', fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}><FaPalette /></span> Logo công ty
           </label>
           <label style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }}
                  onMouseOver={e => e.currentTarget.style.borderColor = '#4f46e5'}
@@ -120,12 +120,12 @@ const CompanyProfile = () => {
             {profile.logo_url && !logoFile && <img src={`http://localhost:3000${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '10px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
             {logoFile ? (
               <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '4px' }}>✅</div>
+                <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#10b981' }}><FaCheckCircle /></div>
                 <span style={{ color: '#059669', fontWeight: '700', fontSize: '0.95rem' }}>{logoFile.name}</span>
               </div>
             ) : (
               <div style={{ textAlign: 'center' }}>
-                {!profile.logo_url && <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}>🖼️</div>}
+                {!profile.logo_url && <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}><FaImage /></div>}
                 <div style={{ padding: '6px 16px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '20px', fontWeight: '700', fontSize: '0.9rem' }}>Tải ảnh lên</div>
               </div>
             )}
@@ -134,7 +134,7 @@ const CompanyProfile = () => {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: '#e0e7ff', padding: '4px', borderRadius: '6px', color: '#4f46e5', fontSize: '0.9rem' }}>🖼️</span> Ảnh bìa (Banner)
+            <span style={{ background: '#e0e7ff', padding: '4px', borderRadius: '6px', color: '#4f46e5', fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}><FaImage /></span> Ảnh bìa (Banner)
           </label>
           <label style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }}
                  onMouseOver={e => e.currentTarget.style.borderColor = '#4f46e5'}
@@ -143,12 +143,12 @@ const CompanyProfile = () => {
             {profile.banner_url && !bannerFile && <img src={`http://localhost:3000${profile.banner_url}`} alt="Banner" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
             {bannerFile ? (
               <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '4px' }}>✅</div>
+                <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#10b981' }}><FaCheckCircle /></div>
                 <span style={{ color: '#059669', fontWeight: '700', fontSize: '0.95rem' }}>{bannerFile.name}</span>
               </div>
             ) : (
               <div style={{ textAlign: 'center' }}>
-                {!profile.banner_url && <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}>🏞️</div>}
+                {!profile.banner_url && <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}><FaImage /></div>}
                 <div style={{ padding: '6px 16px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '20px', fontWeight: '700', fontSize: '0.9rem' }}>Tải ảnh bìa</div>
               </div>
             )}
@@ -180,14 +180,14 @@ const CompanyProfile = () => {
             <div style={{ width: '120px', height: '120px', backgroundColor: 'white', borderRadius: '24px', padding: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {previewLogoUrl ? 
                 <img src={previewLogoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> :
-                <div style={{ fontSize: '3rem', color: '#94a3b8' }}>🏢</div>
+                <div style={{ fontSize: '3rem', color: '#94a3b8' }}><FaBuilding /></div>
               }
             </div>
             <div style={{ paddingBottom: '10px' }}>
-              <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', color: '#1e293b', letterSpacing: '-1px' }}>{profile.name || 'Tên công ty'}</h1>
+              <h1 className="g-page-title">{profile.name || 'Tên công ty'}</h1>
               {profile.website && (
                 <a href={profile.website} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#3b82f6', textDecoration: 'none', fontWeight: '600', marginTop: '4px' }}>
-                  🌐 {profile.website}
+                  <FaGlobe /> {profile.website}
                 </a>
               )}
             </div>
@@ -206,13 +206,13 @@ const CompanyProfile = () => {
   };
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#f4f7fb', minHeight: 'calc(100vh - 80px)', backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+    <div style={{ padding: '20px', backgroundColor: '#f4f7fb', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
       <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '16px 24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>Cấu hình Trang Công Ty</h1>
-            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Thiết kế trang giới thiệu để thu hút ứng viên tài năng.</p>
+            <h1 className="g-page-title">Cấu hình Trang Công Ty</h1>
+            <p className="g-page-subtitle">Thiết kế trang giới thiệu để thu hút ứng viên tài năng.</p>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
@@ -221,7 +221,7 @@ const CompanyProfile = () => {
               onMouseOver={e => !previewMode && (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseOut={e => !previewMode && (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              {previewMode ? '✏️ Quay lại Chỉnh sửa' : '👁️ Xem trước Giao diện'}
+              {previewMode ? 'Quay lại Chỉnh sửa' : 'Xem trước Giao diện'}
             </button>
             {!previewMode && (
               <button 
@@ -231,7 +231,7 @@ const CompanyProfile = () => {
                 onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 20px rgba(15, 23, 42, 0.3)'; }}
                 onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 15px rgba(15, 23, 42, 0.25)'; }}
               >
-                {saving ? '⏳ Đang lưu...' : '💾 Lưu cấu hình'}
+                {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
               </button>
             )}
           </div>

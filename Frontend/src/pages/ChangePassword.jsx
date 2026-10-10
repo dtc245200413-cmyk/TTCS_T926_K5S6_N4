@@ -50,10 +50,10 @@ const ChangePassword = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1000px' }}>
-      <div className="page-header" style={{ marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#0f172a' }}>Thiết lập Bảo mật</h1>
-        <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '5px' }}>Quản lý mật khẩu và bảo vệ tài khoản của bạn</p>
+    <div style={{ width: '100%' }}>
+      <div className="g-page-header">
+        <h1 className="g-page-title">Thiết lập Bảo mật</h1>
+        <p className="g-page-subtitle">Quản lý mật khẩu và bảo vệ tài khoản của bạn</p>
       </div>
       
       <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -123,7 +123,7 @@ const ChangePassword = () => {
               </div>
             </div>
             
-            <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', height: '52px', fontSize: '1.05rem', borderRadius: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            <button type="submit" className="g-btn-primary" disabled={loading} >
               {loading ? <span className="loader" style={{ width: '20px', height: '20px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span> : '💾 Cập nhật Mật khẩu'}
             </button>
           </form>
@@ -131,7 +131,7 @@ const ChangePassword = () => {
 
         {/* Right Column - Security Tips */}
         <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: '24px', padding: '30px', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 15px 30px rgba(15, 23, 42, 0.2)' }}>
+          <div style={{ backgroundColor: '#0f172a', borderRadius: '24px', padding: '30px', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 15px 30px rgba(15, 23, 42, 0.2)' }}>
             <div style={{ position: 'absolute', top: '-20px', right: '-20px', fontSize: '8rem', opacity: 0.05, transform: 'rotate(-15deg)' }}>🛡️</div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '10px', display: 'flex' }}>💡</span> Lời khuyên Bảo mật
@@ -139,19 +139,19 @@ const ChangePassword = () => {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>Sử dụng mật khẩu dài ít nhất <strong>8 ký tự</strong>.</p>
+                <p className="g-page-subtitle">Sử dụng mật khẩu dài ít nhất <strong>8 ký tự</strong>.</p>
               </li>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>Kết hợp <strong>chữ hoa, chữ thường, số</strong> và ký tự đặc biệt (@, #, $).</p>
+                <p className="g-page-subtitle">Kết hợp <strong>chữ hoa, chữ thường, số</strong> và ký tự đặc biệt (@, #, $).</p>
               </li>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>Không sử dụng thông tin cá nhân dễ đoán như ngày sinh, số điện thoại.</p>
+                <p className="g-page-subtitle">Không sử dụng thông tin cá nhân dễ đoán như ngày sinh, số điện thoại.</p>
               </li>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>Tránh dùng lại mật khẩu đã sử dụng cho các tài khoản khác.</p>
+                <p className="g-page-subtitle">Tránh dùng lại mật khẩu đã sử dụng cho các tài khoản khác.</p>
               </li>
             </ul>
           </div>

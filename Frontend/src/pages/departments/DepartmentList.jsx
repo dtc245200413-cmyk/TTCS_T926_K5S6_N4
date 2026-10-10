@@ -12,6 +12,7 @@ function DepartmentList() {
   const [success, setSuccess] = useState('');
 
   const [showForm, setShowForm] = useState(false);
+  const [isFormExpanded, setIsFormExpanded] = useState(true);
   const [editingDepartment, setEditingDepartment] = useState(null);
 
   const [form, setForm] = useState({
@@ -75,6 +76,7 @@ function DepartmentList() {
 
     setEditingDepartment(null);
     setShowForm(false);
+    setIsFormExpanded(true);
   };
 
   const openCreateForm = (parentId = '') => {
@@ -93,6 +95,7 @@ function DepartmentList() {
     setError('');
     setSuccess('');
     setShowForm(true);
+    setIsFormExpanded(true);
   };
 
   const openEditForm = (department) => {
@@ -118,6 +121,7 @@ function DepartmentList() {
     setError('');
     setSuccess('');
     setShowForm(true);
+    setIsFormExpanded(true);
   };
 
   const handleChange = (event) => {
@@ -257,6 +261,190 @@ function DepartmentList() {
       );
     }
   };
+
+  const renderDepartmentForm = () => (
+        <div
+          style={{
+            background: '#fff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '22px',
+            marginBottom: '24px',
+            boxShadow:
+              '0 8px 24px rgba(15, 23, 42, 0.08)',
+            resize: 'both',
+            overflow: 'auto',
+            minWidth: '350px',
+            maxWidth: '100%',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isFormExpanded ? '18px' : '0' }}>
+            <h2 style={{ margin: 0, color: '#0f172a' }}>
+              {editingDepartment ? 'Sửa Phòng Ban' : 'Thêm Phòng Ban'}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setIsFormExpanded(!isFormExpanded)}
+              style={{
+                background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.85rem', color: '#475569',
+                padding: '6px 10px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px'
+              }}
+            >
+              {isFormExpanded ? '▲ Thu gọn' : '▼ Mở rộng'}
+            </button>
+          </div>
+
+          {isFormExpanded && (
+            <form onSubmit={handleSubmit}>
+            <div style={formGrid}>
+              <div>
+                <label style={labelStyle}>
+                  Mã phòng ban *
+                </label>
+
+                <input
+                  name="department_code"
+                  value={form.department_code}
+                  onChange={handleChange}
+                  required
+                  style={inputStyle}
+                  placeholder="VD: HR-REC"
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  Tên phòng ban *
+                </label>
+
+                <input
+                  name="department_name"
+                  value={form.department_name}
+                  onChange={handleChange}
+                  required
+                  style={inputStyle}
+                  placeholder="VD: Tuyển dụng"
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  Phòng ban cha
+                </label>
+
+                <select
+                  name="parent_department_id"
+                  value={
+                    form.parent_department_id
+                  }
+                  onChange={handleChange}
+                  style={inputStyle}
+                >
+                  <option value="">
+                    -- Không có / Cấp cao nhất --
+                  </option>
+
+                  {flatDepartments
+                    .filter(
+                      (d) =>
+                        !editingDepartment ||
+                        d.department_id !==
+                          editingDepartment.department_id
+                    )
+                    .map((department) => (
+                      <option
+                        key={
+                          department.department_id
+                        }
+                        value={
+                          department.department_id
+                        }
+                      >
+                        {department.department_name} (
+                        {department.department_code})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  Người phụ trách
+                </label>
+
+                <select
+                  name="manager_user_id"
+                  value={form.manager_user_id}
+                  onChange={handleChange}
+                  style={inputStyle}
+                >
+                  <option value="">
+                    -- Chưa chọn --
+                  </option>
+
+                  {users.map((user) => (
+                    <option
+                      key={user.user_id}
+                      value={user.user_id}
+                    >
+                      {user.full_name} -{' '}
+                      {user.employee_code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                }}
+              >
+                <label style={labelStyle}>
+                  Mô tả
+                </label>
+
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  style={{
+                    ...inputStyle,
+                    minHeight: '90px',
+                    resize: 'vertical',
+                  }}
+                  placeholder="Mô tả chức năng của phòng ban..."
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: '18px',
+                display: 'flex',
+                gap: '10px',
+              }}
+            >
+              <button
+                type="submit"
+                style={buttonBlue}
+              >
+                {editingDepartment
+                  ? 'Lưu Thay Đổi'
+                  : 'Thêm Phòng Ban'}
+              </button>
+
+              <button
+                type="button"
+                onClick={resetForm}
+                style={buttonGray}
+              >
+                Hủy
+              </button>
+            </div>
+          </form>
+          )}
+        </div>
+  );
 
   const renderTree = (departments, level = 0) => {
     return departments.map((department) => (
@@ -420,6 +608,11 @@ function DepartmentList() {
           </div>
         </div>
 
+        {showForm && !editingDepartment && String(form.parent_department_id) === String(department.department_id) && (
+          <div style={{ marginLeft: `${(level + 1) * 38}px`, marginBottom: '10px' }}>
+            {renderDepartmentForm()}
+          </div>
+        )}
         {department.children?.length > 0 &&
           renderTree(
             department.children,
@@ -510,179 +703,7 @@ function DepartmentList() {
         </div>
       )}
 
-      {showForm && (
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '16px',
-            padding: '22px',
-            marginBottom: '24px',
-            boxShadow:
-              '0 8px 24px rgba(15, 23, 42, 0.08)',
-          }}
-        >
-          <h2
-            style={{
-              marginTop: 0,
-              marginBottom: '18px',
-              color: '#0f172a',
-            }}
-          >
-            {editingDepartment
-              ? 'Sửa Phòng Ban'
-              : 'Thêm Phòng Ban'}
-          </h2>
-
-          <form onSubmit={handleSubmit}>
-            <div style={formGrid}>
-              <div>
-                <label style={labelStyle}>
-                  Mã phòng ban *
-                </label>
-
-                <input
-                  name="department_code"
-                  value={form.department_code}
-                  onChange={handleChange}
-                  required
-                  style={inputStyle}
-                  placeholder="VD: HR-REC"
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  Tên phòng ban *
-                </label>
-
-                <input
-                  name="department_name"
-                  value={form.department_name}
-                  onChange={handleChange}
-                  required
-                  style={inputStyle}
-                  placeholder="VD: Tuyển dụng"
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  Phòng ban cha
-                </label>
-
-                <select
-                  name="parent_department_id"
-                  value={
-                    form.parent_department_id
-                  }
-                  onChange={handleChange}
-                  style={inputStyle}
-                >
-                  <option value="">
-                    -- Không có / Cấp cao nhất --
-                  </option>
-
-                  {flatDepartments
-                    .filter(
-                      (d) =>
-                        !editingDepartment ||
-                        d.department_id !==
-                          editingDepartment.department_id
-                    )
-                    .map((department) => (
-                      <option
-                        key={
-                          department.department_id
-                        }
-                        value={
-                          department.department_id
-                        }
-                      >
-                        {department.department_name} (
-                        {department.department_code})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  Người phụ trách
-                </label>
-
-                <select
-                  name="manager_user_id"
-                  value={form.manager_user_id}
-                  onChange={handleChange}
-                  style={inputStyle}
-                >
-                  <option value="">
-                    -- Chưa chọn --
-                  </option>
-
-                  {users.map((user) => (
-                    <option
-                      key={user.user_id}
-                      value={user.user_id}
-                    >
-                      {user.full_name} -{' '}
-                      {user.employee_code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div
-                style={{
-                  gridColumn: '1 / -1',
-                }}
-              >
-                <label style={labelStyle}>
-                  Mô tả
-                </label>
-
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  style={{
-                    ...inputStyle,
-                    minHeight: '90px',
-                    resize: 'vertical',
-                  }}
-                  placeholder="Mô tả chức năng của phòng ban..."
-                />
-              </div>
-            </div>
-
-            <div
-              style={{
-                marginTop: '18px',
-                display: 'flex',
-                gap: '10px',
-              }}
-            >
-              <button
-                type="submit"
-                style={buttonBlue}
-              >
-                {editingDepartment
-                  ? 'Lưu Thay Đổi'
-                  : 'Thêm Phòng Ban'}
-              </button>
-
-              <button
-                type="button"
-                onClick={resetForm}
-                style={buttonGray}
-              >
-                Hủy
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {showForm && (!form.parent_department_id || editingDepartment) && renderDepartmentForm()}
 
       {loading ? (
         <div

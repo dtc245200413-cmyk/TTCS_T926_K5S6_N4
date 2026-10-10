@@ -29,7 +29,6 @@ router.get(
 router.post(
   '/',
   authenticate,
-  authorizeRole('HR_MANAGER'),
   authorize('COMPETENCY_MANAGE'),
   competencyFrameworkController.createFramework
 );

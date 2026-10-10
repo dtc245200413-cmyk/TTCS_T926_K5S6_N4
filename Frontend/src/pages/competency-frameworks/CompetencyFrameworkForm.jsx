@@ -247,11 +247,23 @@ const CompetencyFrameworkForm = () => {
 
     /**
      * ----------------------------------------------------------
-     * 1. KIỂM TRA CHỨC DANH
+     * 1. KIỂM TRA MÃ VÀ TÊN KHUNG
+     * ----------------------------------------------------------
+     */
+    if (!formData.framework_code || !formData.framework_name) {
+      setError('Mã và Tên khung năng lực là bắt buộc.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    /**
+     * ----------------------------------------------------------
+     * 1.1 KIỂM TRA CHỨC DANH
      * ----------------------------------------------------------
      */
     if (!selectedPositionId) {
       setError('Vui lòng chọn chức danh.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -262,6 +274,7 @@ const CompetencyFrameworkForm = () => {
      */
     if (criteriaList.length === 0) {
       setError('Phải có ít nhất 1 tiêu chí đánh giá.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -275,6 +288,7 @@ const CompetencyFrameworkForm = () => {
         setError(
           `Tiêu chí thứ ${i + 1} không được để trống Tên và Trọng số.`
         );
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
     }
@@ -288,6 +302,7 @@ const CompetencyFrameworkForm = () => {
       setError(
         `Tổng trọng số phải bằng chính xác 100%. Hiện tại là ${roundedTotal}%.`
       );
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -376,6 +391,7 @@ const CompetencyFrameworkForm = () => {
         err.message ||
         'Có lỗi xảy ra khi lưu dữ liệu.'
       );
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
@@ -407,8 +423,7 @@ const CompetencyFrameworkForm = () => {
   return (
     <div
       style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
+        width: '100%',
         padding: '20px'
       }}
     >
@@ -501,7 +516,7 @@ const CompetencyFrameworkForm = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
 
           {/* ==================================================
               THÔNG TIN CHUNG

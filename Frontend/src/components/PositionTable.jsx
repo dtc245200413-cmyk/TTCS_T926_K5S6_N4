@@ -229,7 +229,7 @@ function PositionTable({
                       <div className="pos-actions-cell">
                         <button
                           type="button"
-                          className="pos-action-btn btn-edit"
+                          className="btn-action-edit"
                           title={
                             isHrManager
                               ? 'Chỉnh sửa chức danh & dải lương'
@@ -238,11 +238,11 @@ function PositionTable({
                           disabled={!isHrManager}
                           onClick={() => onEdit(pos)}
                         >
-                          <FiEdit2 />
+                          Sửa
                         </button>
                         <button
                           type="button"
-                          className="pos-action-btn btn-delete"
+                          className="btn-action-delete"
                           title={
                             isHrManager
                               ? 'Xóa chức danh'
@@ -251,7 +251,7 @@ function PositionTable({
                           disabled={!isHrManager}
                           onClick={() => onDelete(pos)}
                         >
-                          <FiTrash2 />
+                          Xóa
                         </button>
                       </div>
                     </td>

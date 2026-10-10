@@ -43,9 +43,11 @@ async function findById(userId) {
       u.status, u.failed_login_attempts, u.locked_until,
       u.last_login_at, u.password_changed_at,
       u.avatar_url, u.created_at, u.updated_at,
-      d.department_name, d.department_code
+      d.department_name, d.department_code,
+      ep.address, ep.gender, ep.date_of_birth
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.department_id
+    LEFT JOIN employee_profiles ep ON u.user_id = ep.user_id
     WHERE u.user_id = ?
     LIMIT 1
   `;
@@ -325,6 +327,27 @@ async function employeeCodeExists(code, excludeUserId = null) {
   return rows.length > 0;
 }
 
+/**
+ * Check if a phone number is already used by ANOTHER user.
+ *
+ * @param {string} phone
+ * @param {number} excludeUserId
+ * @returns {boolean}
+ */
+async function phoneNumberExistsForOtherUser(phone, excludeUserId = null) {
+  let sql    = 'SELECT 1 FROM users WHERE phone_number = ?';
+  const params = [phone];
+
+  if (excludeUserId) {
+    sql += ' AND user_id != ?';
+    params.push(excludeUserId);
+  }
+
+  sql += ' LIMIT 1';
+  const [rows] = await pool.execute(sql, params);
+  return rows.length > 0;
+}
+
 module.exports = {
   // Part 1
   findByEmail,
@@ -341,6 +364,7 @@ module.exports = {
   update,
   updatePassword,
   emailExistsForOtherUser,
+  phoneNumberExistsForOtherUser,
   employeeCodeExists,
   updateAvatarUrl,
 };

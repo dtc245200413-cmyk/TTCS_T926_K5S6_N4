@@ -11,20 +11,20 @@ async function create(data) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const [result] = await pool.execute(sql, [
-    data.department_id,
-    data.position_id,
-    data.headcount,
-    data.reason,
-    data.proposed_salary_min || null,
-    data.proposed_salary_max || null,
-    data.needed_by_date,
-    data.job_description || null,
-    data.candidate_requirements || null,
-    data.salary_explanation || null,
-    data.status || 'DRAFT',
-    data.created_by,
-    data.work_location_code || null,
-    data.work_type_code || null
+    data.department_id ?? null,
+    data.position_id ?? null,
+    data.headcount ?? null,
+    data.reason ?? null,
+    data.proposed_salary_min ?? null,
+    data.proposed_salary_max ?? null,
+    data.needed_by_date ?? null,
+    data.job_description ?? null,
+    data.candidate_requirements ?? null,
+    data.salary_explanation ?? null,
+    data.status ?? 'DRAFT',
+    data.created_by ?? null,
+    data.work_location_code ?? null,
+    data.work_type_code ?? null
   ]);
   return result.insertId;
 }
@@ -56,6 +56,19 @@ async function getAll(userId) {
   return rows;
 }
 
+async function getAllSystemWide() {
+  const sql = `
+    SELECT r.*, d.department_name, p.position_name, u.full_name AS created_by_name
+    FROM recruitment_requests r
+    LEFT JOIN departments d ON r.department_id = d.department_id
+    LEFT JOIN job_positions p ON r.position_id = p.position_id
+    JOIN users u ON r.created_by = u.user_id
+    ORDER BY r.created_at DESC
+  `;
+  const [rows] = await pool.execute(sql);
+  return rows;
+}
+
 async function getAllForApproval() {
   const sql = `
     SELECT r.*, d.department_name, p.position_name, u.full_name AS created_by_name
@@ -79,6 +92,7 @@ module.exports = {
   create,
   findById,
   getAll,
+  getAllSystemWide,
   getAllForApproval,
   updateStatus
 };

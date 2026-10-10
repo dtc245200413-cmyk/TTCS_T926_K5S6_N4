@@ -71,8 +71,31 @@ async function getAllUsers(query) {
     userRepository.countAll(filters),
   ]);
 
+  const formattedUsers = users.map(formatUserRow);
+
+  // Fetch roles for these users
+  if (formattedUsers.length > 0) {
+    const userIds = formattedUsers.map(u => u.user_id);
+    const { pool } = require('../config/database');
+    const [userRoles] = await pool.query(
+      `SELECT ur.user_id, r.role_id, r.role_code, r.role_name
+       FROM user_roles ur
+       JOIN roles r ON ur.role_id = r.role_id
+       WHERE ur.user_id IN (?)`,
+      [userIds]
+    );
+
+    for (const u of formattedUsers) {
+      u.roles = userRoles.filter(ur => ur.user_id === u.user_id).map(ur => ({
+        role_id: ur.role_id,
+        role_code: ur.role_code,
+        role_name: ur.role_name
+      }));
+    }
+  }
+
   return {
-    users: users.map(formatUserRow),
+    users: formattedUsers,
     total,
     page:  filters.page,
     limit: filters.limit,
@@ -153,6 +176,16 @@ async function createUser(data, performedByUserId, ipAddress) {
     throw createError('This employee code is already in use.', 409);
   }
 
+  if (phone_number) {
+    const phoneStr = String(phone_number).trim();
+    if (phoneStr !== '') {
+      const phoneTaken = await userRepository.phoneNumberExistsForOtherUser(phoneStr);
+      if (phoneTaken) {
+        throw createError('Số điện thoại này đã được sử dụng bởi một tài khoản khác.', 409);
+      }
+    }
+  }
+
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   const newUserId = await userRepository.create({
@@ -226,6 +259,10 @@ async function updateUser(userId, data = {}, performedByUserId, ipAddress) {
         400
       );
     } else {
+      const phoneTaken = await userRepository.phoneNumberExistsForOtherUser(phone, userId);
+      if (phoneTaken) {
+        throw createError('Số điện thoại này đã được sử dụng bởi một tài khoản khác.', 409);
+      }
       fields.phone_number = phone;
     }
   }
@@ -282,6 +319,26 @@ async function lockUser(targetUserId, reason, performedByUserId, ipAddress, hand
   // Step 2: Prevent locking an already-locked account
   if (user.status === 'LOCKED') {
     throw createError('This account is already locked.', 409);
+  }
+
+  // Prevent locking self
+  if (targetUserId === performedByUserId) {
+    throw createError('Không thể tự khóa tài khoản của chính mình.', 403);
+  }
+
+  // Prevent locking the last active ADMIN
+  const { pool } = require('../config/database');
+  const [roleRows] = await pool.query(
+    `SELECT COUNT(*) as count FROM user_roles ur JOIN roles r ON ur.role_id = r.role_id JOIN users u ON ur.user_id = u.user_id WHERE r.role_code = 'ADMIN' AND u.status = 'ACTIVE'`
+  );
+  
+  // Check if target user is an Admin
+  const [isAdminRows] = await pool.query(
+    `SELECT 1 FROM user_roles ur JOIN roles r ON ur.role_id = r.role_id WHERE ur.user_id = ? AND r.role_code = 'ADMIN'`,
+    [targetUserId]
+  );
+  if (isAdminRows.length > 0 && roleRows[0].count <= 1) {
+    throw createError('Không thể khóa tài khoản ADMIN đang hoạt động duy nhất của hệ thống.', 403);
   }
 
   // Step 3: Transaction — lock account and revoke sessions together

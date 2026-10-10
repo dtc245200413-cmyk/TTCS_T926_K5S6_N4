@@ -108,8 +108,8 @@ const CandidateList = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div>
-            <h1 style={{ margin: '0', fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>Quản lý Hồ sơ Ứng viên</h1>
-            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Theo dõi và quản lý ứng viên trên toàn hệ thống</p>
+            <h1 className="g-page-title">Quản lý Hồ sơ Ứng viên</h1>
+            <p className="g-page-subtitle">Theo dõi và quản lý ứng viên trên toàn hệ thống</p>
           </div>
           <Link to="/candidates/create" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', transition: 'background 0.2s' }}>
             <span>+</span> Thêm Ứng viên
@@ -185,7 +185,7 @@ const CandidateList = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
             <h3 style={{ margin: '0 0 16px 0', color: '#1e293b', fontSize: '1.2rem' }}>Đánh trượt Ứng viên</h3>
-            <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '16px' }}>Bạn đang đánh trượt ứng viên <strong>{selectedCandidate?.full_name}</strong>. Vui lòng chọn lý do từ danh mục chung.</p>
+            <p className="g-page-subtitle">Bạn đang đánh trượt ứng viên <strong>{selectedCandidate?.full_name}</strong>. Vui lòng chọn lý do từ danh mục chung.</p>
             
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Lý do loại hồ sơ <span style={{ color: '#ef4444' }}>*</span></label>
             <select 

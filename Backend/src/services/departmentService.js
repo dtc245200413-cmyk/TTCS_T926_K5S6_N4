@@ -186,7 +186,7 @@ async function createDepartment(data, performedByUserId, ipAddress) {
   const codeTaken = await departmentRepository.codeExists(code);
 
   if (codeTaken) {
-    throw createError('Department code already exists.', 409);
+    throw createError('Mã phòng ban này đã tồn tại trên hệ thống.', 409);
   }
 
   const parentId = await validateParent(parent_department_id);
@@ -247,7 +247,7 @@ async function updateDepartment(
     );
 
     if (codeTaken) {
-      throw createError('Department code already exists.', 409);
+      throw createError('Mã phòng ban này đã tồn tại trên hệ thống.', 409);
     }
 
     fields.department_code = code;

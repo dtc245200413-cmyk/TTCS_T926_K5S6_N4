@@ -42,8 +42,8 @@ const RecruitmentRequestList = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div>
-            <h1 style={{ margin: '0', fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>Quản lý Yêu cầu Tuyển dụng</h1>
-            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Danh sách các yêu cầu tuyển dụng do bạn tạo</p>
+            <h1 className="g-page-title">Quản lý Yêu cầu Tuyển dụng</h1>
+            <p className="g-page-subtitle">Theo dõi và quản lý các yêu cầu tuyển dụng trên hệ thống</p>
           </div>
           <Link to="/recruitment-requests/create" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', transition: 'background 0.2s' }}>
             <span>+</span> Tạo yêu cầu mới
@@ -79,7 +79,7 @@ const RecruitmentRequestList = () => {
                     <td style={{ padding: '16px', color: '#475569' }}>{new Date(req.created_at).toLocaleDateString('vi-VN')}</td>
                     <td style={{ padding: '16px' }}>{getStatusBadge(req.status)}</td>
                     <td style={{ padding: '16px' }}>
-                      <Link to={`/recruitment-requests/${req.id}`} style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: '600', fontSize: '0.9rem' }}>
+                      <Link to={`/recruitment-requests/${req.id}`} className="btn-action-view">
                         Xem chi tiết
                       </Link>
                     </td>

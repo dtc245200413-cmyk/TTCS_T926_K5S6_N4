@@ -46,8 +46,8 @@ const Reports = () => {
   if (!isAdmin) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', color: '#1e293b' }}>Truy cập bị từ chối</h1>
-        <p style={{ fontSize: '1.2rem', color: '#ef4444' }}>Bạn không có quyền xem Báo cáo thống kê.</p>
+        <h1 className="g-page-title">Truy cập bị từ chối</h1>
+        <p className="g-page-subtitle">Bạn không có quyền xem Báo cáo thống kê.</p>
       </div>
     );
   }
@@ -113,7 +113,7 @@ const Reports = () => {
     <div style={{ paddingBottom: '50px' }}>
       {/* Header Section */}
       <div style={{ 
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+        backgroundColor: '#1e293b', 
         borderRadius: '16px', 
         padding: '35px 40px', 
         color: 'white',
@@ -124,16 +124,16 @@ const Reports = () => {
         alignItems: 'center'
       }}>
         <div>
-          <h1 style={{ fontSize: '2.8rem', fontWeight: '800', marginBottom: '10px', letterSpacing: '-0.5px' }}>
+          <h1 className="g-page-title">
             Tổng quan Hệ thống
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '1.2rem', margin: 0 }}>
+          <p className="g-page-subtitle">
             Dashboard Demo: Dữ liệu hoàn toàn có thể chỉnh sửa
           </p>
         </div>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           {isEditing ? (
-            <button onClick={saveMockData} style={{ padding: '14px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '14px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.05rem', boxShadow: '0 8px 20px -5px rgba(16, 185, 129, 0.5)', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: '8px' }} onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+            <button onClick={saveMockData} style={{ padding: '14px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '14px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.05rem', boxShadow: '0 8px 20px -5px rgba(16, 185, 129, 0.5)', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: '8px' }} onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
               <span style={{ fontSize: '1.2rem' }}>💾</span> Hoàn tất Chỉnh sửa
             </button>
           ) : (
@@ -143,7 +143,7 @@ const Reports = () => {
           )}
           
           <div style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)', padding: '12px 24px', borderRadius: '14px', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 20px rgba(0,0,0,0.15)' }}>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: '700' }}>Trạng thái hệ thống</p>
+            <p className="g-page-subtitle">Trạng thái hệ thống</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
               <div style={{ position: 'relative', width: '12px', height: '12px' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', background: '#10b981', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}></div>
@@ -162,7 +162,7 @@ const Reports = () => {
         <div style={{ background: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', borderTop: '4px solid #4f46e5', transition: 'transform 0.2s', cursor: 'pointer' }} className="hover-lift">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: '600', margin: '0 0 10px 0' }}>NHÂN SỰ</p>
+              <p className="g-page-subtitle">NHÂN SỰ</p>
               {isEditing ? (
                 <input type="number" value={mockData.users.total} onChange={(e) => updateNested('users', 'total', e.target.value)} style={{ fontSize: '2rem', fontWeight: 'bold', width: '90%', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
               ) : (
@@ -184,7 +184,7 @@ const Reports = () => {
         <div style={{ background: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', borderTop: '4px solid #f59e0b', transition: 'transform 0.2s', cursor: 'pointer' }} className="hover-lift">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: '600', margin: '0 0 10px 0' }}>YÊU CẦU TUYỂN DỤNG</p>
+              <p className="g-page-subtitle">YÊU CẦU TUYỂN DỤNG</p>
               {isEditing ? (
                 <input type="number" value={mockData.jobs.total} onChange={(e) => updateNested('jobs', 'total', e.target.value)} style={{ fontSize: '2rem', fontWeight: 'bold', width: '90%', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
               ) : (
@@ -206,7 +206,7 @@ const Reports = () => {
         <div style={{ background: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', borderTop: '4px solid #10b981', transition: 'transform 0.2s', cursor: 'pointer' }} className="hover-lift">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: '600', margin: '0 0 10px 0' }}>ỨNG VIÊN</p>
+              <p className="g-page-subtitle">ỨNG VIÊN</p>
               {isEditing ? (
                 <input type="number" value={mockData.candidates.total} onChange={(e) => updateNested('candidates', 'total', e.target.value)} style={{ fontSize: '2rem', fontWeight: 'bold', width: '90%', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
               ) : (
@@ -228,7 +228,7 @@ const Reports = () => {
         <div style={{ background: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', borderTop: '4px solid #8b5cf6', transition: 'transform 0.2s', cursor: 'pointer' }} className="hover-lift">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: '600', margin: '0 0 10px 0' }}>PHỎNG VẤN</p>
+              <p className="g-page-subtitle">PHỎNG VẤN</p>
               {isEditing ? (
                 <input type="number" value={mockData.interviews.total} onChange={(e) => updateNested('interviews', 'total', e.target.value)} style={{ fontSize: '2rem', fontWeight: 'bold', width: '90%', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
               ) : (
@@ -262,25 +262,25 @@ const Reports = () => {
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
             <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
-              <p style={{ margin: '0 0 5px 0', color: '#64748b', fontWeight: '600' }}>Đang tuyển (Approved)</p>
+              <p className="g-page-subtitle">Đang tuyển (Approved)</p>
               {isEditing ? (
                  <input type="number" value={mockData.jobs.approved} onChange={(e) => updateNested('jobs', 'approved', e.target.value)} style={{ fontSize: '1.8rem', width: '100%', border: '1px solid #ccc' }} />
               ) : <h4 style={{ margin: 0, fontSize: '1.8rem', color: '#10b981' }}>{mockData.jobs.approved}</h4>}
             </div>
             <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
-              <p style={{ margin: '0 0 5px 0', color: '#64748b', fontWeight: '600' }}>Chờ duyệt (Pending)</p>
+              <p className="g-page-subtitle">Chờ duyệt (Pending)</p>
               {isEditing ? (
                  <input type="number" value={mockData.jobs.pending} onChange={(e) => updateNested('jobs', 'pending', e.target.value)} style={{ fontSize: '1.8rem', width: '100%', border: '1px solid #ccc' }} />
               ) : <h4 style={{ margin: 0, fontSize: '1.8rem', color: '#f59e0b' }}>{mockData.jobs.pending}</h4>}
             </div>
             <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #94a3b8' }}>
-              <p style={{ margin: '0 0 5px 0', color: '#64748b', fontWeight: '600' }}>Bản nháp (Draft)</p>
+              <p className="g-page-subtitle">Bản nháp (Draft)</p>
               {isEditing ? (
                  <input type="number" value={mockData.jobs.draft} onChange={(e) => updateNested('jobs', 'draft', e.target.value)} style={{ fontSize: '1.8rem', width: '100%', border: '1px solid #ccc' }} />
               ) : <h4 style={{ margin: 0, fontSize: '1.8rem', color: '#94a3b8' }}>{mockData.jobs.draft}</h4>}
             </div>
             <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #ef4444' }}>
-              <p style={{ margin: '0 0 5px 0', color: '#64748b', fontWeight: '600' }}>Đã đóng / Từ chối</p>
+              <p className="g-page-subtitle">Đã đóng / Từ chối</p>
               {isEditing ? (
                  <input type="number" value={mockData.jobs.closed} onChange={(e) => updateNested('jobs', 'closed', e.target.value)} style={{ fontSize: '1.8rem', width: '100%', border: '1px solid #ccc' }} />
               ) : <h4 style={{ margin: 0, fontSize: '1.8rem', color: '#ef4444' }}>{mockData.jobs.closed}</h4>}
@@ -344,8 +344,8 @@ const Reports = () => {
                     </div>
                   ) : (
                     <>
-                      <p style={{ margin: 0, color: '#334155', fontWeight: '500' }}>{act.name}</p>
-                      <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '0.95rem', fontStyle: 'italic' }}>{act.action}</p>
+                      <p className="g-page-subtitle">{act.name}</p>
+                      <p className="g-page-subtitle">{act.action}</p>
                       <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{act.time}</span>
                     </>
                   )}

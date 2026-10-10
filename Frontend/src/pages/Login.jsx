@@ -106,9 +106,9 @@ const Login = () => {
             {companyProfile?.name || 'Hệ sinh thái số TechCorp'}
           </div>
           
-          <h1 style={{ fontSize: '2.8rem', marginBottom: '20px', fontWeight: '800', lineHeight: '1.15', letterSpacing: '-1px', textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>Hệ thống Tuyển dụng Nội bộ</h1>
+          <h1 className="g-page-title">Hệ thống Tuyển dụng Nội bộ</h1>
           
-          <p style={{ fontSize: '1.05rem', opacity: '0.95', marginBottom: '20px', lineHeight: '1.7', color: '#f1f5f9', whiteSpace: 'pre-wrap' }}>
+          <p className="g-page-subtitle">
             {companyProfile?.description || 'Chào mừng bạn đến với Hệ thống Quản trị Nhân sự thế hệ mới. Nơi kết nối các thành viên, tối ưu hóa quy trình tuyển dụng và kiến tạo môi trường làm việc thông minh.'}
           </p>
 
@@ -149,12 +149,12 @@ const Login = () => {
       </div>
       <div className="auth-form-wrapper" style={{ background: '#f8fafc', position: 'relative' }}>
         {/* Subtle decorative elements for the right side */}
-        <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(79, 70, 229, 0.05) 0%, transparent 70%)', borderRadius: '50%' }}></div>
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.03) 0%, transparent 70%)', borderRadius: '50%' }}></div>
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '300px', background: '#f8fafc', borderRadius: '50%' }}></div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '400px', height: '400px', background: '#f8fafc', borderRadius: '50%' }}></div>
 
-        <div className="auth-card" style={{ background: '#ffffff', borderRadius: '24px', padding: '48px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 0 0 1px rgba(226,232,240,0.5)', position: 'relative', zIndex: 10 }}>
+        <div className="auth-card" style={{ maxWidth: '600px', width: '100%', background: '#ffffff', borderRadius: '24px', padding: '48px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 0 0 1px rgba(226,232,240,0.5)', position: 'relative', zIndex: 10 }}>
           <div className="auth-logo" style={{ marginBottom: '32px' }}>
-            <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', borderRadius: '16px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(79, 70, 229, 0.25)' }}>
+            <div style={{ width: '56px', height: '56px', backgroundColor: '#4f46e5', borderRadius: '16px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(79, 70, 229, 0.25)' }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
@@ -207,7 +207,7 @@ const Login = () => {
               </div>
             </div>
             
-            <button type="submit" disabled={loading || countdown > 0} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', color: 'white', border: 'none', fontSize: '1rem', fontWeight: '700', letterSpacing: '0.5px', cursor: (loading || countdown > 0) ? 'not-allowed' : 'pointer', opacity: (loading || countdown > 0) ? 0.7 : 1, boxShadow: '0 8px 20px rgba(67, 56, 202, 0.25)', transition: 'all 0.3s ease', marginBottom: '24px' }} onMouseOver={(e) => { if (!loading && countdown === 0) { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 25px rgba(67, 56, 202, 0.35)'; } }} onMouseOut={(e) => { if (!loading && countdown === 0) { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 8px 20px rgba(67, 56, 202, 0.25)'; } }}>
+            <button type="submit" disabled={loading || countdown > 0} style={{ width: '100%', padding: '14px', borderRadius: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', fontSize: '1rem', fontWeight: '700', letterSpacing: '0.5px', cursor: (loading || countdown > 0) ? 'not-allowed' : 'pointer', opacity: (loading || countdown > 0) ? 0.7 : 1, boxShadow: '0 8px 20px rgba(67, 56, 202, 0.25)', transition: 'all 0.3s ease', marginBottom: '24px' }} onMouseOver={(e) => { if (!loading && countdown === 0) { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 25px rgba(67, 56, 202, 0.35)'; } }} onMouseOut={(e) => { if (!loading && countdown === 0) { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 8px 20px rgba(67, 56, 202, 0.25)'; } }}>
               {countdown > 0 
                 ? `Vui lòng đợi ${countdown}s...` 
                 : loading ? 'Đang xác thực...' : 'ĐĂNG NHẬP NGAY'}
@@ -215,7 +215,7 @@ const Login = () => {
 
             {/* QUICK LOGIN CHO MỤC ĐÍCH TEST */}
             <div style={{ marginTop: '10px', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-              <p style={{ margin: '0 0 16px 0', fontSize: '0.8rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>⚡ ĐĂNG NHẬP NHANH (TEST)</p>
+              <p className="g-page-subtitle">⚡ ĐĂNG NHẬP NHANH (TEST)</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button 
                   type="button" 

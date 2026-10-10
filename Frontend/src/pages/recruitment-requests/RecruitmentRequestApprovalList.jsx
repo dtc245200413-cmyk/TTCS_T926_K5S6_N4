@@ -41,8 +41,8 @@ const RecruitmentRequestApprovalList = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div>
-            <h1 style={{ margin: '0', fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>Duyệt Yêu cầu Tuyển dụng</h1>
-            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Danh sách các yêu cầu đang chờ bạn phê duyệt</p>
+            <h1 className="g-page-title">Duyệt Yêu cầu Tuyển dụng</h1>
+            <p className="g-page-subtitle">Danh sách các yêu cầu đang chờ bạn phê duyệt</p>
           </div>
         </div>
 
@@ -73,7 +73,7 @@ const RecruitmentRequestApprovalList = () => {
                     <td style={{ padding: '16px', color: '#475569' }}>{req.position_name || '-'}</td>
                     <td style={{ padding: '16px' }}>{getStatusBadge(req.status)}</td>
                     <td style={{ padding: '16px' }}>
-                      <Link to={`/recruitment-requests/${req.id}`} style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: '600', fontSize: '0.9rem', padding: '6px 12px', borderRadius: '6px', background: '#f1f5f9' }}>
+                      <Link to={`/recruitment-requests/${req.id}`} className="btn-action-view">
                         Xem / Duyệt
                       </Link>
                     </td>
