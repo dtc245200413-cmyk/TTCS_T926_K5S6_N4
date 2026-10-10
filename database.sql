@@ -677,3 +677,130 @@ INSERT INTO questions (competency_criteria_id, difficulty_level, question_text, 
 (3, 'Easy', 'Khi có xung đột ý kiến với một thành viên trong nhóm về giải pháp kỹ thuật, bạn sẽ xử lý thế nào để đạt được sự đồng thuận?', 'Ứng viên đề xuất thảo luận dựa trên số liệu/dẫn chứng kỹ thuật (trade-offs), lắng nghe tích cực và tôn trọng quyết định chung.'),
 (4, 'Medium', 'Giải thích nguyên lý hoạt động của cơ chế Database Connection Pool và cách cấu hình phù hợp với tải hệ thống.', 'Ứng viên giải thích việc tái sử dụng connection thay vì mở mới liên tục, tránh quá tải RAM/CPU của DB server.'),
 (5, 'Easy', 'Can you introduce yourself and talk briefly about the most recent technology stack you worked with?', 'Ứng viên phát âm rõ ràng, sử dụng đúng từ vựng chuyên ngành, ngữ pháp cơ bản ổn định và tự tin giao tiếp.');
+
+-- SPRINT 3: LUỒNG PHÊ DUYỆT HEADCOUNT VÀ ĐĂNG TIN
+
+-- 1. Cấu hình luồng phê duyệt (Approval Workflows)
+CREATE TABLE IF NOT EXISTS approval_workflows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    department_id INT NULL, -- NULL nghĩa là áp dụng cho mọi phòng ban
+    min_salary DECIMAL(15,2) NULL,
+    max_salary DECIMAL(15,2) NULL,
+    step_number INT NOT NULL,
+    approver_role_code VARCHAR(50) NOT NULL, -- Ví dụ: HR_MANAGER, DIRECTOR
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Lịch sử phê duyệt Yêu cầu tuyển dụng (Request Approvals History)
+CREATE TABLE IF NOT EXISTS recruitment_request_approvals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recruitment_request_id INT NOT NULL,
+    approver_id INT NOT NULL,
+    action ENUM('APPROVED', 'REJECTED', 'REQUEST_CHANGE') NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (approver_id) REFERENCES users(user_id)
+);
+
+-- 3. Ngân sách headcount theo phòng ban (Department Budgets)
+CREATE TABLE IF NOT EXISTS department_budgets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    department_id INT NOT NULL,
+    budget_year INT NOT NULL,
+    total_headcount INT NOT NULL,
+    total_salary_budget DECIMAL(20,2) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_dept_year (department_id, budget_year)
+);
+
+-- 4. Tin tuyển dụng (Job Postings)
+CREATE TABLE IF NOT EXISTS job_postings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recruitment_request_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    requirements TEXT,
+    benefits TEXT,
+    work_location VARCHAR(255),
+    job_type VARCHAR(100),
+    salary_display VARCHAR(255), -- Ví dụ: "Thỏa thuận", "10-20 triệu"
+    deadline DATE,
+    status ENUM('DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'CLOSED') DEFAULT 'DRAFT',
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id)
+);
+
+-- Bổ sung Recruiter phụ trách vào recruitment_requests
+ALTER TABLE recruitment_requests ADD COLUMN recruiter_id INT NULL;
+
+-- =========================================================================
+-- SPRINT 4: CỔNG ỨNG TUYỂN VÀ HỒ SƠ ỨNG VIÊN
+
+-- Bổ sung các trường vào bảng candidates
+ALTER TABLE candidates 
+ADD COLUMN cv_file_path VARCHAR(255) NULL,
+ADD COLUMN cover_letter TEXT NULL,
+ADD COLUMN tracking_code VARCHAR(50) UNIQUE NULL, -- Mã tra cứu trạng thái
+ADD COLUMN is_withdrawn BOOLEAN DEFAULT FALSE, -- Rút hồ sơ
+ADD COLUMN referrer_employee_id INT NULL, -- Nội bộ giới thiệu
+ADD COLUMN parsed_skills TEXT NULL, -- CV Parsing (Bóc tách kỹ năng)
+ADD COLUMN rating INT NULL CHECK (rating >= 1 AND rating <= 5), -- Đánh giá 1-5 sao (Sprint 5)
+ADD COLUMN is_talent_pool BOOLEAN DEFAULT FALSE, -- Kho ứng viên tiềm năng (Sprint 5)
+ADD COLUMN current_stage VARCHAR(50) DEFAULT 'NEW'; -- Kanban Pipeline Stage (Sprint 5)
+
+-- =========================================================================
+-- SPRINT 5: PIPELINE TUYỂN DỤNG VÀ SÀNG LỌC HỒ SƠ
+
+-- 5. Cấu hình các giai đoạn Pipeline Kanban (Pipeline Stages)
+CREATE TABLE IF NOT EXISTS pipeline_stages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    stage_code VARCHAR(50) UNIQUE NOT NULL, -- NEW, SCREENING, INTERVIEW, OFFER, HIRED, REJECTED
+    stage_name VARCHAR(100) NOT NULL,
+    stage_order INT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+INSERT IGNORE INTO pipeline_stages (stage_code, stage_name, stage_order) VALUES
+('NEW', 'Hồ sơ mới', 1),
+('SCREENING', 'Sàng lọc', 2),
+('INTERVIEW', 'Phỏng vấn', 3),
+('OFFER', 'Đề xuất (Offer)', 4),
+('HIRED', 'Nhận việc', 5),
+('REJECTED', 'Loại', 6);
+
+-- 6. Ghi chú của Recruiter cho Ứng viên (Candidate Notes)
+CREATE TABLE IF NOT EXISTS candidate_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    candidate_id INT NOT NULL,
+    author_id INT NOT NULL,
+    note_content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(user_id)
+);
+
+-- 7. Nhật ký tương tác / Dòng thời gian ứng viên (Candidate Activities)
+CREATE TABLE IF NOT EXISTS candidate_activities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    candidate_id INT NOT NULL,
+    performed_by INT NULL, -- NULL nếu là hệ thống hoặc ứng viên tự làm
+    action_type VARCHAR(100) NOT NULL, -- APPLIED, STAGE_CHANGED, EMAIL_SENT, RATED, NOTE_ADDED
+    details TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+);
+
+-- 8. Cấu hình SLA (Thời gian xử lý tối đa) cho từng giai đoạn
+CREATE TABLE IF NOT EXISTS sla_configs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    stage_code VARCHAR(50) NOT NULL,
+    max_days INT NOT NULL, -- Cảnh báo nếu quá số ngày này chưa xử lý
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO sla_configs (stage_code, max_days) VALUES
+('NEW', 3),       -- Hồ sơ mới phải xử lý trong 3 ngày
+('SCREENING', 5); -- Sàng lọc không quá 5 ngày
