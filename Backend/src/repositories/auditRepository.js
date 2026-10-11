@@ -25,7 +25,7 @@ async function createLog({
   entityId = null,
   description = null,
   ipAddress = null
-}) {
+}, connection = pool) {
   const sql = `
     INSERT INTO audit_logs
       (
@@ -40,7 +40,7 @@ async function createLog({
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
-  await pool.execute(sql, [
+  await connection.execute(sql, [
     userId ?? null,
     performedBy ?? null,
     action ?? null,
