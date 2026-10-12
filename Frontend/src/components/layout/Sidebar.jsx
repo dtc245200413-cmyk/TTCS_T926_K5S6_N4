@@ -168,102 +168,31 @@ const Sidebar = () => {
     </div>
   );
 
-   const renderHrMenu = () => (
-  <div
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '12px 0',
-      gap: '2px'
-    }}
-  >
-    <NavLink
-      to="/"
-      className={getClassName}
-      style={navLinkStyle}
-      end
-    >
-      <FiGrid size={18} /> Tổng quan
-    </NavLink>
-
-    <NavLink
-      to="/departments"
-      className={getClassName}
-      style={navLinkStyle}
-    >
-      <FiHome size={18} /> Quản lý phòng ban
-    </NavLink>
-
-    <NavLink
-      to="/positions"
-      className={getClassName}
-      style={navLinkStyle}
-    >
-      <FiBriefcase size={18} /> Chức danh & dải lương
-    </NavLink>
-
-    <NavLink
-      to="/competency-frameworks"
-      className={getClassName}
-      style={navLinkStyle}
-    >
-      <FiCheckSquare size={18} /> Khung năng lực
-    </NavLink>
-
-    <NavLink
-      to="/questions"
-      className={getClassName}
-      style={navLinkStyle}
-    >
-      <FiBookOpen size={18} /> Ngân hàng câu hỏi
-    </NavLink>
-
-    <NavLink
-      to="/master-data"
-      className={getClassName}
-      style={navLinkStyle}
-    >
-      <FiList size={18} /> Danh mục tuyển dụng
-    </NavLink>
-
-    <NavLink
-      to="/company-profile"
-      className={getClassName}
-      style={navLinkStyle}
-    >
-      <FiFileText size={18} /> Hồ sơ công ty
-    </NavLink>
-
-    {hasPermission('DEPARTMENT_BUDGET_VIEW') && (
-      <NavLink
-        to="/department-budgets"
-        className={getClassName}
-        style={navLinkStyle}
-      >
-        <FiBarChart2 size={18} /> Chỉ tiêu tuyển dụng
+  const renderHrMenu = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
+      <NavLink to="/" className={getClassName} style={navLinkStyle} end>
+        <FiGrid size={18} /> Tổng quan
       </NavLink>
-    )}
-
-    <NavLink
-      to="/recruitment-requests"
-      className={getClassName}
-      style={navLinkStyle}
-      end
-    >
-      <FiEdit size={18} /> Yêu cầu tuyển dụng
-    </NavLink>
-
-    {hasPermission('RECRUITMENT_REQUEST_APPROVE') && (
-      <NavLink
-        to="/recruitment-requests/approvals"
-        className={getClassName}
-        style={navLinkStyle}
-      >
-        <FiCheckCircle size={18} /> Duyệt yêu cầu
+      <NavLink to="/departments" className={getClassName} style={navLinkStyle}>
+        <FiHome size={18} /> Quản lý phòng ban
       </NavLink>
-    )}
-  </div>
-);
+      <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
+        <FiBriefcase size={18} /> Chức danh & dải lương
+      </NavLink>
+      <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
+        <FiCheckSquare size={18} /> Khung năng lực
+      </NavLink>
+      <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
+        <FiBookOpen size={18} /> Ngân hàng câu hỏi
+      </NavLink>
+      <NavLink to="/master-data" className={getClassName} style={navLinkStyle}>
+        <FiList size={18} /> Danh mục tuyển dụng
+      </NavLink>
+      <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
+        <FiFileText size={18} /> Hồ sơ công ty
+      </NavLink>
+    </div>
+  );
 
   const renderRecruiterMenu = () => (
     <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
