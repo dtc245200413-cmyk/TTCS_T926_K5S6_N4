@@ -55,7 +55,6 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/recruitment-requests', recruitmentRequestRoutes);
-app.use('/api/department-budgets', require('./routes/departmentBudgetRoutes'));
 app.use('/api/job-positions', jobPositionRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/competencies', competencyRoutes);

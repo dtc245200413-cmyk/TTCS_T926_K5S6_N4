@@ -641,17 +641,12 @@ CREATE TABLE job_requisitions (
     job_description TEXT NULL,
     requirements TEXT NULL,
     status ENUM('DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'CLOSED') NOT NULL DEFAULT 'DRAFT',
-    budget_year INT NULL,
-    estimated_salary_cost DECIMAL(20,2) NULL,
-    decided_at DATETIME NULL,
-    decided_by INT NULL,
     created_by INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_job_requisitions PRIMARY KEY (requisition_id),
     CONSTRAINT uq_jr_code UNIQUE (requisition_code),
-    INDEX scrum66_request_budget (department_id, budget_year, status),
     
     -- S2-04 Rule: Cannot delete department if it has active requisitions -> ON DELETE RESTRICT
     CONSTRAINT fk_jr_department FOREIGN KEY (department_id)
@@ -698,58 +693,31 @@ CREATE TABLE IF NOT EXISTS approval_workflows (
 
 -- 2. Lịch sử phê duyệt Yêu cầu tuyển dụng (Request Approvals History)
 CREATE TABLE IF NOT EXISTS recruitment_request_approvals (
-    approval_id INT AUTO_INCREMENT PRIMARY KEY,
-    requisition_id INT NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recruitment_request_id INT NOT NULL,
     approver_id INT NOT NULL,
-    action ENUM('APPROVED', 'REJECTED') NOT NULL,
-    comments TEXT NULL,
-    is_override BOOLEAN NOT NULL DEFAULT FALSE,
-    override_reason TEXT NULL,
-    exceeded_headcount INT NOT NULL DEFAULT 0,
-    exceeded_salary_budget DECIMAL(20,2) NOT NULL DEFAULT 0,
+    action ENUM('APPROVED', 'REJECTED', 'REQUEST_CHANGE') NOT NULL,
+    comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (requisition_id) REFERENCES job_requisitions(requisition_id),
+    FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (approver_id) REFERENCES users(user_id)
-) ENGINE=InnoDB;
+);
 
 -- 3. Ngân sách headcount theo phòng ban (Department Budgets)
 CREATE TABLE IF NOT EXISTS department_budgets (
-    budget_id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     department_id INT NOT NULL,
     budget_year INT NOT NULL,
     total_headcount INT NOT NULL,
-    total_salary_budget DECIMAL(20,2) NOT NULL,
-    created_by INT NULL,
-    updated_by INT NULL,
+    total_salary_budget DECIMAL(20,2) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_dept_year (department_id, budget_year),
-    FOREIGN KEY (department_id) REFERENCES departments(department_id),
-    FOREIGN KEY (created_by) REFERENCES users(user_id),
-    FOREIGN KEY (updated_by) REFERENCES users(user_id)
-) ENGINE=InnoDB;
-
--- SCRUM-66: seed after the existing ADMIN mapping; only HR_MANAGER receives these permissions.
-INSERT IGNORE INTO permissions (permission_code, permission_name) VALUES
-('DEPARTMENT_BUDGET_VIEW', 'DEPARTMENT_BUDGET_VIEW'),
-('DEPARTMENT_BUDGET_MANAGE', 'DEPARTMENT_BUDGET_MANAGE'),
-('RECRUITMENT_REQUEST_VIEW_ALL', 'RECRUITMENT_REQUEST_VIEW_ALL'),
-('RECRUITMENT_REQUEST_APPROVE', 'RECRUITMENT_REQUEST_APPROVE'),
-('RECRUITMENT_REQUEST_REJECT', 'RECRUITMENT_REQUEST_REJECT'),
-('RECRUITMENT_REQUEST_OVERRIDE', 'RECRUITMENT_REQUEST_OVERRIDE');
-
-INSERT IGNORE INTO role_permissions (role_id, permission_id)
-SELECT r.role_id, p.permission_id FROM roles r
-JOIN permissions p ON p.permission_code IN (
-    'DEPARTMENT_BUDGET_VIEW', 'DEPARTMENT_BUDGET_MANAGE', 'RECRUITMENT_REQUEST_VIEW_ALL',
-    'RECRUITMENT_REQUEST_APPROVE', 'RECRUITMENT_REQUEST_REJECT', 'RECRUITMENT_REQUEST_OVERRIDE'
-)
-WHERE r.role_code = 'HR_MANAGER';
+    UNIQUE KEY unique_dept_year (department_id, budget_year)
+);
 
 -- 4. Tin tuyển dụng (Job Postings)
 CREATE TABLE IF NOT EXISTS job_postings (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    requisition_id INT NOT NULL,
+    recruitment_request_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     requirements TEXT,
@@ -762,10 +730,11 @@ CREATE TABLE IF NOT EXISTS job_postings (
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (requisition_id) REFERENCES job_requisitions(requisition_id)
+    FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id)
 );
 
--- Recruiter assignment is outside SCRUM-66; no extra requisition columns are added here.
+-- Bổ sung Recruiter phụ trách vào recruitment_requests
+ALTER TABLE recruitment_requests ADD COLUMN recruiter_id INT NULL;
 
 -- =========================================================================
 -- SPRINT 4: CỔNG ỨNG TUYỂN VÀ HỒ SƠ ỨNG VIÊN
