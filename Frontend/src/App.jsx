@@ -30,6 +30,7 @@ import RecruitmentRequestCreate from './pages/recruitment-requests/RecruitmentRe
 import RecruitmentRequestList from './pages/recruitment-requests/RecruitmentRequestList';
 import RecruitmentRequestDetail from './pages/recruitment-requests/RecruitmentRequestDetail';
 import RecruitmentRequestApprovalList from './pages/recruitment-requests/RecruitmentRequestApprovalList';
+import DepartmentBudgetList from './pages/department-budgets/DepartmentBudgetList';
 import CompanyProfile from './pages/company-profile/CompanyProfile';
 import MasterData from './pages/master-data/MasterData';
 import CandidateList from './pages/candidates/CandidateList';
@@ -143,9 +144,10 @@ function App() {
             <Route path="/master-data" element={<MasterData />} />
 
             {/* Recruitment Request Routes */}
+            <Route path="/department-budgets" element={<ProtectedRoute requiredRole="HR_MANAGER" requiredPermission="DEPARTMENT_BUDGET_VIEW"><DepartmentBudgetList /></ProtectedRoute>} />
             <Route path="/recruitment-requests" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
               <Route index element={<RecruitmentRequestList />} />
-              <Route path="approvals" element={<RecruitmentRequestApprovalList />} />
+              <Route path="approvals" element={<ProtectedRoute requiredRole="HR_MANAGER" requiredPermission="RECRUITMENT_REQUEST_VIEW_ALL"><RecruitmentRequestApprovalList /></ProtectedRoute>} />
               <Route path="create" element={<RecruitmentRequestCreate />} />
               <Route path=":id" element={<RecruitmentRequestDetail />} />
             </Route>
