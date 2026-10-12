@@ -29,8 +29,24 @@ const updateStatus = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const saveMyRating = async (req, res, next) => {
+  try {
+    const result = await candidateService.saveMyRating(req.params.id, req.body, req.user);
+    return sendSuccess(res, 'Lưu đánh giá thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const getRatings = async (req, res, next) => {
+  try {
+    const result = await candidateService.getCandidateRatings(req.params.id, req.user);
+    return sendSuccess(res, 'Lấy đánh giá thành công.', result);
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createCandidate,
   getAllCandidates,
-  updateStatus
+  updateStatus,
+  saveMyRating,
+  getRatings
 };

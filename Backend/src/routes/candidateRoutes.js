@@ -10,4 +10,8 @@ router.get('/', candidateController.getAllCandidates);
 router.post('/', candidateController.createCandidate);
 router.put('/:id/status', candidateController.updateStatus);
 
+// SCRUM-215: role checks and reviewer ownership are enforced in the service.
+router.put('/:id/ratings/me', candidateController.saveMyRating);
+router.get('/:id/ratings', candidateController.getRatings);
+
 module.exports = router;

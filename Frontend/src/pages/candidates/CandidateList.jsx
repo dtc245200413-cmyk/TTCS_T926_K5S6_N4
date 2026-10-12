@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import axiosClient from '../../api/axiosClient';
+import candidateApi from '../../api/candidateApi';
+import CandidateRatingModal from '../../components/CandidateRatingModal';
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
@@ -13,13 +15,17 @@ const CandidateList = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectError, setRejectError] = useState('');
   const [candidateSources, setCandidateSources] = useState([]);
+  const [ratingCandidate, setRatingCandidate] = useState(null);
+  const [ratingSummaries, setRatingSummaries] = useState({});
+  const [ratingUpdates, setRatingUpdates] = useState({});
+  const [ratingNotice, setRatingNotice] = useState('');
+  const [summaryAttempt, setSummaryAttempt] = useState(0);
+  const canRate = user?.roles?.some(role => ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(role.role_code));
+  const canViewRatings = canRate || user?.roles?.some(role => role.role_code === 'HIRING_MANAGER');
 
   const fetchCandidates = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/candidates', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await candidateApi.getAll();
       setCandidates(response.data.data);
     } catch (err) {
       console.error('Failed to fetch candidates', err);
@@ -30,10 +36,7 @@ const CandidateList = () => {
 
   const fetchRejectionReasons = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/master-data', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axiosClient.get('/master-data');
       const md = response.data.data;
       setRejectionReasons(md.filter(x => x.category_group === 'REJECTION_REASON'));
       setCandidateSources(md.filter(x => x.category_group === 'CANDIDATE_SOURCE'));
@@ -46,6 +49,56 @@ const CandidateList = () => {
     fetchCandidates();
     fetchRejectionReasons();
   }, []);
+
+  useEffect(() => {
+    if (!canViewRatings) return;
+    const controller = new AbortController();
+    let nextIndex = 0;
+    setRatingSummaries({});
+    // Existing API exposes ratings per candidate only. Bound concurrent requests.
+    const loadSummaries = async () => {
+      while (!controller.signal.aborted && nextIndex < candidates.length) {
+        const candidate = candidates[nextIndex++];
+        try {
+          const response = await candidateApi.getRatings(candidate.id, controller.signal);
+          if (!controller.signal.aborted) {
+            const { average_rating, rating_count } = response.data.data;
+            setRatingSummaries(current => ({ ...current, [candidate.id]: { average_rating, rating_count } }));
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            setRatingSummaries(current => ({ ...current, [candidate.id]: { error: error.response?.data?.message || 'Không thể tải điểm đánh giá.' } }));
+          }
+        }
+      }
+    };
+    for (let i = 0; i < Math.min(4, candidates.length); i++) loadSummaries();
+    return () => controller.abort();
+  }, [candidates, canViewRatings, user?.user_id, summaryAttempt]);
+
+  const renderRatingSummary = candidate => {
+    // A response from an older list request must not overwrite a newly saved score.
+    const summary = ratingUpdates[candidate.id] || ratingSummaries[candidate.id];
+    if (!summary) return <span role="status">Đang tải điểm...</span>;
+    if (summary.error) return (
+      <div className="candidate-rating-error">
+        <p>{summary.error}</p>
+        <button type="button" className="candidate-rating-button" onClick={() => setSummaryAttempt(value => value + 1)}>Tải lại điểm</button>
+      </div>
+    );
+    if (!summary.rating_count || summary.average_rating == null) return <p>Chưa có đánh giá</p>;
+    const average = Number(summary.average_rating);
+    const filled = Math.max(0, Math.min(5, Math.round(average)));
+    return <p className="candidate-rating-display" aria-label={`${average.toFixed(1)} trên 5 sao, ${summary.rating_count} đánh giá`}>
+      <span aria-hidden="true">{'★'.repeat(filled)}{'☆'.repeat(5 - filled)}</span> {average.toFixed(1)} ({summary.rating_count} đánh giá)
+    </p>;
+  };
+
+  const handleRatingSaved = (candidateId, data) => {
+    setRatingUpdates(current => ({ ...current, [candidateId]: { average_rating: data.average_rating, rating_count: data.rating_count } }));
+    setRatingCandidate(null);
+    setRatingNotice('Đã lưu đánh giá thành công.');
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -71,12 +124,9 @@ const CandidateList = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/candidates/${selectedCandidate.id}/status`, {
+      await candidateApi.updateStatus(selectedCandidate.id, {
         status: 'REJECTED',
         rejection_reason_code: rejectReason
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setShowRejectModal(false);
       fetchCandidates();
@@ -88,11 +138,8 @@ const CandidateList = () => {
   const handleHire = async (candidate) => {
     if (window.confirm(`Bạn có chắc chắn muốn tuyển dụng ứng viên ${candidate.full_name}?`)) {
       try {
-        const token = localStorage.getItem('token');
-        await axios.put(`http://localhost:3000/api/candidates/${candidate.id}/status`, {
+        await candidateApi.updateStatus(candidate.id, {
           status: 'HIRED'
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
         });
         fetchCandidates();
       } catch (error) {
@@ -116,8 +163,9 @@ const CandidateList = () => {
           </Link>
         </div>
 
+        {canViewRatings && ratingNotice && <div className="candidate-rating-success" role="status">{ratingNotice}</div>}
         {/* Content */}
-        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Đang tải dữ liệu...</div>
           ) : candidates.length === 0 ? (
@@ -131,6 +179,7 @@ const CandidateList = () => {
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Vị trí ứng tuyển</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nguồn (Master Data)</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Trạng thái</th>
+                  {canViewRatings && <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Đánh giá ứng viên</th>}
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Thao tác</th>
                 </tr>
               </thead>
@@ -146,6 +195,12 @@ const CandidateList = () => {
                       {candidateSources.find(s => s.code === cand.source_code)?.name || cand.source_code || '-'}
                     </td>
                     <td style={{ padding: '16px' }}>{getStatusBadge(cand.status)}</td>
+                    {canViewRatings && <td className="candidate-rating-cell" style={{ padding: '16px' }}>
+                      {renderRatingSummary(cand)}
+                      {cand.status === 'REJECTED'
+                        ? <small className="candidate-rating-hint">Hồ sơ đã đánh trượt</small>
+                        : canRate && <button type="button" className="candidate-rating-button candidate-rating-primary" onClick={() => { setRatingCandidate(cand); setRatingNotice(''); }}>Đánh giá</button>}
+                    </td>}
                     <td style={{ padding: '16px' }}>
                       {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -179,6 +234,8 @@ const CandidateList = () => {
         </div>
 
       </div>
+
+      {canRate && ratingCandidate && <CandidateRatingModal key={ratingCandidate.id} candidate={ratingCandidate} onClose={() => setRatingCandidate(null)} onSaved={handleRatingSaved} />}
 
       {/* Reject Modal */}
       {showRejectModal && (
