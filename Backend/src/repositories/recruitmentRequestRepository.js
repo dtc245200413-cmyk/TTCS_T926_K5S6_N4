@@ -6,49 +6,46 @@ const { pool } = require('../config/database');
 
 async function create(data) {
   const sql = `
-    INSERT INTO job_requisitions
-      (requisition_code, department_id, position_id, headcount, reason, proposed_min_salary, proposed_max_salary, date_needed, job_description, requirements, status, created_by, budget_year, estimated_salary_cost)
+    INSERT INTO recruitment_requests
+      (department_id, position_id, headcount, reason, proposed_salary_min, proposed_salary_max, needed_by_date, job_description, candidate_requirements, salary_explanation, status, created_by, work_location_code, work_type_code)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const [result] = await pool.execute(sql, [
-    data.requisition_code,
     data.department_id ?? null,
     data.position_id ?? null,
     data.headcount ?? null,
     data.reason ?? null,
-    data.proposed_min_salary ?? null,
-    data.proposed_max_salary ?? null,
-    data.date_needed ?? null,
+    data.proposed_salary_min ?? null,
+    data.proposed_salary_max ?? null,
+    data.needed_by_date ?? null,
     data.job_description ?? null,
-    data.requirements ?? null,
+    data.candidate_requirements ?? null,
+    data.salary_explanation ?? null,
     data.status ?? 'DRAFT',
     data.created_by ?? null,
-    data.budget_year ?? null,
-    data.estimated_salary_cost ?? null
+    data.work_location_code ?? null,
+    data.work_type_code ?? null
   ]);
   return result.insertId;
 }
 
-async function findById(id, connection = pool) {
+async function findById(id) {
   const sql = `
-    SELECT r.*, d.department_name, p.position_name, p.min_salary AS std_min_salary, p.max_salary AS std_max_salary, u.full_name AS created_by_name,
-      (SELECT a.comments FROM recruitment_request_approvals a
-       WHERE a.requisition_id = r.requisition_id AND a.action = 'REJECTED'
-       ORDER BY a.approval_id DESC LIMIT 1) AS rejection_reason
-    FROM job_requisitions r
+    SELECT r.*, d.department_name, p.position_name, p.min_salary AS std_min_salary, p.max_salary AS std_max_salary, u.full_name AS created_by_name
+    FROM recruitment_requests r
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
     JOIN users u ON r.created_by = u.user_id
-    WHERE r.requisition_id = ? LIMIT 1
+    WHERE r.id = ? LIMIT 1
   `;
-  const [rows] = await connection.execute(sql, [id]);
+  const [rows] = await pool.execute(sql, [id]);
   return rows.length > 0 ? rows[0] : null;
 }
 
 async function getAll(userId) {
   const sql = `
     SELECT r.*, d.department_name, p.position_name, u.full_name AS created_by_name
-    FROM job_requisitions r
+    FROM recruitment_requests r
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
     JOIN users u ON r.created_by = u.user_id
@@ -62,7 +59,7 @@ async function getAll(userId) {
 async function getAllSystemWide() {
   const sql = `
     SELECT r.*, d.department_name, p.position_name, u.full_name AS created_by_name
-    FROM job_requisitions r
+    FROM recruitment_requests r
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
     JOIN users u ON r.created_by = u.user_id
@@ -75,7 +72,7 @@ async function getAllSystemWide() {
 async function getAllForApproval() {
   const sql = `
     SELECT r.*, d.department_name, p.position_name, u.full_name AS created_by_name
-    FROM job_requisitions r
+    FROM recruitment_requests r
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
     JOIN users u ON r.created_by = u.user_id
@@ -86,24 +83,14 @@ async function getAllForApproval() {
   return rows;
 }
 
-async function findByIdForUpdate(id, connection) {
-  const [rows] = await connection.execute('SELECT * FROM job_requisitions WHERE requisition_id = ? FOR UPDATE', [id]);
-  return rows[0] || null;
-}
-
-async function updateStatus(id, data, connection) {
-  const sql = `UPDATE job_requisitions SET status = ?,
-    decided_at = CURRENT_TIMESTAMP, decided_by = ?, budget_year = ?, estimated_salary_cost = ?
-    WHERE requisition_id = ? AND status = 'PENDING'`;
-  const [result] = await connection.execute(sql, [data.status, data.decided_by,
-    data.budget_year, data.estimated_salary_cost, id]);
-  return result.affectedRows;
+async function updateStatus(id, status, rejectionReason = null) {
+  const sql = `UPDATE recruitment_requests SET status = ?, rejection_reason = ? WHERE id = ?`;
+  await pool.execute(sql, [status, rejectionReason, id]);
 }
 
 module.exports = {
   create,
   findById,
-  findByIdForUpdate,
   getAll,
   getAllSystemWide,
   getAllForApproval,
