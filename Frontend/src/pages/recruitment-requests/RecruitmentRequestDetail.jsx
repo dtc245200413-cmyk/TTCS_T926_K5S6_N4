@@ -1,1024 +1,227 @@
-﻿import React, {
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import { Link, useParams } from 'react-router-dom';
-
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
-import requestApi from '../../api/recruitmentRequestApi';
-
-import useDepartmentBudget from '../../hooks/useDepartmentBudget';
-
-import BudgetSummary from '../../components/recruitment/BudgetSummary';
-import ApprovalDialog from '../../components/recruitment/ApprovalDialog';
-
-import {
-  budgetExcess,
-  money,
-  requestCost,
-  requestYear,
-  statusLabels,
-} from '../../utils/recruitmentBudget';
+import { FaFileAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser, FaEdit, FaBuilding, FaMoneyBillWave, FaExclamationTriangle, FaClipboardList, FaBullseye } from 'react-icons/fa';
 
 const RecruitmentRequestDetail = () => {
   const { id } = useParams();
-
-  const { user, hasPermission } =
-    useContext(AuthContext);
-
-  const isHrManager = user?.roles?.some(
-    (role) => role.role_code === 'HR_MANAGER'
-  );
-
-  const canApprove =
-    isHrManager &&
-    hasPermission('RECRUITMENT_REQUEST_APPROVE');
-
-  const canReject =
-    isHrManager &&
-    hasPermission('RECRUITMENT_REQUEST_REJECT');
-
-  const canOverride =
-    isHrManager &&
-    hasPermission('RECRUITMENT_REQUEST_OVERRIDE');
-
-  const canViewAll =
-    isHrManager &&
-    hasPermission('RECRUITMENT_REQUEST_VIEW_ALL');
-
+  const { user } = useContext(AuthContext);
   const [request, setRequest] = useState(null);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const [version, setVersion] = useState(0);
-
-  const [dialog, setDialog] = useState(null);
-  const [decisionError, setDecisionError] = useState('');
-
-  const [busy, setBusy] = useState(false);
-  const [success, setSuccess] = useState('');
-
-  const year = request ? requestYear(request) : '';
-
-  const cost = request ? requestCost(request) : null;
-
-  const budget = useDepartmentBudget(
-    request?.department_id,
-    year
-  );
-
-  const excess = useMemo(() => {
-    if (!request) return null;
-
-    return budgetExcess(
-      budget.data,
-      request.headcount,
-      cost,
-      request.status
-    );
-  }, [
-    budget.data,
-    request,
-    cost,
-  ]);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    setLoading(true);
-    setRequest(null);
-    setError('');
-    setDialog(null);
-    setSuccess('');
-
-    requestApi
-      .getById(id, {
-        signal: controller.signal,
-      })
-      .then((response) => {
-        if (!controller.signal.aborted) {
+    const fetchRequest = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`http://localhost:3000/api/recruitment-requests/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.success) {
           setRequest(response.data.data);
+        } else {
+          setError('Không thể tải thông tin yêu cầu.');
         }
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          setError(
-            err.response?.data?.message ||
-              'Không tải được yêu cầu tuyển dụng.'
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [id, version]);
-
-  const decide = async (reason) => {
-    if (
-      busy ||
-      request?.status !== 'PENDING'
-    ) {
-      return;
-    }
-
-    const rejecting = dialog === 'reject';
-
-    if (rejecting && !canReject) {
-      return;
-    }
-
-    if (!rejecting && !canApprove) {
-      return;
-    }
-
-    if (
-      dialog === 'override' &&
-      !canOverride
-    ) {
-      return;
-    }
-
-    let payload;
-
-    if (rejecting) {
-      payload = {
-        status: 'REJECTED',
-        rejection_reason: reason,
-      };
-    } else if (dialog === 'override') {
-      payload = {
-        status: 'APPROVED',
-        is_override: true,
-        override_reason: reason,
-      };
-    } else {
-      payload = {
-        status: 'APPROVED',
-      };
-    }
-
-    setBusy(true);
-    setDecisionError('');
-    setSuccess('');
-
-    try {
-      const response =
-        await requestApi.decide(
-          id,
-          payload
-        );
-
-      setRequest(response.data.data);
-      setDialog(null);
-
-      setSuccess(
-        rejecting
-          ? 'Đã từ chối yêu cầu tuyển dụng.'
-          : 'Đã phê duyệt yêu cầu tuyển dụng.'
-      );
-
-      budget.refresh();
-    } catch (err) {
-      const result = err.response?.data;
-
-      if (
-        result?.code ===
-        'BUDGET_EXCEEDED'
-      ) {
-        if (result.details) {
-          budget.replace(result.details);
-        }
-
-        setDialog('override');
-
-        setDecisionError(
-          'Chỉ tiêu đã thay đổi hoặc không còn đủ. Hãy kiểm tra lại mức vượt và xác nhận ghi đè nếu được phép.'
-        );
-      } else if (
-        result?.code ===
-        'REQUEST_NOT_PENDING'
-      ) {
-        setDialog(null);
-
-        setVersion(
-          (value) => value + 1
-        );
-
-        setSuccess(
-          'Yêu cầu đã được xử lý trước đó. Hệ thống đã tải lại trạng thái mới.'
-        );
-      } else {
-        setDecisionError(
-          result?.message ||
-            'Không thực hiện được thao tác. Vui lòng thử lại.'
-        );
+      } catch (err) {
+        setError(err.response?.data?.message || 'Có lỗi xảy ra');
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'DRAFT':
-        return {
-          background: '#f1f5f9',
-          color: '#475569',
-          border: '1px solid #cbd5e1',
-        };
-
-      case 'PENDING':
-        return {
-          background: '#fff7ed',
-          color: '#c2410c',
-          border: '1px solid #fed7aa',
-        };
-
-      case 'APPROVED':
-        return {
-          background: '#f0fdf4',
-          color: '#15803d',
-          border: '1px solid #bbf7d0',
-        };
-
-      case 'REJECTED':
-        return {
-          background: '#fef2f2',
-          color: '#dc2626',
-          border: '1px solid #fecaca',
-        };
-
-      default:
-        return {
-          background: '#f8fafc',
-          color: '#475569',
-          border: '1px solid #e2e8f0',
-        };
-    }
-  };
-
-  const formatDate = (value) => {
-    if (!value) return '—';
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return String(value).slice(0, 10);
-    }
-
-    return date.toLocaleDateString(
-      'vi-VN'
-    );
-  };
-
-  const formatDateTime = (value) => {
-    if (!value) return '—';
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return date.toLocaleString(
-      'vi-VN'
-    );
-  };
-
-  const detailItem = (
-    label,
-    value
-  ) => (
-    <div
-      style={{
-        background: '#f8fafc',
-        borderRadius: '12px',
-        padding: '17px',
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          color: '#64748b',
-          fontSize: '13px',
-          marginBottom: '7px',
-        }}
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          color: '#0f172a',
-          fontWeight: 700,
-          fontSize: '16px',
-          wordBreak: 'break-word',
-        }}
-      >
-        {value ?? '—'}
-      </div>
-    </div>
-  );
+    };
+    fetchRequest();
+  }, [id]);
 
   if (loading) {
-    return (
-      <div
-        style={{
-          padding: '40px',
-          textAlign: 'center',
-          color: '#64748b',
-        }}
-        role="status"
-      >
-        Đang tải yêu cầu tuyển dụng...
-      </div>
-    );
+    return <div style={{ padding: '24px', textAlign: 'center' }}>Đang tải dữ liệu...</div>;
   }
 
   if (error || !request) {
-    return (
-      <div
-        style={{
-          padding: '28px',
-        }}
-      >
-        <div
-          role="alert"
-          style={{
-            padding: '15px 18px',
-            borderRadius: '12px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#b91c1c',
-            marginBottom: '16px',
-          }}
-        >
-          {error ||
-            'Không tìm thấy yêu cầu tuyển dụng.'}
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            setVersion(
-              (value) => value + 1
-            )
-          }
-          style={{
-            border: 'none',
-            borderRadius: '10px',
-            background: '#4f46e5',
-            color: '#ffffff',
-            padding: '10px 18px',
-            cursor: 'pointer',
-            fontWeight: 700,
-          }}
-        >
-          Thử lại
-        </button>
-      </div>
-    );
+    return <div style={{ padding: '24px', color: 'red', textAlign: 'center' }}>{error || 'Không tìm thấy yêu cầu.'}</div>;
   }
 
-  const requestCode =
-    request.requisition_code ||
-    `#${request.requisition_id ?? request.id}`;
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'DRAFT': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}><FaFileAlt /> Lưu nháp</span>;
+      case 'PENDING': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '6px' }}><FaHourglassHalf /> Chờ duyệt</span>;
+      case 'APPROVED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '6px' }}><FaCheckCircle /> Đã duyệt</span>;
+      case 'REJECTED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px' }}><FaTimesCircle /> Từ chối</span>;
+      default: return <span>{status}</span>;
+    }
+  };
 
-  const neededDate =
-    request.date_needed ||
-    request.needed_by_date;
+  const handleUpdateStatus = async (status) => {
+    let rejection_reason = null;
+    if (status === 'REJECTED') {
+      rejection_reason = window.prompt('Vui lòng nhập lý do từ chối yêu cầu này:');
+      if (rejection_reason === null) return; // User cancelled
+      if (!rejection_reason.trim()) {
+        alert('Lý do từ chối không được để trống.');
+        return;
+      }
+    } else {
+      if (!window.confirm('Bạn có chắc chắn muốn phê duyệt yêu cầu này?')) return;
+    }
+    
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.patch(`http://localhost:3000/api/recruitment-requests/${id}/status`, 
+        { status, rejection_reason }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setRequest(response.data.data);
+        alert('Cập nhật trạng thái thành công.');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-  const minSalary =
-    request.proposed_min_salary ??
-    request.proposed_salary_min;
-
-  const maxSalary =
-    request.proposed_max_salary ??
-    request.proposed_salary_max;
-
-  const isPending =
-    request.status === 'PENDING';
+  const isApprover = user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt');
 
   return (
-    <div
-      style={{
-        padding: '28px',
-        background: '#f8fafc',
-        minHeight: '100%',
-      }}
-    >
-      {/* THANH ĐIỀU HƯỚNG */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '20px',
-          flexWrap: 'wrap',
-          marginBottom: '18px',
-        }}
-      >
-        <Link
-          to={
-            canViewAll
-              ? '/recruitment-requests/approvals'
-              : '/recruitment-requests'
-          }
-          style={{
-            color: '#4338ca',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
-        >
-          ← Quay lại danh sách yêu cầu
-        </Link>
+    <div style={{ padding: '30px', backgroundColor: '#f4f7fb', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Top Action Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={() => window.history.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', textDecoration: 'none', fontWeight: '600', transition: 'color 0.2s', padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
+            <FaArrowLeft /> Quay lại
+          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+             {isApprover && request.status === 'PENDING' && (
+               <>
+                 <button onClick={() => handleUpdateStatus('APPROVED')} disabled={actionLoading} style={{ background: '#15803d', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(21, 128, 61, 0.3)' }}>
+                   Phê duyệt
+                 </button>
+                 <button onClick={() => handleUpdateStatus('REJECTED')} disabled={actionLoading} style={{ background: '#b91c1c', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(185, 28, 28, 0.3)' }}>
+                   Từ chối
+                 </button>
+               </>
+             )}
+          </div>
+        </div>
 
-        {isPending && (
-          <div
-            style={{
-              display: 'flex',
-              gap: '10px',
-            }}
-          >
-            {canReject && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  setDialog('reject');
-                  setDecisionError('');
-                }}
-                style={{
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '11px 20px',
-                  background: '#dc2626',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  cursor: busy
-                    ? 'not-allowed'
-                    : 'pointer',
-                  opacity: busy ? 0.6 : 1,
-                }}
-              >
-                Từ chối
-              </button>
-            )}
-
-            {canApprove && (
-              <button
-                type="button"
-                disabled={
-                  busy ||
-                  budget.loading ||
-                  !budget.data ||
-                  !excess
-                }
-                onClick={() => {
-                  setDecisionError('');
-
-                  setDialog(
-                    excess?.exceeded
-                      ? 'override'
-                      : 'approve'
-                  );
-                }}
-                style={{
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '11px 22px',
-                  background: '#4f46e5',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  cursor:
-                    busy ||
-                    budget.loading ||
-                    !budget.data ||
-                    !excess
-                      ? 'not-allowed'
-                      : 'pointer',
-                  opacity:
-                    busy ||
-                    budget.loading ||
-                    !budget.data ||
-                    !excess
-                      ? 0.6
-                      : 1,
-                }}
-              >
-                Duyệt yêu cầu
-              </button>
+        {/* Hero Header Card */}
+        <div style={{ background: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.03)' }}>
+          <div style={{ height: '8px', background: 'linear-gradient(90deg, #4f46e5 0%, #06b6d4 100%)' }}></div>
+          <div style={{ padding: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <span style={{ background: '#f1f5f9', color: '#4f46e5', padding: '6px 12px', borderRadius: '8px', fontWeight: '800', fontSize: '0.9rem', letterSpacing: '0.5px' }}>
+                  YÊU CẦU #{request.id}
+                </span>
+                {getStatusBadge(request.status)}
+              </div>
+              <h1 className="g-page-title">
+                {request.position_name ? `Tuyển dụng ${request.position_name}` : 'Chưa cập nhật chức danh'}
+              </h1>
+              <p className="g-page-subtitle">
+                <span><FaUser /></span> Tạo bởi <strong>{request.created_by_name}</strong> vào ngày {new Date(request.created_at).toLocaleString('vi-VN')}
+              </p>
+            </div>
+            {request.status === 'DRAFT' && (
+              <Link to={`/recruitment-requests/${request.id}/edit`} style={{ background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Sửa bản nháp
+              </Link>
             )}
           </div>
-        )}
-      </div>
-
-      {/* THÔNG BÁO THÀNH CÔNG */}
-      {success && (
-        <div
-          role="status"
-          style={{
-            padding: '14px 18px',
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            color: '#15803d',
-            borderRadius: '12px',
-            marginBottom: '18px',
-          }}
-        >
-          {success}
         </div>
-      )}
 
-      {/* THÔNG TIN ĐẦU TRANG */}
-      <section
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '18px',
-          padding: '26px 28px',
-          marginBottom: '22px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '20px',
-            flexWrap: 'wrap',
-            alignItems: 'flex-start',
-          }}
-        >
+        {request.status === 'REJECTED' && request.rejection_reason && (
+          <div style={{ background: '#fef2f2', padding: '20px 24px', borderRadius: '16px', borderLeft: '5px solid #ef4444', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#b91c1c', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span><FaTimesCircle /></span> LÝ DO TỪ CHỐI
+            </span>
+            <span style={{ fontSize: '1.05rem', color: '#7f1d1d', lineHeight: '1.5' }}>
+              {request.rejection_reason}
+            </span>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          
+          {/* General Info Card */}
+          <div style={{ background: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+              <span><FaBuilding /></span> Thông tin chung
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Phòng ban</span>
+                <span style={{ fontSize: '1rem', color: '#0f172a', fontWeight: '600' }}>{request.department_name || <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Chưa cập nhật</span>}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Số lượng cần tuyển</span>
+                <span style={{ fontSize: '1.2rem', color: '#4f46e5', fontWeight: '800' }}>{request.headcount || '?'} <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '600' }}>người</span></span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Ngày cần người (Deadline)</span>
+                <span style={{ fontSize: '1rem', color: '#ef4444', fontWeight: '700' }}>{request.needed_by_date ? new Date(request.needed_by_date).toLocaleDateString('vi-VN') : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Chưa cập nhật</span>}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Lý do tuyển</span>
+                <span style={{ fontSize: '1rem', color: '#0f172a', fontWeight: '600' }}>
+                  <span style={{ background: '#f8fafc', padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>{request.reason || '-'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Salary Info Card */}
+          <div style={{ background: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+              <span><FaMoneyBillWave /></span> Thông tin Lương
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Mức lương đề xuất (VNĐ)</span>
+              <div style={{ fontSize: '1.4rem', color: '#0f172a', fontWeight: '800', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                {request.proposed_salary_min ? Number(request.proposed_salary_min).toLocaleString() : '???'} <span style={{ color: '#94a3b8', fontWeight: '400' }}>-</span> {request.proposed_salary_max ? Number(request.proposed_salary_max).toLocaleString() : '???'}
+              </div>
+            </div>
+
+            {request.salary_explanation && (
+              <div style={{ marginTop: '10px', background: 'linear-gradient(to right, #fef2f2, #fff1f2)', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #ef4444' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: '800', color: '#b91c1c', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  <span><FaExclamationTriangle style={{ color: '#d97706' }} /></span> Giải trình lương ngoài dải chuẩn
+                </span>
+                <span style={{ fontSize: '0.95rem', color: '#7f1d1d', lineHeight: '1.5' }}>{request.salary_explanation}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Details Card */}
+        <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+          
           <div>
-            <div
-              style={{
-                color: '#64748b',
-                fontSize: '14px',
-                marginBottom: '7px',
-              }}
-            >
-              {requestCode}
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span><FaClipboardList /></span> Mô tả công việc
+            </h3>
+            <div style={{ fontSize: '0.95rem', color: '#334155', background: '#f8fafc', padding: '20px', borderRadius: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', border: '1px solid #f1f5f9' }}>
+              {request.job_description || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa cập nhật mô tả công việc...</span>}
             </div>
-
-            <h1
-              style={{
-                margin: 0,
-                color: '#0f172a',
-                fontSize: '30px',
-                fontWeight: 800,
-              }}
-            >
-              Tuyển dụng{' '}
-              {request.position_name ||
-                'chưa xác định chức danh'}
-            </h1>
-
-            <p
-              style={{
-                margin: '9px 0 0',
-                color: '#64748b',
-              }}
-            >
-              Người tạo:{' '}
-              <strong>
-                {request.created_by_name ||
-                  '—'}
-              </strong>
-              {' · '}
-              {formatDateTime(
-                request.created_at
-              )}
-            </p>
           </div>
 
-          <span
-            style={{
-              display: 'inline-block',
-              padding: '8px 13px',
-              borderRadius: '999px',
-              fontWeight: 700,
-              fontSize: '14px',
-              whiteSpace: 'nowrap',
-              ...getStatusStyle(
-                request.status
-              ),
-            }}
-          >
-            {statusLabels[
-              request.status
-            ] ||
-              request.status}
-          </span>
-        </div>
-      </section>
-
-      {/* THÔNG TIN TUYỂN DỤNG */}
-      <section
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '18px',
-          padding: '26px 28px',
-          marginBottom: '22px',
-        }}
-      >
-        <h2
-          style={{
-            margin: '0 0 20px',
-            fontSize: '22px',
-            color: '#0f172a',
-          }}
-        >
-          Thông tin tuyển dụng
-        </h2>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '14px',
-          }}
-        >
-          {detailItem(
-            'Phòng ban',
-            request.department_name
-          )}
-
-          {detailItem(
-            'Chức danh',
-            request.position_name
-          )}
-
-          {detailItem(
-            'Số lượng tuyển',
-            request.headcount
-          )}
-
-          {detailItem(
-            'Ngày cần người',
-            formatDate(neededDate)
-          )}
-
-          {detailItem(
-            'Lương tối thiểu/tháng',
-            money(minSalary)
-          )}
-
-          {detailItem(
-            'Lương tối đa/tháng',
-            money(maxSalary)
-          )}
-
-          {detailItem(
-            'Chi phí yêu cầu/năm',
-            money(cost)
-          )}
-
-          {detailItem(
-            'Năm chỉ tiêu',
-            year || '—'
-          )}
-        </div>
-
-        <div
-          style={{
-            marginTop: '22px',
-            borderTop:
-              '1px solid #e2e8f0',
-            paddingTop: '20px',
-          }}
-        >
-          <h3
-            style={{
-              margin: '0 0 7px',
-              fontSize: '16px',
-              color: '#334155',
-            }}
-          >
-            Lý do tuyển
-          </h3>
-
-          <p
-            style={{
-              margin: 0,
-              color: '#475569',
-              lineHeight: 1.6,
-            }}
-          >
-            {request.reason || '—'}
-          </p>
-        </div>
-
-        <div
-          style={{
-            marginTop: '20px',
-          }}
-        >
-          <h3
-            style={{
-              margin: '0 0 7px',
-              fontSize: '16px',
-              color: '#334155',
-            }}
-          >
-            Mô tả công việc
-          </h3>
-
-          <p
-            style={{
-              margin: 0,
-              color: '#475569',
-              lineHeight: 1.7,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {request.job_description ||
-              '—'}
-          </p>
-        </div>
-
-        <div
-          style={{
-            marginTop: '20px',
-          }}
-        >
-          <h3
-            style={{
-              margin: '0 0 7px',
-              fontSize: '16px',
-              color: '#334155',
-            }}
-          >
-            Yêu cầu ứng viên
-          </h3>
-
-          <p
-            style={{
-              margin: 0,
-              color: '#475569',
-              lineHeight: 1.7,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {request.requirements ||
-              request.candidate_requirements ||
-              '—'}
-          </p>
-        </div>
-      </section>
-
-      {/* YÊU CẦU BỊ TỪ CHỐI */}
-      {request.status ===
-        'REJECTED' && (
-        <div
-          style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#b91c1c',
-            borderRadius: '12px',
-            padding: '16px 18px',
-            marginBottom: '22px',
-          }}
-        >
-          <strong>
-            Lý do từ chối:
-          </strong>{' '}
-          {request.rejection_reason ||
-            '—'}
-        </div>
-      )}
-
-      {/* KIỂM TRA CHỈ TIÊU */}
-      <section
-        style={{
-          marginBottom: '22px',
-        }}
-      >
-        <div
-          style={{
-            marginBottom: '12px',
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              color: '#0f172a',
-              fontSize: '22px',
-            }}
-          >
-            Kiểm tra chỉ tiêu
-          </h2>
-
-          <p
-            style={{
-              margin: '5px 0 0',
-              color: '#64748b',
-              fontSize: '14px',
-            }}
-          >
-            Hệ thống đối chiếu số lượng tuyển và
-            ngân sách với chỉ tiêu của phòng ban.
-          </p>
-        </div>
-
-        <BudgetSummary
-          loading={budget.loading}
-          error={budget.error || ''}
-          data={budget.data}
-          cost={cost}
-          excess={excess}
-          status={request.status}
-          creating={false}
-        />
-      </section>
-
-      {/* KHÔNG ĐỦ DỮ LIỆU ĐỂ DUYỆT */}
-      {isPending &&
-        canApprove &&
-        (!budget.data || !excess) && (
-          <div
-            style={{
-              background: '#fff7ed',
-              color: '#9a3412',
-              border:
-                '1px solid #fed7aa',
-              borderRadius: '12px',
-              padding: '14px 18px',
-              marginBottom: '22px',
-            }}
-          >
-            Chưa tải được đầy đủ chỉ tiêu hoặc
-            dữ liệu chi phí để phê duyệt. Bạn
-            vẫn có thể từ chối yêu cầu nếu có
-            quyền.
-          </div>
-        )}
-
-      {/* KHU VỰC QUYẾT ĐỊNH */}
-      {isPending &&
-        (canApprove || canReject) && (
-          <section
-            style={{
-              background: '#ffffff',
-              border:
-                '1px solid #e2e8f0',
-              borderRadius: '18px',
-              padding: '24px 28px',
-              marginBottom: '22px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent:
-                  'space-between',
-                alignItems: 'center',
-                gap: '20px',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div>
-                <h2
-                  style={{
-                    margin: 0,
-                    color: '#0f172a',
-                    fontSize: '20px',
-                  }}
-                >
-                  Quyết định yêu cầu
-                </h2>
-
-                <p
-                  style={{
-                    margin:
-                      '6px 0 0',
-                    color: '#64748b',
-                  }}
-                >
-                  Kiểm tra thông tin và chỉ tiêu
-                  trước khi đưa ra quyết định.
-                </p>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '10px',
-                }}
-              >
-                {canReject && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      setDialog(
-                        'reject'
-                      );
-                      setDecisionError(
-                        ''
-                      );
-                    }}
-                    style={{
-                      border:
-                        '1px solid #fecaca',
-                      borderRadius:
-                        '10px',
-                      padding:
-                        '10px 19px',
-                      background:
-                        '#fef2f2',
-                      color:
-                        '#dc2626',
-                      fontWeight: 700,
-                      cursor:
-                        busy
-                          ? 'not-allowed'
-                          : 'pointer',
-                    }}
-                  >
-                    Từ chối
-                  </button>
-                )}
-
-                {canApprove && (
-                  <button
-                    type="button"
-                    disabled={
-                      busy ||
-                      budget.loading ||
-                      !budget.data ||
-                      !excess
-                    }
-                    onClick={() => {
-                      setDecisionError(
-                        ''
-                      );
-
-                      setDialog(
-                        excess?.exceeded
-                          ? 'override'
-                          : 'approve'
-                      );
-                    }}
-                    style={{
-                      border: 'none',
-                      borderRadius:
-                        '10px',
-                      padding:
-                        '10px 21px',
-                      background:
-                        '#4f46e5',
-                      color:
-                        '#ffffff',
-                      fontWeight: 700,
-                      cursor:
-                        busy ||
-                        budget.loading ||
-                        !budget.data ||
-                        !excess
-                          ? 'not-allowed'
-                          : 'pointer',
-                      opacity:
-                        busy ||
-                        budget.loading ||
-                        !budget.data ||
-                        !excess
-                          ? 0.55
-                          : 1,
-                    }}
-                  >
-                    {excess?.exceeded
-                      ? 'Duyệt vượt chỉ tiêu'
-                      : 'Duyệt yêu cầu'}
-                  </button>
-                )}
-              </div>
+          <div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span><FaBullseye /></span> Yêu cầu ứng viên
+            </h3>
+            <div style={{ fontSize: '0.95rem', color: '#334155', background: '#f8fafc', padding: '20px', borderRadius: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', border: '1px solid #f1f5f9' }}>
+              {request.candidate_requirements || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa cập nhật yêu cầu ứng viên...</span>}
             </div>
-          </section>
-        )}
+          </div>
 
-      {/* HỘP THOẠI DUYỆT / TỪ CHỐI */}
-      {dialog && (
-        <ApprovalDialog
-          mode={dialog}
-          busy={busy}
-          error={decisionError}
-          canOverride={canOverride}
-          excess={excess}
-          onCancel={() =>
-            setDialog(null)
-          }
-          onConfirm={decide}
-        />
-      )}
+        </div>
+
+      </div>
     </div>
   );
 };
