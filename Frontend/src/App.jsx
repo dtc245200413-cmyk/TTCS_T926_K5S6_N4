@@ -35,6 +35,7 @@ import MasterData from './pages/master-data/MasterData';
 import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
 import CandidateDetail from './pages/candidates/CandidateDetail';
+import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
 
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
@@ -69,6 +70,7 @@ function App() {
             <Route path="/questions" element={<QuestionBank />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/interview-schedules" element={<InterviewScheduleList />} />
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}
