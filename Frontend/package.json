@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "test:candidate-profile": "node candidate-profile.test.cjs",
+    "test:interview-schedules": "node interview-schedules.test.cjs",
+    "test:interview-time": "node --test interview-schedule-time.test.mjs",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

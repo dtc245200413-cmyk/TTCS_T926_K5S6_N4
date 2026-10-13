@@ -8,6 +8,7 @@ import {
   FiClock, FiKey, FiLogOut, FiBell, FiBarChart2, FiCheckCircle
 } from 'react-icons/fi';
 import '../../styles/global.css';
+import { interviewAccess } from '../../utils/interviewSchedules';
 
 const Sidebar = () => {
   const { hasPermission, logout, user } = useContext(AuthContext);
@@ -266,6 +267,11 @@ const Sidebar = () => {
 
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {isAdmin ? renderAdminMenu() : (isHrManager ? renderHrMenu() : (isRecruiterRole ? renderRecruiterMenu() : (isApprover ? renderApproverMenu() : renderStandardMenu())))}
+        {interviewAccess(user).canView && (
+          <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
+            <FiClock size={18} /> Lịch phỏng vấn
+          </NavLink>
+        )}
 
         <div style={{ borderTop: '1px solid #1f2937', padding: '16px 0', marginTop: 'auto' }}>
           {sectionHeader('TÀI KHOẢN')}
