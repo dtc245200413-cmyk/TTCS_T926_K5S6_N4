@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { candidateProfileAccess } from '../../utils/candidateProfile';
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
@@ -147,6 +148,9 @@ const CandidateList = () => {
                     </td>
                     <td style={{ padding: '16px' }}>{getStatusBadge(cand.status)}</td>
                     <td style={{ padding: '16px' }}>
+                      {candidateProfileAccess(user).canView && (
+                        <Link to={`/candidates/${cand.id}`} style={{ display: 'inline-block', marginBottom: '8px', color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
+                      )}
                       {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
