@@ -68,8 +68,10 @@ const masterDataRoutes = require('./routes/masterDataRoutes');
 app.use('/api/master-data', masterDataRoutes);
 
 const candidateRoutes = require('./routes/candidateRoutes');
+const candidateProfileRoutes = require('./routes/candidateProfileRoutes');
 const auditLogRoutes = require('./routes/auditLogRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/candidates', candidateProfileRoutes);
 app.use('/api/candidates', candidateRoutes);
 
 app.use('/api/competency-frameworks', competencyFrameworkRoutes);

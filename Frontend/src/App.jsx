@@ -34,6 +34,7 @@ import CompanyProfile from './pages/company-profile/CompanyProfile';
 import MasterData from './pages/master-data/MasterData';
 import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
+import CandidateDetail from './pages/candidates/CandidateDetail';
 
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
@@ -154,6 +155,7 @@ function App() {
             <Route path="/candidates" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
               <Route index element={<CandidateList />} />
               <Route path="create" element={<CandidateCreate />} />
+              <Route path=":id" element={<CandidateDetail />} />
             </Route>
           </Route>
 
