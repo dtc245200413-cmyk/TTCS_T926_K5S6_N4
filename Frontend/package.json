@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:candidate-ratings": "npm run build && node candidate-rating.test.cjs",
     "test:candidate-profile": "node candidate-profile.test.cjs",
     "test:interview-schedules": "node interview-schedules.test.cjs",
     "test:interview-time": "node --test interview-schedule-time.test.mjs",

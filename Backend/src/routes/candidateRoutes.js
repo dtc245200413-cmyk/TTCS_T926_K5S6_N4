@@ -15,6 +15,20 @@ const requireCandidateWriter = (req, res, next) => {
   return requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER')(req, res, next);
 };
 
+const requireCandidateReader = (req, res, next) => {
+  if (req.user?.roles?.some(role => role.role_code === 'CANDIDATE')) {
+    return sendError(res, 'Bạn không có quyền truy cập hồ sơ ứng viên nội bộ.', 403);
+  }
+  const roles = req.user?.roles || [];
+  if (roles.some(role => role.role_code === 'HIRING_MANAGER')
+      && !roles.some(role => ['ADMIN', 'HR_MANAGER', 'RECRUITER'].includes(role.role_code))
+      && !req.user.department_id) {
+    return sendError(res, 'Không xác định được phạm vi phòng ban của hồ sơ.', 403);
+  }
+  // Same readers as SCRUM-337. Hiring Manager scope remains in the repository.
+  return requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER', 'HIRING_MANAGER')(req, res, next);
+};
+
 const requireStatusWriter = (req, res, next) => {
   // CandidateList reserves the hire decision for HR management.
   if (req.body.status === 'HIRED') {
@@ -65,8 +79,12 @@ router.get('/merges', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidat
 router.post('/merge', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.mergeCandidates);
 router.post('/merges/:mergeId/undo', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.undoMerge);
 router.get('/:id/resume', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.downloadResume);
-router.get('/', candidateController.getAllCandidates);
+router.get('/', requireCandidateReader, candidateController.getAllCandidates);
 router.post('/', requireCandidateWriter, candidateController.createCandidate);
 router.put('/:id/status', requireCandidateWriter, requireStatusWriter, candidateController.updateStatus);
+
+// SCRUM-215: role checks and reviewer ownership are enforced in the service.
+router.put('/:id/ratings/me', candidateController.saveMyRating);
+router.get('/:id/ratings', candidateController.getRatings);
 
 module.exports = router;

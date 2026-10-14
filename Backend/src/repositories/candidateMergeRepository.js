@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { lockCandidates, withCandidateTransaction } = require('../utils/candidateTransaction');
 
 const phoneDigitsSql = (column) => `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(${column}, ''), ' ', ''), '-', ''), '+', ''), '(', ''), ')', ''), '.', '')`;
 
@@ -38,13 +39,8 @@ async function findPotentialDuplicates({ candidateId = null, email = '', phone =
 }
 
 async function mergeCandidates({ primaryId, secondaryId, chosenFields, mergedBy }) {
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    const [candidates] = await connection.query(
-      'SELECT * FROM candidates WHERE id IN (?, ?) FOR UPDATE',
-      [primaryId, secondaryId]
-    );
+  return withCandidateTransaction(async connection => {
+    const candidates = await lockCandidates(connection, [primaryId, secondaryId]);
     const primary = candidates.find(candidate => Number(candidate.id) === Number(primaryId));
     const secondary = candidates.find(candidate => Number(candidate.id) === Number(secondaryId));
     if (!primary || !secondary) throw Object.assign(new Error('Không tìm thấy một trong hai hồ sơ.'), { statusCode: 404 });
@@ -82,6 +78,34 @@ async function mergeCandidates({ primaryId, secondaryId, chosenFields, mergedBy 
       const tableName = childTable.table_name || childTable.TABLE_NAME;
       const safeTableName = String(tableName).replace(/[^a-zA-Z0-9_]/g, '');
       if (!safeTableName || safeTableName === 'sla_reminders') continue;
+      // SCRUM-337 tags have a composite key, not an id column. Keep shared tags
+      // on the secondary record so undo can restore both profiles without data loss.
+      if (safeTableName === 'candidate_tags') {
+        const [tags] = await connection.execute(
+          'SELECT candidate_id, tag_id FROM candidate_tags WHERE candidate_id IN (?, ?) FOR UPDATE',
+          [primaryId, secondaryId]
+        );
+        const existing = new Set(tags.filter(tag => Number(tag.candidate_id) === Number(primaryId)).map(tag => Number(tag.tag_id)));
+        const tagIds = tags.filter(tag => Number(tag.candidate_id) === Number(secondaryId) && !existing.has(Number(tag.tag_id))).map(tag => tag.tag_id);
+        if (tagIds.length) {
+          await connection.execute(
+            `UPDATE candidate_tags SET candidate_id = ? WHERE candidate_id = ? AND tag_id IN (${tagIds.map(() => '?').join(',')})`,
+            [primaryId, secondaryId, ...tagIds]
+          );
+          movedChildren.push({ table: safeTableName, tag_ids: tagIds });
+        }
+        continue;
+      }
+      if (safeTableName === 'candidate_ratings') {
+        const [ratings] = await connection.execute(
+          'SELECT candidate_id, reviewer_id FROM candidate_ratings WHERE candidate_id IN (?, ?) FOR UPDATE',
+          [primaryId, secondaryId]
+        );
+        const reviewers = new Set(ratings.filter(row => Number(row.candidate_id) === Number(primaryId)).map(row => Number(row.reviewer_id)));
+        if (ratings.some(row => Number(row.candidate_id) === Number(secondaryId) && reviewers.has(Number(row.reviewer_id)))) {
+          throw Object.assign(new Error('Không thể gộp: cùng một người đã đánh giá cả hai hồ sơ. Các đánh giá được giữ nguyên; vui lòng kiểm tra trước khi gộp.'), { statusCode: 409 });
+        }
+      }
       const [rows] = await connection.execute(
         `SELECT id FROM \`${safeTableName}\` WHERE candidate_id = ?`,
         [secondaryId]
@@ -108,14 +132,8 @@ async function mergeCandidates({ primaryId, secondaryId, chosenFields, mergedBy 
       JSON.stringify(movedChildren),
       mergedBy
     ]);
-    await connection.commit();
     return result.insertId;
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+  });
 }
 
 async function findActiveMerges() {
@@ -133,9 +151,7 @@ async function findActiveMerges() {
 }
 
 async function undoMerge(mergeId, userId) {
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
+  return withCandidateTransaction(async connection => {
     const [rows] = await connection.execute(
       'SELECT *, TIMESTAMPDIFF(SECOND, merged_at, NOW()) AS seconds_since_merge FROM candidate_merges WHERE id = ? FOR UPDATE',
       [mergeId]
@@ -145,6 +161,7 @@ async function undoMerge(mergeId, userId) {
     if (Number(merge.seconds_since_merge) > 24 * 60 * 60) {
       throw Object.assign(new Error('Chỉ có thể hoàn tác trong vòng 24 giờ sau khi gộp.'), { statusCode: 400 });
     }
+    await lockCandidates(connection, [merge.primary_id, merge.secondary_id]);
 
     const primary = typeof merge.primary_snapshot === 'string' ? JSON.parse(merge.primary_snapshot) : merge.primary_snapshot;
     const secondary = typeof merge.secondary_snapshot === 'string' ? JSON.parse(merge.secondary_snapshot) : merge.secondary_snapshot;
@@ -162,6 +179,13 @@ async function undoMerge(mergeId, userId) {
     const movedChildren = typeof merge.moved_children === 'string' ? JSON.parse(merge.moved_children) : merge.moved_children || [];
     for (const child of movedChildren) {
       const tableName = String(child.table || '').replace(/[^a-zA-Z0-9_]/g, '');
+      if (tableName === 'candidate_tags' && Array.isArray(child.tag_ids) && child.tag_ids.length) {
+        await connection.execute(
+          `UPDATE candidate_tags SET candidate_id = ? WHERE candidate_id = ? AND tag_id IN (${child.tag_ids.map(() => '?').join(',')})`,
+          [merge.secondary_id, merge.primary_id, ...child.tag_ids]
+        );
+        continue;
+      }
       const ids = Array.isArray(child.ids) ? child.ids : [];
       if (!tableName || !ids.length) continue;
       const placeholders = ids.map(() => '?').join(',');
@@ -175,14 +199,8 @@ async function undoMerge(mergeId, userId) {
       "UPDATE candidate_merges SET status = 'UNDONE', undone_by = ?, undone_at = NOW() WHERE id = ?",
       [userId, mergeId]
     );
-    await connection.commit();
     return { primary_id: merge.primary_id, secondary_id: merge.secondary_id };
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+  });
 }
 
 module.exports = { findPotentialDuplicates, mergeCandidates, findActiveMerges, undoMerge };

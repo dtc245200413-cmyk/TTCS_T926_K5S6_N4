@@ -1,7 +1,8 @@
 const { pool } = require('../config/database');
 
 function isMissingRecruitmentRequests(error) {
-  // Check MySQL's missing-table diagnostic, not the SQL query (which names all joins).
+  // ER_NO_SUCH_TABLE may also refer to candidates or another joined table.
+  // Match the missing table in MySQL's diagnostic, never in the query text.
   return error.code === 'ER_NO_SUCH_TABLE'
     && /\bTable ['`](?:[^'`]+\.)?recruitment_requests['`] doesn't exist/i.test(error.sqlMessage || error.message || '');
 }
@@ -111,7 +112,7 @@ async function getAll(user) {
     const canViewAll = user?.roles?.some(role =>
       ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(role.role_code)
     );
-    // Hiring Manager scope cannot be established without recruitment_requests.
+    // Department scope cannot be established without recruitment_requests.
     if (!canViewAll) return [];
     const [rows] = await pool.execute(`
       SELECT c.*, NULL AS job_reason, NULL AS department_name, NULL AS position_name

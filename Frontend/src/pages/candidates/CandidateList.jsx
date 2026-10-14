@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import axios from '../../api/axiosClient';
 import { Link } from 'react-router-dom';
 import { FiDownload, FiEye, FiX, FiFileText, FiUser } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
+import axiosClient from '../../api/axiosClient';
+import candidateApi from '../../api/candidateApi';
+import CandidateRatingModal from '../../components/CandidateRatingModal';
 import { getCandidateCvData } from '../../utils/candidateCvHelper';
 import { candidateProfileAccess } from '../../utils/candidateProfile';
 
@@ -17,6 +19,14 @@ const CandidateList = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectError, setRejectError] = useState('');
   const [candidateSources, setCandidateSources] = useState([]);
+  const [ratingCandidate, setRatingCandidate] = useState(null);
+  const [ratingSummaries, setRatingSummaries] = useState({});
+  const [ratingUpdates, setRatingUpdates] = useState({});
+  const [ratingNotice, setRatingNotice] = useState('');
+  const [summaryAttempt, setSummaryAttempt] = useState(0);
+  const canRate = canManage;
+  const canViewRatings = candidateProfileAccess(user).canView;
+
   const [activeMerges, setActiveMerges] = useState([]);
   const [mergeError, setMergeError] = useState('');
   const [showCvModal, setShowCvModal] = useState(false);
@@ -25,10 +35,7 @@ const CandidateList = () => {
 
   const fetchCandidates = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/candidates', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await candidateApi.getAll();
       setCandidates(response.data.data);
     } catch (err) {
       console.error('Failed to fetch candidates', err);
@@ -39,10 +46,7 @@ const CandidateList = () => {
 
   const fetchRejectionReasons = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/master-data', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axiosClient.get('/master-data');
       const md = response.data.data;
       setRejectionReasons(md.filter(x => x.category_group === 'REJECTION_REASON'));
       setCandidateSources(md.filter(x => x.category_group === 'CANDIDATE_SOURCE'));
@@ -54,7 +58,7 @@ const CandidateList = () => {
   const fetchActiveMerges = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/candidates/merges', {
+      const response = await axiosClient.get('/candidates/merges', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveMerges(response.data.data || []);
@@ -74,9 +78,11 @@ const CandidateList = () => {
     setMergeError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`/candidates/merges/${merge.id}/undo`, {}, {
+      await axiosClient.post(`/candidates/merges/${merge.id}/undo`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      setRatingUpdates({});
+      await Promise.all([fetchCandidates(), fetchActiveMerges()]);
     } catch (err) {
       setMergeError(err.response?.data?.message || 'Không thể hoàn tác gộp hồ sơ.');
     }
@@ -91,15 +97,15 @@ const CandidateList = () => {
   const downloadResume = async (candidate) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`/candidates/${candidate.id}/resume`, {
+      const response = await axiosClient.get(`/candidates/${candidate.id}/resume`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
       const objectUrl = URL.createObjectURL(response.data);
       const anchor = document.createElement('a');
       anchor.href = objectUrl;
-      const extension = (candidate.resume_url && candidate.resume_url.includes('.')) 
-        ? candidate.resume_url.substring(candidate.resume_url.lastIndexOf('.')) 
+      const extension = (candidate.resume_url && candidate.resume_url.includes('.'))
+        ? candidate.resume_url.substring(candidate.resume_url.lastIndexOf('.'))
         : '.pdf';
       anchor.download = `CV-${candidate.full_name || candidate.id}${extension}`;
       document.body.appendChild(anchor);
@@ -109,6 +115,56 @@ const CandidateList = () => {
     } catch (error) {
       alert('Không thể tải CV của ứng viên: ' + (error.response?.data?.message || error.message || 'Lỗi tải tệp'));
     }
+  };
+
+  useEffect(() => {
+    if (!canViewRatings) return;
+    const controller = new AbortController();
+    let nextIndex = 0;
+    setRatingSummaries({});
+    // Existing API exposes ratings per candidate only. Bound concurrent requests.
+    const loadSummaries = async () => {
+      while (!controller.signal.aborted && nextIndex < candidates.length) {
+        const candidate = candidates[nextIndex++];
+        try {
+          const response = await candidateApi.getRatings(candidate.id, controller.signal);
+          if (!controller.signal.aborted) {
+            const { average_rating, rating_count } = response.data.data;
+            setRatingSummaries(current => ({ ...current, [candidate.id]: { average_rating, rating_count } }));
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            setRatingSummaries(current => ({ ...current, [candidate.id]: { error: error.response?.data?.message || 'Không thể tải điểm đánh giá.' } }));
+          }
+        }
+      }
+    };
+    for (let i = 0; i < Math.min(4, candidates.length); i++) loadSummaries();
+    return () => controller.abort();
+  }, [candidates, canViewRatings, user?.user_id, summaryAttempt]);
+
+  const renderRatingSummary = candidate => {
+    // A response from an older list request must not overwrite a newly saved score.
+    const summary = ratingUpdates[candidate.id] || ratingSummaries[candidate.id];
+    if (!summary) return <span role="status">Đang tải điểm...</span>;
+    if (summary.error) return (
+      <div className="candidate-rating-error">
+        <p>{summary.error}</p>
+        <button type="button" className="candidate-rating-button" onClick={() => setSummaryAttempt(value => value + 1)}>Tải lại điểm</button>
+      </div>
+    );
+    if (!summary.rating_count || summary.average_rating == null) return <p>Chưa có đánh giá</p>;
+    const average = Number(summary.average_rating);
+    const filled = Math.max(0, Math.min(5, Math.round(average)));
+    return <p className="candidate-rating-display" aria-label={`${average.toFixed(1)} trên 5 sao, ${summary.rating_count} đánh giá`}>
+      <span aria-hidden="true">{'★'.repeat(filled)}{'☆'.repeat(5 - filled)}</span> {average.toFixed(1)} ({summary.rating_count} đánh giá)
+    </p>;
+  };
+
+  const handleRatingSaved = (candidateId, data) => {
+    setRatingUpdates(current => ({ ...current, [candidateId]: { average_rating: data.average_rating, rating_count: data.rating_count } }));
+    setRatingCandidate(null);
+    setRatingNotice('Đã lưu đánh giá thành công.');
   };
 
   const getStatusBadge = (status) => {
@@ -135,12 +191,9 @@ const CandidateList = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/candidates/${selectedCandidate.id}/status`, {
+      await candidateApi.updateStatus(selectedCandidate.id, {
         status: 'REJECTED',
         rejection_reason_code: rejectReason
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setShowRejectModal(false);
       fetchCandidates();
@@ -152,11 +205,8 @@ const CandidateList = () => {
   const handleHire = async (candidate) => {
     if (window.confirm(`Bạn có chắc chắn muốn tuyển dụng ứng viên ${candidate.full_name}?`)) {
       try {
-        const token = localStorage.getItem('token');
-        await axios.put(`/candidates/${candidate.id}/status`, {
+        await candidateApi.updateStatus(candidate.id, {
           status: 'HIRED'
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
         });
         fetchCandidates();
       } catch (error) {
@@ -168,7 +218,7 @@ const CandidateList = () => {
   return (
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div>
@@ -180,6 +230,7 @@ const CandidateList = () => {
           </Link>}
         </div>
 
+        {canViewRatings && ratingNotice && <div className="candidate-rating-success" role="status">{ratingNotice}</div>}
         {activeMerges.length > 0 && (
           <section style={{ padding: 18, background: '#fff', border: '1px solid #dbe2ea', borderRadius: 12 }}>
             <h2 style={{ margin: '0 0 12px', fontSize: 17, color: '#334155' }}>Hồ sơ đã gộp gần đây</h2>
@@ -199,7 +250,7 @@ const CandidateList = () => {
         )}
 
         {/* Content */}
-        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Đang tải dữ liệu...</div>
           ) : candidates.length === 0 ? (
@@ -214,6 +265,7 @@ const CandidateList = () => {
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nguồn (Master Data)</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>CV</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Trạng thái</th>
+                  {canViewRatings && <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Đánh giá ứng viên</th>}
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Thao tác</th>
                 </tr>
               </thead>
@@ -231,18 +283,18 @@ const CandidateList = () => {
                     <td style={{ padding: '16px' }}>
                       {cand.resume_url ? (
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <button 
-                            type="button" 
-                            onClick={() => openCvModal(cand)} 
+                          <button
+                            type="button"
+                            onClick={() => openCvModal(cand)}
                             className="btn-action-view"
                             style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1' }}
                             title="Xem trước CV"
                           >
                             <FiEye /> Xem CV
                           </button>
-                          <button 
-                            type="button" 
-                            onClick={() => downloadResume(cand)} 
+                          <button
+                            type="button"
+                            onClick={() => downloadResume(cand)}
                             className="btn-action-view"
                             title="Tải tệp PDF CV"
                           >
@@ -255,6 +307,13 @@ const CandidateList = () => {
                       {getStatusBadge(cand.status)}
                       {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>Quá SLA</span>}
                     </td>
+                    {canViewRatings && <td className="candidate-rating-cell" style={{ padding: '16px' }}>
+                      {renderRatingSummary(cand)}
+                      {cand.status === 'REJECTED'
+                        ? <small className="candidate-rating-hint">Hồ sơ đã đánh trượt</small>
+                        : canRate && <button type="button" className="candidate-rating-button candidate-rating-primary" onClick={() => { setRatingCandidate(cand); setRatingNotice(''); }}>Đánh giá</button>}
+                      {(!canRate || cand.status === 'REJECTED') && <button type="button" className="candidate-rating-button" onClick={() => setRatingCandidate(cand)}>Xem đánh giá</button>}
+                    </td>}
                     <td style={{ padding: '16px' }}>
                       {candidateProfileAccess(user).canView && (
                         <Link to={`/candidates/${cand.id}`} style={{ display: 'inline-block', marginBottom: '8px', color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
@@ -262,14 +321,14 @@ const CandidateList = () => {
                       {canManage && cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           {user?.roles?.some(r => ['HR_MANAGER', 'ADMIN'].includes(r.role_code)) && (
-                            <button 
+                            <button
                               onClick={() => handleHire(cand)}
                               style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
                             >
                               Tuyển dụng
                             </button>
                           )}
-                          <button 
+                          <button
                             onClick={() => handleOpenReject(cand)}
                             style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
                           >
@@ -292,15 +351,17 @@ const CandidateList = () => {
 
       </div>
 
+      {canViewRatings && ratingCandidate && <CandidateRatingModal key={ratingCandidate.id} candidate={ratingCandidate} readOnly={!canRate || ratingCandidate.status === 'REJECTED'} onClose={() => setRatingCandidate(null)} onSaved={handleRatingSaved} />}
+
       {/* Reject Modal */}
       {showRejectModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
             <h3 style={{ margin: '0 0 16px 0', color: '#1e293b', fontSize: '1.2rem' }}>Đánh trượt Ứng viên</h3>
             <p className="g-page-subtitle">Bạn đang đánh trượt ứng viên <strong>{selectedCandidate?.full_name}</strong>. Vui lòng chọn lý do từ danh mục chung.</p>
-            
+
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Lý do loại hồ sơ <span style={{ color: '#ef4444' }}>*</span></label>
-            <select 
+            <select
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '8px', outline: 'none' }}
