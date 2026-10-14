@@ -5,7 +5,7 @@ import {
   FiGrid, FiUsers, FiUser, FiList, FiFileText, 
   FiShield, FiHome, FiShare2, FiBriefcase, 
   FiClipboard, FiEdit, FiCheckSquare, FiBookOpen, 
-  FiClock, FiKey, FiLogOut, FiBell, FiBarChart2, FiCheckCircle
+  FiClock, FiKey, FiLogOut, FiBell, FiBarChart2, FiCheckCircle, FiGitBranch
 } from 'react-icons/fi';
 import '../../styles/global.css';
 
@@ -147,6 +147,9 @@ const Sidebar = () => {
           <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle}>
             <FiEdit size={18} /> Yêu cầu tuyển dụng
           </NavLink>
+          <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+            <FiBriefcase size={18} /> Tin tuyển dụng
+          </NavLink>
           <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
             <FiCheckSquare size={18} /> Khung năng lực
           </NavLink>
@@ -179,8 +182,14 @@ const Sidebar = () => {
       <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
         <FiBriefcase size={18} /> Chức danh & dải lương
       </NavLink>
+      <NavLink to="/approval-workflows" className={getClassName} style={navLinkStyle}>
+        <FiGitBranch size={18} /> Luồng phê duyệt
+      </NavLink>
       <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
         <FiCheckSquare size={18} /> Khung năng lực
+      </NavLink>
+      <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+        <FiBriefcase size={18} /> Tin tuyển dụng
       </NavLink>
       <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
         <FiBookOpen size={18} /> Ngân hàng câu hỏi
@@ -228,6 +237,12 @@ const Sidebar = () => {
       {(isHiringManager || isRecruiterRole) && (
         <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle} end>
           <FiEdit size={18} /> Quản lý yêu cầu
+        </NavLink>
+      )}
+
+      {isRecruiterRole && (
+        <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+          <FiBriefcase size={18} /> Tin tuyển dụng
         </NavLink>
       )}
 

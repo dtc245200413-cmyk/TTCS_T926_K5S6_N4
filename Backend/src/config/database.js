@@ -31,7 +31,15 @@ async function testConnection() {
     console.log('✅ MySQL connected to database:', process.env.DB_NAME);
     connection.release(); // release the connection back to the pool
   } catch (error) {
-    console.error('❌ MySQL connection failed:', error.message);
+    const code = error.code || error.errors?.[0]?.code || 'UNKNOWN';
+    console.error(`❌ MySQL connection failed [${code}]: ${error.message || 'Không thể kết nối cơ sở dữ liệu.'}`);
+    if (code === 'ECONNREFUSED') {
+      console.error('Hãy bật MySQL và kiểm tra DB_HOST / DB_PORT trong Backend/.env.');
+    } else if (code === 'ER_ACCESS_DENIED_ERROR') {
+      console.error('Kiểm tra DB_USER / DB_PASSWORD trong Backend/.env.');
+    } else if (code === 'ER_BAD_DB_ERROR') {
+      console.error('Chưa có database. Nhập database.sql theo HUONG_DAN_CHAY.md.');
+    }
     process.exit(1); // stop the server if DB is not reachable
   }
 }

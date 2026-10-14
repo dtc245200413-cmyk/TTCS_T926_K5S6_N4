@@ -7,6 +7,7 @@ const RecruitmentRequestApprovalList = () => {
   const { user } = useContext(AuthContext);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('PENDING');
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -29,10 +30,21 @@ const RecruitmentRequestApprovalList = () => {
     switch (status) {
       case 'PENDING': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>⏳ Chờ duyệt</span>;
       case 'APPROVED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>✅ Đã duyệt</span>;
+      case 'NEEDS_REVISION': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fef9c3', color: '#a16207', border: '1px solid #fef08a' }}>✏️ Cần bổ sung</span>;
       case 'REJECTED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>❌ Từ chối</span>;
       default: return <span>{status}</span>;
     }
   };
+
+  const tabs = [
+    { key: 'PENDING', label: 'Chờ duyệt' },
+    { key: 'APPROVED', label: 'Đã duyệt' },
+    { key: 'NEEDS_REVISION', label: 'Cần bổ sung' },
+    { key: 'REJECTED', label: 'Từ chối' },
+    { key: 'ALL', label: 'Tất cả' }
+  ];
+  const countOf = (key) => key === 'ALL' ? requests.length : requests.filter(r => r.status === key).length;
+  const visible = filter === 'ALL' ? requests : requests.filter(r => r.status === filter);
 
   return (
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
@@ -48,9 +60,16 @@ const RecruitmentRequestApprovalList = () => {
 
         {/* Content */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {tabs.map(t => (
+              <button key={t.key} onClick={() => setFilter(t.key)} style={{ padding: '8px 14px', borderRadius: '20px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: 600, background: filter === t.key ? '#4f46e5' : 'white', color: filter === t.key ? 'white' : '#475569' }}>
+                {t.label} ({countOf(t.key)})
+              </button>
+            ))}
+          </div>
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Đang tải dữ liệu...</div>
-          ) : requests.length === 0 ? (
+          ) : visible.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Không có yêu cầu nào cần duyệt.</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -65,7 +84,7 @@ const RecruitmentRequestApprovalList = () => {
                 </tr>
               </thead>
               <tbody>
-                {requests.map(req => (
+                {visible.map(req => (
                   <tr key={req.id} style={{ borderBottom: '1px solid #f1f5f9', background: req.status === 'PENDING' ? '#fffdf7' : 'transparent' }}>
                     <td style={{ padding: '16px', color: '#1e293b', fontWeight: '600' }}>#{req.id}</td>
                     <td style={{ padding: '16px', color: '#475569' }}>{req.created_by_name}</td>

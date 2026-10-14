@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { FiDownload } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
 const CandidateList = () => {
@@ -13,6 +14,8 @@ const CandidateList = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectError, setRejectError] = useState('');
   const [candidateSources, setCandidateSources] = useState([]);
+  const [activeMerges, setActiveMerges] = useState([]);
+  const [mergeError, setMergeError] = useState('');
 
   const fetchCandidates = async () => {
     try {
@@ -42,10 +45,55 @@ const CandidateList = () => {
     }
   };
 
+  const fetchActiveMerges = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3000/api/candidates/merges', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setActiveMerges(response.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch candidate merges', err);
+    }
+  };
+
   useEffect(() => {
     fetchCandidates();
     fetchRejectionReasons();
+    fetchActiveMerges();
   }, []);
+
+  const undoCandidateMerge = async (merge) => {
+    if (!window.confirm(`Hoàn tác gộp ${merge.secondary_name} khỏi hồ sơ ${merge.primary_name}?`)) return;
+    setMergeError('');
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:3000/api/candidates/merges/${merge.id}/undo`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await Promise.all([fetchCandidates(), fetchActiveMerges()]);
+    } catch (err) {
+      setMergeError(err.response?.data?.message || 'Không thể hoàn tác gộp hồ sơ.');
+    }
+  };
+
+  const downloadResume = async (candidate) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:3000/api/candidates/${candidate.id}/resume`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const objectUrl = URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `CV-${candidate.full_name || candidate.id}`;
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      alert('Không thể tải CV của ứng viên.');
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -116,6 +164,24 @@ const CandidateList = () => {
           </Link>
         </div>
 
+        {activeMerges.length > 0 && (
+          <section style={{ padding: 18, background: '#fff', border: '1px solid #dbe2ea', borderRadius: 12 }}>
+            <h2 style={{ margin: '0 0 12px', fontSize: 17, color: '#334155' }}>Hồ sơ đã gộp gần đây</h2>
+            {mergeError && <div role="alert" style={{ marginBottom: 10, color: '#b91c1c' }}>{mergeError}</div>}
+            <div style={{ display: 'grid', gap: 8 }}>
+              {activeMerges.map(merge => {
+                const canUndo = Number(merge.hours_since_merge) < 24;
+                return (
+                  <div key={merge.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: 10, background: '#f8fafc', borderRadius: 8 }}>
+                    <span>{merge.secondary_name} đã gộp vào {merge.primary_name} · {canUndo ? 'còn trong 24 giờ' : 'đã quá 24 giờ'}</span>
+                    {canUndo && <button type="button" onClick={() => undoCandidateMerge(merge)} style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', color: '#334155', fontWeight: 600, cursor: 'pointer' }}>Hoàn tác</button>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Content */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           {loading ? (
@@ -130,6 +196,7 @@ const CandidateList = () => {
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Email</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Vị trí ứng tuyển</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nguồn (Master Data)</th>
+                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>CV</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Trạng thái</th>
                   <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Thao tác</th>
                 </tr>
@@ -145,7 +212,11 @@ const CandidateList = () => {
                     <td style={{ padding: '16px', color: '#4f46e5', fontWeight: '600' }}>
                       {candidateSources.find(s => s.code === cand.source_code)?.name || cand.source_code || '-'}
                     </td>
-                    <td style={{ padding: '16px' }}>{getStatusBadge(cand.status)}</td>
+                    <td style={{ padding: '16px' }}>{cand.resume_url ? <button type="button" onClick={() => downloadResume(cand)} className="btn-action-view"><FiDownload /> Tải CV</button> : '-'}</td>
+                    <td style={{ padding: '16px' }}>
+                      {getStatusBadge(cand.status)}
+                      {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>Quá SLA</span>}
+                    </td>
                     <td style={{ padding: '16px' }}>
                       {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
                         <div style={{ display: 'flex', gap: '8px' }}>

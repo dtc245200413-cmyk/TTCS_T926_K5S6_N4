@@ -9,11 +9,15 @@ async function run() {
   });
 
   const translations = {
-    'Information Technology': 'Công Nghệ Thông Tin',
-    'Human Resources': 'Nhân Sự',
-    'Operations': 'Vận Hành',
-    'Marketing': 'Marketing',
-    'Finance': 'Tài Chính'
+    'Information Technology': 'Công nghệ thông tin',
+    'Công Nghệ Thông Tin': 'Công nghệ thông tin',
+    'Human Resources': 'Nhân sự',
+    'Nhân Sự': 'Nhân sự',
+    'Operations': 'Vận hành',
+    'Vận Hành': 'Vận hành',
+    'Marketing': 'Tiếp thị',
+    'Finance': 'Tài chính',
+    'Tài Chính': 'Tài chính'
   };
 
   for (const [en, vi] of Object.entries(translations)) {

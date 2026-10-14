@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axiosClient from '../../api/axiosClient';
 import { Link, useNavigate } from 'react-router-dom';
+import { getDisplayJobTitle } from '../../utils/userDisplay';
 import '../../styles/global.css';
 
 const Header = () => {
@@ -192,7 +193,7 @@ const Header = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', position: 'relative' }} ref={userMenuRef}>
           <div className="user-info" style={{ textAlign: 'right' }}>
             <div className="user-name" style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem' }}>{user?.full_name}</div>
-            <div className="user-role" style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '500' }}>{user?.job_title || 'Nhân sự'}</div>
+            <div className="user-role" style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '500' }}>{getDisplayJobTitle(user)}</div>
           </div>
           
           {/* Avatar Component */}
