@@ -1,6 +1,8 @@
 const candidateService = require('../services/candidateService');
+const candidateRepo = require('../repositories/candidateRepository');
 const { sendSuccess, sendError } = require('../utils/response');
 const path = require('path');
+const fs = require('fs');
 
 function getIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
@@ -49,11 +51,42 @@ const getActiveMerges = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const { getCandidateCvData, getCvHtml, renderHtmlToPdf } = require('../utils/generatePdfCv');
+
 const downloadResume = async (req, res, next) => {
   try {
-    const filename = await candidateService.getCandidateResume(req.params.id);
-    const safeFilename = path.basename(filename);
-    return res.download(path.join(__dirname, '../../private_uploads/resumes', safeFilename));
+    const candidate = await candidateRepo.findById(req.params.id);
+    if (!candidate) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin ứng viên.' });
+    }
+
+    const cvData = getCandidateCvData(candidate);
+
+    if (req.query.view === 'json') {
+      return res.json({ success: true, data: cvData });
+    }
+
+    if (req.query.view === 'html') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(getCvHtml(cvData));
+    }
+
+    const resumesDir = path.join(__dirname, '../../private_uploads/resumes');
+    fs.mkdirSync(resumesDir, { recursive: true });
+
+    let safeFilename = candidate.resume_url ? path.basename(candidate.resume_url) : `cv_${candidate.id}.pdf`;
+    if (!safeFilename.toLowerCase().endsWith('.pdf')) {
+      safeFilename = safeFilename + '.pdf';
+    }
+    const filePath = path.join(resumesDir, safeFilename);
+
+    if (!fs.existsSync(filePath)) {
+      const html = getCvHtml(cvData);
+      await renderHtmlToPdf(html, filePath);
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    return res.download(filePath, safeFilename);
   } catch (error) { next(error); }
 };
 

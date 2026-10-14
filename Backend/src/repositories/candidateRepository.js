@@ -21,9 +21,11 @@ async function create(data) {
 
 async function findById(id) {
   const sql = `
-    SELECT c.*, r.department_id, r.position_id 
+    SELECT c.*, r.department_id, r.position_id, d.department_name, p.position_name 
     FROM candidates c
     LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
+    LEFT JOIN departments d ON r.department_id = d.department_id
+    LEFT JOIN job_positions p ON r.position_id = p.position_id
     WHERE c.id = ? LIMIT 1
   `;
   const [rows] = await pool.execute(sql, [id]);

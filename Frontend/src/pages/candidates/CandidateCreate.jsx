@@ -23,7 +23,7 @@ const CandidateCreate = () => {
     const fetchMasterData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/master-data', {
+        const response = await axios.get('http://localhost:5000/api/master-data', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const md = response.data.data;
@@ -36,7 +36,7 @@ const CandidateCreate = () => {
     const fetchRequests = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/recruitment-requests/my', {
+        const response = await axios.get('http://localhost:5000/api/recruitment-requests/my', {
           headers: { Authorization: `Bearer ${token}` }
         });
         // Sàng lọc các yêu cầu đã được duyệt
@@ -61,7 +61,7 @@ const CandidateCreate = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/candidates', {
+      const response = await axios.post('http://localhost:5000/api/candidates', {
         ...formData,
         allow_duplicate: allowDuplicate
       }, {
@@ -69,7 +69,7 @@ const CandidateCreate = () => {
       });
       const createdCandidate = response.data.data;
       if (primaryCandidate) {
-        await axios.post('http://localhost:3000/api/candidates/merge', {
+        await axios.post('http://localhost:5000/api/candidates/merge', {
           primary_id: primaryCandidate.id,
           secondary_id: createdCandidate.id
         }, { headers: { Authorization: `Bearer ${token}` } });
@@ -98,7 +98,7 @@ const CandidateCreate = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/candidates/duplicates', {
+      const response = await axios.get('http://localhost:5000/api/candidates/duplicates', {
         params: { email: formData.email, phone: formData.phone },
         headers: { Authorization: `Bearer ${token}` }
       });

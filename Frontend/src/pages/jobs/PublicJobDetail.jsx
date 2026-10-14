@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
 import { FiArrowLeft, FiBriefcase, FiCheckCircle, FiMapPin, FiUpload } from 'react-icons/fi';
 
-const API = 'http://localhost:3000/api';
+const API = 'http://localhost:5000/api';
 
 const PublicJobDetail = () => {
   const { id } = useParams();
@@ -57,8 +57,8 @@ const PublicJobDetail = () => {
   if (loading) return <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: '#64748b' }}>Đang tải tin tuyển dụng...</main>;
   if (!job) return <main style={{ minHeight: '100vh', padding: 32, background: '#f8fafc' }}><Link to="/jobs" className="g-btn-secondary"><FiArrowLeft /> Danh sách việc làm</Link><div role="alert" className="alert alert-error" style={{ marginTop: 18 }}>{error}</div></main>;
 
-  const bannerUrl = company?.banner_url ? `http://localhost:3000${company.banner_url}` : '';
-  const logoUrl = company?.logo_url ? `http://localhost:3000${company.logo_url}` : '';
+  const bannerUrl = company?.banner_url ? `http://localhost:5000${company.banner_url}` : '';
+  const logoUrl = company?.logo_url ? `http://localhost:5000${company.logo_url}` : '';
 
   return (
     <main style={{ minHeight: '100vh', background: '#f8fafc', color: '#172033' }}>

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiBriefcase, FiMapPin, FiSearch } from 'react-icons/fi';
 
-const API = 'http://localhost:3000/api/public/jobs';
+const API = 'http://localhost:5000/api/public/jobs';
 
 const PublicJobs = () => {
   const [jobs, setJobs] = useState([]);

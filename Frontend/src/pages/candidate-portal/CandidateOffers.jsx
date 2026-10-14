@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiCheckCircle, FiMail } from 'react-icons/fi';
 
-const API = 'http://localhost:3000/api/candidate-portal';
+const API = 'http://localhost:5000/api/candidate-portal';
 
 const CandidateOffers = () => {
   const [offers, setOffers] = useState([]);

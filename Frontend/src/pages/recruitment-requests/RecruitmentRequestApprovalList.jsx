@@ -13,7 +13,7 @@ const RecruitmentRequestApprovalList = () => {
     const fetchRequests = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/recruitment-requests/approvals', {
+        const response = await axios.get('http://localhost:5000/api/recruitment-requests/approvals', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setRequests(response.data.data);

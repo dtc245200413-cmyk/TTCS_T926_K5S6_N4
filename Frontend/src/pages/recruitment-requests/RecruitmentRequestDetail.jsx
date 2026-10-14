@@ -21,8 +21,8 @@ const RecruitmentRequestDetail = () => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
         const [response, stepsResponse] = await Promise.all([
-          axios.get(`http://localhost:3000/api/recruitment-requests/${id}`, { headers }),
-          axios.get(`http://localhost:3000/api/approval-workflows/requests/${id}/steps`, { headers })
+          axios.get(`http://localhost:5000/api/recruitment-requests/${id}`, { headers }),
+          axios.get(`http://localhost:5000/api/approval-workflows/requests/${id}/steps`, { headers })
         ]);
         if (response.data.success) {
           setRequest(response.data.data);
@@ -71,7 +71,7 @@ const RecruitmentRequestDetail = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.patch(`http://localhost:3000/api/recruitment-requests/${id}/status`, 
+      const response = await axios.patch(`http://localhost:5000/api/recruitment-requests/${id}/status`, 
         { status, rejection_reason }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -79,7 +79,7 @@ const RecruitmentRequestDetail = () => {
         setRequest(response.data.data);
         const token = localStorage.getItem('token');
         const stepsResponse = await axios.get(
-          `http://localhost:3000/api/approval-workflows/requests/${id}/steps`,
+          `http://localhost:5000/api/approval-workflows/requests/${id}/steps`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (stepsResponse.data.success) {

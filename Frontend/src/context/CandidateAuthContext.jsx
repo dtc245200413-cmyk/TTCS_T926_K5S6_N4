@@ -2,7 +2,7 @@ import React, { createContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
 export const CandidateAuthContext = createContext(null);
-const API = 'http://localhost:3000/api/candidate-portal';
+const API = 'http://localhost:5000/api/candidate-portal';
 
 export const CandidateAuthProvider = ({ children }) => {
   const [candidate, setCandidate] = useState(null);

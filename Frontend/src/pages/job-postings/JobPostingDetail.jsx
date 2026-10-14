@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheck, FiEye, FiGlobe, FiMapPin, FiSend, FiX } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:3000/api';
+const API = 'http://localhost:5000/api';
 
 const statusLabels = { DRAFT: 'Bản nháp', PENDING_REVIEW: 'Chờ duyệt', APPROVED: 'Đã duyệt', PUBLISHED: 'Đã xuất bản', REJECTED: 'Bị từ chối', CLOSED: 'Đã đóng' };
 const statusStyle = {
