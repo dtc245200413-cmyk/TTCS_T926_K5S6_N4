@@ -42,7 +42,7 @@ const MasterData = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:3000/api/master-data?group=${activeGroup}`, {
+      const res = await axios.get(`http://localhost:5000/api/master-data?group=${activeGroup}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -95,12 +95,12 @@ const MasterData = () => {
       const payload = { ...formData, category_group: activeGroup };
       
       if (editItem) {
-        await axios.put(`http://localhost:3000/api/master-data/${editItem.id}`, payload, {
+        await axios.put(`http://localhost:5000/api/master-data/${editItem.id}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Cập nhật thành công');
       } else {
-        await axios.post('http://localhost:3000/api/master-data', payload, {
+        await axios.post('http://localhost:5000/api/master-data', payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Thêm mới thành công');
@@ -116,7 +116,7 @@ const MasterData = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa danh mục này?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/master-data/${id}`, {
+      await axios.delete(`http://localhost:5000/api/master-data/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Xóa thành công');
@@ -170,7 +170,7 @@ const MasterData = () => {
       const payload = {
         items: updatedItems.map(i => ({ id: i.id, display_order: i.display_order }))
       };
-      await axios.put('http://localhost:3000/api/master-data/reorder', payload, {
+      await axios.put('http://localhost:5000/api/master-data/reorder', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {

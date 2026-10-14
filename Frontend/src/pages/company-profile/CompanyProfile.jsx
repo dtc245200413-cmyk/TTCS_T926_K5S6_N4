@@ -13,7 +13,7 @@ const CompanyProfile = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:3000/api/company-profile', {
+        const res = await axios.get('http://localhost:5000/api/company-profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {
@@ -39,7 +39,7 @@ const CompanyProfile = () => {
       if (logoFile) formData.append('logo', logoFile);
       if (bannerFile) formData.append('banner', bannerFile);
 
-      const res = await axios.put('http://localhost:3000/api/company-profile', formData, {
+      const res = await axios.put('http://localhost:5000/api/company-profile', formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -117,7 +117,7 @@ const CompanyProfile = () => {
                  onMouseOver={e => e.currentTarget.style.borderColor = '#4f46e5'}
                  onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}>
             <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-            {profile.logo_url && !logoFile && <img src={`http://localhost:3000${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '10px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
+            {profile.logo_url && !logoFile && <img src={`http://localhost:5000${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '10px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
             {logoFile ? (
               <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#10b981' }}><FaCheckCircle /></div>
@@ -140,7 +140,7 @@ const CompanyProfile = () => {
                  onMouseOver={e => e.currentTarget.style.borderColor = '#4f46e5'}
                  onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}>
             <input type="file" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-            {profile.banner_url && !bannerFile && <img src={`http://localhost:3000${profile.banner_url}`} alt="Banner" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
+            {profile.banner_url && !bannerFile && <img src={`http://localhost:5000${profile.banner_url}`} alt="Banner" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
             {bannerFile ? (
               <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#10b981' }}><FaCheckCircle /></div>
@@ -163,8 +163,8 @@ const CompanyProfile = () => {
   );
 
   const renderPreviewMode = () => {
-    const previewBannerUrl = bannerFile ? URL.createObjectURL(bannerFile) : (profile.banner_url ? `http://localhost:3000${profile.banner_url}` : null);
-    const previewLogoUrl = logoFile ? URL.createObjectURL(logoFile) : (profile.logo_url ? `http://localhost:3000${profile.logo_url}` : null);
+    const previewBannerUrl = bannerFile ? URL.createObjectURL(bannerFile) : (profile.banner_url ? `http://localhost:5000${profile.banner_url}` : null);
+    const previewLogoUrl = logoFile ? URL.createObjectURL(logoFile) : (profile.logo_url ? `http://localhost:5000${profile.logo_url}` : null);
 
     return (
       <div style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', background: 'white', position: 'relative' }}>
@@ -206,7 +206,7 @@ const CompanyProfile = () => {
   };
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#f4f7fb', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
+    <div style={{ padding: '20px', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
       <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '16px 24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>

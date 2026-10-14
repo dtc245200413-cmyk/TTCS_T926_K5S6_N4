@@ -1,4 +1,5 @@
-jest.mock('../config/database', () => ({ pool: { execute: jest.fn() } }));
+jest.mock('../repositories/candidateProfileRepository', () => ({ findRequestDepartment: jest.fn() }));
+jest.mock('../config/database', () => ({ pool: { getConnection: jest.fn(), execute: jest.fn() } }));
 jest.mock('../repositories/candidateRatingRepository', () => ({
   findCandidateById: jest.fn(),
   upsertRating: jest.fn(),
@@ -8,17 +9,21 @@ jest.mock('../repositories/candidateRatingRepository', () => ({
 }));
 
 const repo = require('../repositories/candidateRatingRepository');
+const { pool } = require('../config/database');
+const profileRepo = require('../repositories/candidateProfileRepository');
 const { saveMyRating, getCandidateRatings } = require('./candidateService');
-const user = (id = 10, role = 'RECRUITER') => ({ user_id: id, roles: [{ role_code: role }] });
+const user = (id = 10, role = 'RECRUITER') => ({ user_id: id, department_id: 2, roles: [{ role_code: role }] });
 
 describe('SCRUM-215/216 - candidate ratings service', () => {
   let records;
 
   beforeEach(() => {
     jest.resetAllMocks();
+    pool.getConnection.mockResolvedValue({ beginTransaction: jest.fn(), commit: jest.fn(), rollback: jest.fn(), release: jest.fn() });
+    profileRepo.findRequestDepartment.mockResolvedValue(2);
     // Stateful repository double tests the service workflow, not MySQL constraints.
     records = new Map();
-    repo.findCandidateById.mockResolvedValue({ id: 1 });
+    repo.findCandidateById.mockResolvedValue({ id: 1, recruitment_request_id: 8 });
     repo.upsertRating.mockImplementation(async (candidateId, reviewerId, rating, comment) => {
       const key = `${candidateId}:${reviewerId}`;
       records.set(key, { candidate_id: candidateId, reviewer_id: reviewerId, rating, comment });
@@ -63,12 +68,12 @@ describe('SCRUM-215/216 - candidate ratings service', () => {
   it('accepts 2000 Unicode characters and trims surrounding whitespace', async () => {
     const comment = '🙂'.repeat(2000);
     await saveMyRating('1', { rating: 5, comment: `  ${comment}\n` }, user());
-    expect(repo.upsertRating).toHaveBeenCalledWith(1, 10, 5, comment);
+    expect(repo.upsertRating).toHaveBeenCalledWith(1, 10, 5, comment, expect.any(Object));
   });
 
   it.each([undefined, null, '', ' \n\t '])('normalizes optional comment %s to null', async comment => {
     await saveMyRating('1', { rating: 4, comment }, user());
-    expect(repo.upsertRating).toHaveBeenCalledWith(1, 10, 4, null);
+    expect(repo.upsertRating).toHaveBeenCalledWith(1, 10, 4, null, expect.any(Object));
   });
 
   it.each([23, false, {}, []])('rejects non-string comment %j', async comment => {
@@ -83,7 +88,7 @@ describe('SCRUM-215/216 - candidate ratings service', () => {
     const result = await saveMyRating('1', { rating: 3, comment: '  Phù hợp  ' }, user());
     expect(records.size).toBe(1);
     expect(result.my_rating).toEqual({ rating: 3, comment: 'Phù hợp' });
-    expect(repo.upsertRating).toHaveBeenCalledWith(1, 10, 3, 'Phù hợp');
+    expect(repo.upsertRating).toHaveBeenCalledWith(1, 10, 3, 'Phù hợp', expect.any(Object));
   });
 
   it('updates the same reviewer rating and comment, then clears the comment', async () => {

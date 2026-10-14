@@ -1,15 +1,18 @@
 const { pool } = require('../config/database');
+const { lockCandidates } = require('../utils/candidateTransaction');
 
 // Check candidate existence and status without recruitment joins.
-async function findCandidateById(candidateId) {
+async function findCandidateById(candidateId, connection) {
+  if (connection) return (await lockCandidates(connection, [candidateId]))[0] || null;
   const [rows] = await pool.execute(
-    'SELECT id, status FROM candidates WHERE id = ? LIMIT 1', [candidateId]
+    'SELECT id, status, recruitment_request_id, merged_into_id FROM candidates WHERE id = ? LIMIT 1', [candidateId]
   );
   return rows[0] || null;
 }
 
-async function upsertRating(candidateId, reviewerId, rating, comment) {
-  await pool.execute(`
+async function upsertRating(candidateId, reviewerId, rating, comment, connection) {
+  // Writes require the transaction holding the candidate parent lock.
+  await connection.execute(`
     INSERT INTO candidate_ratings (candidate_id, reviewer_id, rating, comment)
     VALUES (?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE rating = ?, comment = ?
@@ -28,8 +31,8 @@ async function getRatingsByCandidate(candidateId) {
   return rows;
 }
 
-async function getRatingByReviewer(candidateId, reviewerId) {
-  const [rows] = await pool.execute(`
+async function getRatingByReviewer(candidateId, reviewerId, connection = pool) {
+  const [rows] = await connection.execute(`
     SELECT rating, comment, created_at, updated_at
     FROM candidate_ratings
     WHERE candidate_id = ? AND reviewer_id = ?
@@ -38,8 +41,8 @@ async function getRatingByReviewer(candidateId, reviewerId) {
   return rows[0] || null;
 }
 
-async function getSummary(candidateId) {
-  const [rows] = await pool.execute(`
+async function getSummary(candidateId, connection = pool) {
+  const [rows] = await connection.execute(`
     SELECT AVG(rating) AS average_rating, COUNT(*) AS rating_count
     FROM candidate_ratings
     WHERE candidate_id = ?

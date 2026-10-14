@@ -13,6 +13,10 @@ const roleRoutes = require('./routes/roleRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const competencyFrameworkRoutes = require('./routes/competencyFrameworkRoutes');
 const jobPositionRoutes = require('./routes/jobPositionRoutes');
+const jobPostingRoutes = require('./routes/jobPostingRoutes');
+const publicJobRoutes = require('./routes/publicJobRoutes');
+const slaRoutes = require('./routes/slaRoutes');
+const candidatePortalRoutes = require('./routes/candidatePortalRoutes');
 const interviewQuestionRoutes = require('./routes/interviewQuestionRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const competencyRoutes = require('./routes/competencyRoutes');
@@ -46,6 +50,7 @@ app.get('/', (req, res) => {
 
 const departmentRoutes = require('./routes/departmentRoutes');
 const recruitmentRequestRoutes = require('./routes/recruitmentRequestRoutes');
+const approvalWorkflowRoutes = require('./routes/approvalWorkflowRoutes');
 const positionRoutes = require('./routes/positionRoutes');
 // ── API Routes ────────────────────────────────────────────────
 
@@ -55,7 +60,12 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/recruitment-requests', recruitmentRequestRoutes);
+app.use('/api/approval-workflows', approvalWorkflowRoutes);
 app.use('/api/job-positions', jobPositionRoutes);
+app.use('/api/job-postings', jobPostingRoutes);
+app.use('/api/public/jobs', publicJobRoutes);
+app.use('/api/candidate-portal', candidatePortalRoutes);
+app.use('/api/sla', slaRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/competencies', competencyRoutes);
 app.use('/api/positions', positionRoutes);
@@ -68,12 +78,15 @@ const masterDataRoutes = require('./routes/masterDataRoutes');
 app.use('/api/master-data', masterDataRoutes);
 
 const candidateRoutes = require('./routes/candidateRoutes');
+const candidateProfileRoutes = require('./routes/candidateProfileRoutes');
 const auditLogRoutes = require('./routes/auditLogRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/candidates', candidateProfileRoutes);
 app.use('/api/candidates', candidateRoutes);
 
 app.use('/api/competency-frameworks', competencyFrameworkRoutes);
 app.use('/api/interview-questions', interviewQuestionRoutes);
+app.use('/api/interview-schedules', require('./routes/interviewScheduleRoutes'));
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
 

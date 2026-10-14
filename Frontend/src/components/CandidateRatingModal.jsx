@@ -11,7 +11,7 @@ function formatUpdatedAt(value) {
   return Number.isNaN(date.getTime()) ? 'Chưa có thời gian cập nhật' : date.toLocaleString('vi-VN');
 }
 
-export default function CandidateRatingModal({ candidate, onClose, onSaved }) {
+export default function CandidateRatingModal({ candidate, readOnly = false, onClose, onSaved }) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -89,7 +89,7 @@ export default function CandidateRatingModal({ candidate, onClose, onSaved }) {
 
   const save = async event => {
     event.preventDefault();
-    if (savingRef.current || !loaded) return;
+    if (readOnly || savingRef.current || !loaded) return;
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       setError('Vui lòng chọn từ 1 đến 5 sao.');
       return;
@@ -121,7 +121,7 @@ export default function CandidateRatingModal({ candidate, onClose, onSaved }) {
         {error && <p className="candidate-rating-error" role="alert">{error}</p>}
         {!loading && !loaded && <button type="button" className="candidate-rating-button" onClick={() => setLoadAttempt(value => value + 1)}>Thử lại</button>}
         <form onSubmit={save} aria-busy={loading || saving}>
-          <fieldset disabled={loading || saving || !loaded} className="candidate-rating-fields">
+          {!readOnly && <fieldset disabled={loading || saving || !loaded} className="candidate-rating-fields">
             <legend>Đánh giá của bạn</legend>
             <div className="candidate-rating-stars" onMouseLeave={() => setHoverRating(0)}>
               {stars.map(value => (
@@ -138,10 +138,10 @@ export default function CandidateRatingModal({ candidate, onClose, onSaved }) {
             <p id="candidate-rating-limit" className={tooLong ? 'candidate-rating-error' : 'candidate-rating-hint'} role={tooLong ? 'alert' : undefined}>
               {tooLong ? 'Nhận xét không được vượt quá 2000 ký tự.' : 'Tối đa 2000 ký tự.'}
             </p>
-          </fieldset>
+          </fieldset>}
           <div className="candidate-rating-actions">
             <button type="button" className="candidate-rating-button" disabled={saving} onClick={onClose}>Hủy</button>
-            <button type="submit" className="candidate-rating-button candidate-rating-primary" disabled={loading || saving || !loaded || tooLong}>{saving ? 'Đang lưu...' : 'Lưu đánh giá'}</button>
+            {!readOnly && <button type="submit" className="candidate-rating-button candidate-rating-primary" disabled={loading || saving || !loaded || tooLong}>{saving ? 'Đang lưu...' : 'Lưu đánh giá'}</button>}
           </div>
         </form>
         {loaded && (

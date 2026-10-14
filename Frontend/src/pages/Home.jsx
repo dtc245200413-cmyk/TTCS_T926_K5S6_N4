@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FiUser, FiBell } from 'react-icons/fi';
+import { getDisplayJobTitle } from '../utils/userDisplay';
 
 const ProfileField = ({ label, value }) => (
   <div style={{ marginBottom: '16px' }}>
@@ -52,7 +53,7 @@ const Home = () => {
     return user?.department?.department_name || 'Chưa cập nhật phòng ban';
   };
 
-  const roleName = user?.job_title || getPrimaryRole();
+  const roleName = user ? getDisplayJobTitle(user) : getPrimaryRole();
 
   return (
     <div className="g-page-container">
@@ -76,7 +77,7 @@ const Home = () => {
           }}>
             {user?.avatar_url ? (
               <img 
-                src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:3000${user.avatar_url}`} 
+                src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:5000${user.avatar_url}`} 
                 alt="Avatar" 
                 style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
               />

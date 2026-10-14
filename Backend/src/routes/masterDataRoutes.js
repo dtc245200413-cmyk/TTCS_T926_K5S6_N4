@@ -5,8 +5,8 @@ const { authenticate } = require('../middleware/authMiddleware');
 
 // Role check middleware for HR_MANAGER only
 const checkHRManager = (req, res, next) => {
-  const hasRole = req.user.roles.some(r => r.role_code === 'HR_MANAGER');
-  if (!hasRole) return res.status(403).json({ success: false, message: 'Forbidden: HR Manager only' });
+  const hasRole = req.user.roles.some(r => ['HR_MANAGER', 'ADMIN'].includes(r.role_code));
+  if (!hasRole) return res.status(403).json({ success: false, message: 'Forbidden: HR Manager or Admin only' });
   next();
 };
 

@@ -8,7 +8,7 @@ describe('SCRUM-215 - candidate rating SQL contracts (mock database)', () => {
   it('checks candidate existence and status without recruitment_requests', async () => {
     pool.execute.mockResolvedValue([[{ id: 7, status: 'REJECTED' }]]);
     expect(await repo.findCandidateById(7)).toEqual({ id: 7, status: 'REJECTED' });
-    expect(pool.execute).toHaveBeenCalledWith('SELECT id, status FROM candidates WHERE id = ? LIMIT 1', [7]);
+    expect(pool.execute).toHaveBeenCalledWith('SELECT id, status, recruitment_request_id, merged_into_id FROM candidates WHERE id = ? LIMIT 1', [7]);
     pool.execute.mockResolvedValue([[]]);
     expect(await repo.findCandidateById(8)).toBeNull();
   });
@@ -16,7 +16,7 @@ describe('SCRUM-215 - candidate rating SQL contracts (mock database)', () => {
   it('uses one parameterized upsert and never overwrites identity or created_at', async () => {
     pool.execute.mockResolvedValue([{ affectedRows: 1 }]);
     const comment = "Nội dung ' ?";
-    await repo.upsertRating(7, 10, 4, comment);
+    await repo.upsertRating(7, 10, 4, comment, pool);
     expect(pool.execute).toHaveBeenCalledTimes(1);
     const [sql, params] = pool.execute.mock.calls[0];
     expect(sql).toMatch(/INSERT INTO candidate_ratings/);

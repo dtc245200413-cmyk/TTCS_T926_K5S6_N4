@@ -35,7 +35,7 @@ test('SCRUM-214 candidate ratings browser tests', { timeout: 180000 }, async t =
       ratings: options.ratings ?? [], gets: 0, puts: [], statuses: [], errors: [], documents: 0,
       getError: null, putError: null, getGate: null, putGate: null,
     };
-    const candidates = [{ id: 1, full_name: 'Ứng viên thử nghiệm', email: 'candidate@example.test', status: options.status ?? 'NEW', source_code: 'WEB', position_name: 'Developer', department_name: 'Kỹ thuật' }];
+    const candidates = [{ id: 1, full_name: 'Ứng viên thử nghiệm', email: 'candidate@example.test', status: options.status ?? 'NEW', resume_url: options.resume_url, sla_overdue: options.sla_overdue, source_code: 'WEB', position_name: 'Developer', department_name: 'Kỹ thuật' }];
     const data = () => ({
       average_rating: state.ratings.length ? state.ratings.reduce((sum, row) => sum + row.rating, 0) / state.ratings.length : null,
       rating_count: state.ratings.length,
@@ -68,6 +68,7 @@ test('SCRUM-214 candidate ratings browser tests', { timeout: 180000 }, async t =
           { category_group: 'CANDIDATE_SOURCE', code: 'WEB', name: 'Website' },
           { category_group: 'REJECTION_REASON', code: 'SKILLS', name: 'Chưa phù hợp kỹ năng' },
         ] });
+        if (url.pathname === '/api/candidates/merges') return respond({ success: true, data: [] });
         if (url.pathname === '/api/candidates') return respond({ success: true, data: candidates });
         if (url.pathname === '/api/candidates/1/status') {
           const payload = JSON.parse(request.postData());
@@ -181,7 +182,7 @@ test('SCRUM-214 candidate ratings browser tests', { timeout: 180000 }, async t =
       assert.equal(state.documents, 1);
     }, 'RECRUITER', { ratings: [{ reviewer_id: 20, reviewer_name: 'Reviewer khác', rating: 3, comment: 'Đã xem', updated_at: '2026-10-12T09:00:00Z' }] });
     await run('06 - HIRING_MANAGER sees scores without rate button', async ({ page, state }) => {
-      assert.equal(await page.$$eval('.candidate-rating-cell button', elements => elements.length), 0);
+      assert.deepEqual(await page.$$eval('.candidate-rating-cell button', elements => elements.map(el => el.textContent)), ['Xem đánh giá']);
       assert.match(await page.$eval('.candidate-rating-cell', el => el.textContent), /Chưa có đánh giá/);
       assert(state.gets > 0);
     }, 'HIRING_MANAGER');
@@ -248,7 +249,7 @@ test('SCRUM-214 candidate ratings browser tests', { timeout: 180000 }, async t =
       await page.waitForFunction(() => document.querySelector('tbody').textContent.includes('Lý do:'));
       assert.deepEqual(state.statuses, [{ status: 'REJECTED', rejection_reason_code: 'SKILLS' }]);
       assert.match(await page.$eval('tbody', el => el.textContent), /Website/);
-      assert.equal(await page.$('.candidate-rating-cell button'), null);
+      assert.deepEqual(await page.$$eval('.candidate-rating-cell button', elements => elements.map(el => el.textContent)), ['Xem đánh giá']);
       assert.match(await page.$eval('.candidate-rating-cell', el => el.textContent), /Hồ sơ đã đánh trượt/);
     });
     await run('15 - existing hiring flow still works', async ({ page, state, clickText }) => {
@@ -260,13 +261,35 @@ test('SCRUM-214 candidate ratings browser tests', { timeout: 180000 }, async t =
       const summary = await page.$eval('.candidate-rating-cell', el => el.textContent);
       assert.match(summary, /4\.0 \(2 đánh giá\)/);
       assert.match(summary, /Hồ sơ đã đánh trượt/);
-      assert.equal(await page.$('.candidate-rating-cell button'), null);
+      assert.deepEqual(await page.$$eval('.candidate-rating-cell button', elements => elements.map(el => el.textContent)), ['Xem đánh giá']);
       assert(state.gets > 0);
       assert.equal(state.puts.length, 0);
     }, role, { status: 'REJECTED', ratings: [
       { reviewer_id: 10, reviewer_name: 'Reviewer 1', rating: 3, comment: 'Nhận xét cũ' },
       { reviewer_id: 20, reviewer_name: 'Reviewer 2', rating: 5, comment: 'Nhận xét khác' },
     ] });
+
+    for (const [role, status] of [['HIRING_MANAGER', 'NEW'], ['RECRUITER', 'REJECTED']]) {
+      await run('17 - read-only history for ' + role + ' / ' + status, async ({ page, state, clickText }) => {
+        await clickText('Xem đánh giá');
+        await page.waitForSelector('.candidate-rating-history');
+        assert.match(await page.$eval('.candidate-rating-history', el => el.textContent), /Nhận xét được giữ/);
+        assert.equal(await page.$(saveButton), null);
+        assert.equal(await page.$(commentInput), null);
+        assert.equal(state.puts.length, 0);
+        await page.keyboard.press('Escape');
+        await page.waitForSelector(dialog, { hidden: true });
+      }, role, { status, ratings: [{ reviewer_id: 20, reviewer_name: 'Reviewer', rating: 4, comment: 'Nhận xét được giữ' }] });
+    }
+    await run('18 - CV, SLA, profile link and rating columns stay aligned', async ({ page }) => {
+      const headers = await page.$$eval('thead th', cells => cells.map(cell => cell.textContent));
+      const cells = await page.$$eval('tbody tr:first-child td', cells => cells.map(cell => cell.textContent));
+      assert.equal(cells.length, headers.length);
+      assert.match(cells[headers.indexOf('CV')], /Xem CV/);
+      assert.match(cells[headers.indexOf('Trạng thái')], /Quá SLA/);
+      assert.match(cells[headers.indexOf('Đánh giá ứng viên')], /Chưa có đánh giá/);
+      assert.equal(await page.$eval('a[href="/candidates/1"]', el => el.textContent), 'Xem hồ sơ');
+    }, 'RECRUITER', { resume_url: '/private_uploads/resumes/test.pdf', sla_overdue: 1 });
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.httpServer.close(resolve));

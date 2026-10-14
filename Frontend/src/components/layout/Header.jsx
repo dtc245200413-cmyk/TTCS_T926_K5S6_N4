@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axiosClient from '../../api/axiosClient';
 import { Link, useNavigate } from 'react-router-dom';
+import { getDisplayJobTitle } from '../../utils/userDisplay';
 import '../../styles/global.css';
 
 const Header = () => {
@@ -93,7 +94,7 @@ const Header = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/users/me/avatar', {
+      const response = await fetch('http://localhost:5000/api/users/me/avatar', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -192,7 +193,7 @@ const Header = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', position: 'relative' }} ref={userMenuRef}>
           <div className="user-info" style={{ textAlign: 'right' }}>
             <div className="user-name" style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem' }}>{user?.full_name}</div>
-            <div className="user-role" style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '500' }}>{user?.job_title || 'Nhân sự'}</div>
+            <div className="user-role" style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '500' }}>{getDisplayJobTitle(user)}</div>
           </div>
           
           {/* Avatar Component */}
@@ -208,7 +209,7 @@ const Header = () => {
             title="Nhấn để xem tùy chọn"
           >
             {user?.avatar_url ? (
-              <img src={`http://localhost:3000${user.avatar_url}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={`http://localhost:5000${user.avatar_url}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'
             )}

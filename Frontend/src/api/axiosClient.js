@@ -1,8 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const axiosClient = axios.create({
-  // Backend API runs on port 3000.
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
