@@ -4,6 +4,24 @@ const multer = require('multer');
 const router = express.Router();
 const candidateController = require('../controllers/candidateController');
 const { authenticate } = require('../middleware/authMiddleware');
+const { requireRoles } = require('../utils/roles');
+const { sendError } = require('../utils/response');
+
+// Same internal writer roles and Candidate exclusion as SCRUM-337 profiles.
+const requireCandidateWriter = (req, res, next) => {
+  if (req.user?.roles?.some(role => role.role_code === 'CANDIDATE')) {
+    return sendError(res, 'Bạn không có quyền quản lý hồ sơ ứng viên nội bộ.', 403);
+  }
+  return requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER')(req, res, next);
+};
+
+const requireStatusWriter = (req, res, next) => {
+  // CandidateList reserves the hire decision for HR management.
+  if (req.body.status === 'HIRED') {
+    return requireRoles('ADMIN', 'HR_MANAGER')(req, res, next);
+  }
+  next();
+};
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -31,13 +49,24 @@ router.use(authenticate);
 // Chưa lưu ứng viên ở bước này.
 router.post(
   '/parse-cv',
-  upload.single('cv'),
+  requireCandidateWriter,
+  (req, res, next) => upload.single('cv')(req, res, error => {
+    if (error?.code === 'LIMIT_FILE_SIZE') {
+      return sendError(res, 'Dung lượng CV tối đa là 5 MB. Vui lòng chọn tệp nhỏ hơn.', 413);
+    }
+    next(error);
+  }),
   candidateController.parseCv
 );
 
 // Recruiters and HR can access
+router.get('/duplicates', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.findDuplicates);
+router.get('/merges', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.getActiveMerges);
+router.post('/merge', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.mergeCandidates);
+router.post('/merges/:mergeId/undo', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.undoMerge);
+router.get('/:id/resume', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.downloadResume);
 router.get('/', candidateController.getAllCandidates);
-router.post('/', candidateController.createCandidate);
-router.put('/:id/status', candidateController.updateStatus);
+router.post('/', requireCandidateWriter, candidateController.createCandidate);
+router.put('/:id/status', requireCandidateWriter, requireStatusWriter, candidateController.updateStatus);
 
 module.exports = router;

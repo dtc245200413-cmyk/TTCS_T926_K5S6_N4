@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { getDisplayJobTitle } from '../utils/userDisplay';
 import statsApi from '../api/statsApi';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
@@ -56,7 +57,7 @@ const Home = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ textAlign: 'right', color: 'white' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{user?.full_name}</h3>
-                <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>{user?.job_title}</span>
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>{getDisplayJobTitle(user)}</span>
             </div>
             <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', border: '2px solid white' }}>
               {user?.full_name?.charAt(0) || 'U'}

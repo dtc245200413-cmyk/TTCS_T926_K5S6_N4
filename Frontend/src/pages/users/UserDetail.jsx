@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import userApi from '../../api/userApi';
 import roleApi from '../../api/roleApi';
 import { AuthContext } from '../../context/AuthContext';
+import { getDisplayJobTitle } from '../../utils/userDisplay';
 
 const UserDetail = () => {
   const { id } = useParams();
@@ -216,7 +217,7 @@ const UserDetail = () => {
           </div>
           <div className="detail-item">
             <span className="detail-label">Chức danh</span>
-            <span className="detail-value">{user.job_title || 'N/A'}</span>
+            <span className="detail-value">{getDisplayJobTitle(user)}</span>
           </div>
           <div className="detail-item">
             <span className="detail-label">Trạng thái</span>

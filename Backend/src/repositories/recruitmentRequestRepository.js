@@ -83,6 +83,42 @@ async function getAllForApproval() {
   return rows;
 }
 
+async function update(id, data) {
+  const sql = `
+    UPDATE recruitment_requests
+    SET department_id = ?,
+        position_id = ?,
+        headcount = ?,
+        reason = ?,
+        proposed_salary_min = ?,
+        proposed_salary_max = ?,
+        needed_by_date = ?,
+        job_description = ?,
+        candidate_requirements = ?,
+        salary_explanation = ?,
+        status = ?,
+        work_location_code = ?,
+        work_type_code = ?
+    WHERE id = ?
+  `;
+  await pool.execute(sql, [
+    data.department_id ?? null,
+    data.position_id ?? null,
+    data.headcount ?? null,
+    data.reason ?? null,
+    data.proposed_salary_min ?? null,
+    data.proposed_salary_max ?? null,
+    data.needed_by_date ?? null,
+    data.job_description ?? null,
+    data.candidate_requirements ?? null,
+    data.salary_explanation ?? null,
+    data.status ?? 'PENDING',
+    data.work_location_code ?? null,
+    data.work_type_code ?? null,
+    id
+  ]);
+}
+
 async function updateStatus(id, status, rejectionReason = null) {
   const sql = `UPDATE recruitment_requests SET status = ?, rejection_reason = ? WHERE id = ?`;
   await pool.execute(sql, [status, rejectionReason, id]);
@@ -90,9 +126,11 @@ async function updateStatus(id, status, rejectionReason = null) {
 
 module.exports = {
   create,
+  update,
   findById,
   getAll,
   getAllSystemWide,
   getAllForApproval,
   updateStatus
 };
+

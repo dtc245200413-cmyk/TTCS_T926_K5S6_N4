@@ -1,18 +1,16 @@
 const { pool } = require('../config/database');
 
+function isMissingRecruitmentRequests(error) {
+  // Check MySQL's missing-table diagnostic, not the SQL query (which names all joins).
+  return error.code === 'ER_NO_SUCH_TABLE'
+    && /\bTable ['`](?:[^'`]+\.)?recruitment_requests['`] doesn't exist/i.test(error.sqlMessage || error.message || '');
+}
+
 async function create(data) {
   const sql = `
     INSERT INTO candidates
-      (
-        full_name,
-        email,
-        phone,
-        status,
-        source_code,
-        recruitment_request_id,
-        created_by
-      )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (full_name, email, phone, status, source_code, recruitment_request_id, created_by, resume_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const [result] = await pool.execute(sql, [
@@ -22,7 +20,8 @@ async function create(data) {
     data.status || 'NEW',
     data.source_code || null,
     data.recruitment_request_id || null,
-    data.created_by
+    data.created_by,
+    data.resume_url || null
   ]);
 
   return result.insertId;
@@ -30,15 +29,26 @@ async function create(data) {
 
 async function findById(id) {
   const sql = `
-    SELECT *
-    FROM candidates
-    WHERE id = ?
-    LIMIT 1
+    SELECT c.*, r.department_id, r.position_id, d.department_name, p.position_name
+    FROM candidates c
+    LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
+    LEFT JOIN departments d ON r.department_id = d.department_id
+    LEFT JOIN job_positions p ON r.position_id = p.position_id
+    WHERE c.id = ? LIMIT 1
   `;
-
-  const [rows] = await pool.execute(sql, [id]);
-
-  return rows.length > 0 ? rows[0] : null;
+  try {
+    const [rows] = await pool.execute(sql, [id]);
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    if (!isMissingRecruitmentRequests(error)) throw error;
+    const [rows] = await pool.execute(`
+      SELECT c.*
+      FROM candidates c
+      WHERE c.id = ?
+      LIMIT 1
+    `, [id]);
+    return rows.length > 0 ? rows[0] : null;
+  }
 }
 
 function getRoleFlags(user) {
@@ -73,13 +83,10 @@ async function getAll(user) {
       d.department_name,
       p.position_name
     FROM candidates c
-    LEFT JOIN recruitment_requests r
-      ON c.recruitment_request_id = r.id
-    LEFT JOIN departments d
-      ON r.department_id = d.department_id
-    LEFT JOIN job_positions p
-      ON r.position_id = p.position_id
-    WHERE 1 = 1
+    LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
+    LEFT JOIN departments d ON r.department_id = d.department_id
+    LEFT JOIN job_positions p ON r.position_id = p.position_id
+    WHERE c.merged_into_id IS NULL
   `;
 
   const params = [];
@@ -100,59 +107,24 @@ async function getAll(user) {
     const [rows] = await pool.execute(sql, params);
     return rows;
   } catch (error) {
-    /*
-     * Một số database cũ chưa có recruitment_requests.
-     * Recruiter/HR vẫn phải có thể quản lý hồ sơ ứng viên.
-     */
-    if (error.code !== 'ER_NO_SUCH_TABLE') {
-      throw error;
-    }
-
-    // Hiring Manager cần bảng recruitment_requests để giới hạn
-    // hồ sơ theo phòng ban. Nếu bảng chưa tồn tại thì không
-    // trả toàn bộ hồ sơ cho Hiring Manager.
-    if (
-      isHiringManager &&
-      !isHRManager &&
-      !isRecruiter
-    ) {
-      return [];
-    }
-
-    const fallbackSql = `
-      SELECT
-        c.*,
-        NULL AS job_reason,
-        NULL AS department_name,
-        NULL AS position_name
+    if (!isMissingRecruitmentRequests(error)) throw error;
+    const canViewAll = user?.roles?.some(role =>
+      ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(role.role_code)
+    );
+    // Hiring Manager scope cannot be established without recruitment_requests.
+    if (!canViewAll) return [];
+    const [rows] = await pool.execute(`
+      SELECT c.*, NULL AS job_reason, NULL AS department_name, NULL AS position_name
       FROM candidates c
       ORDER BY c.created_at DESC
-    `;
-
-    const [rows] = await pool.execute(fallbackSql);
-
+    `);
     return rows;
   }
 }
 
-async function updateStatus(
-  id,
-  status,
-  rejectionReasonCode = null
-) {
-  const sql = `
-    UPDATE candidates
-    SET
-      status = ?,
-      rejection_reason_code = ?
-    WHERE id = ?
-  `;
-
-  await pool.execute(sql, [
-    status,
-    rejectionReasonCode,
-    id
-  ]);
+async function updateStatus(id, status, rejectionReasonCode = null) {
+  const sql = `UPDATE candidates SET status = ?, rejection_reason_code = ?, stage_changed_at = NOW(), sla_overdue = 0, sla_flagged_at = NULL WHERE id = ?`;
+  await pool.execute(sql, [status, rejectionReasonCode, id]);
 }
 
 module.exports = {

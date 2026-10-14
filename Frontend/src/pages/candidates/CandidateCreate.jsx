@@ -1,6 +1,7 @@
 import React, {
   useContext,
   useEffect,
+  useRef,
   useState
 } from 'react';
 
@@ -23,8 +24,8 @@ import {
 } from 'react-icons/fa';
 
 import { AuthContext } from '../../context/AuthContext';
-
-const API_BASE = 'http://localhost:3000/api';
+import { API_BASE_URL as API_BASE } from '../../config/api';
+import { candidateProfileAccess } from '../../utils/candidateProfile';
 
 const CandidateCreate = () => {
   const navigate = useNavigate();
@@ -35,15 +36,30 @@ const CandidateCreate = () => {
   } = useContext(AuthContext);
 
   /*
-   * Chỉ Recruiter và HR Manager
+   * Admin, Recruiter và HR Manager
    * được phép tạo hồ sơ ứng viên.
    */
-  const canManageCandidates =
-    user?.roles?.some(
-      (role) =>
-        role.role_code === 'RECRUITER' ||
-        role.role_code === 'HR_MANAGER'
-    ) || false;
+  const canManageCandidates = candidateProfileAccess(user).canManage;
+  const parseRequest = useRef(null);
+  const saving = useRef(false);
+  const checkingDuplicates = useRef(false);
+  const saveKey = `candidate-create:${user?.user_id}`;
+  const [pendingSave, setPendingSave] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(saveKey)) || null; }
+    catch { return null; }
+  });
+
+  const rememberSave = (value) => {
+    // Store only operation IDs, never the CV or candidate's personal data.
+    if (value) sessionStorage.setItem(saveKey, JSON.stringify(value));
+    else sessionStorage.removeItem(saveKey);
+    setPendingSave(value);
+  };
+
+  useEffect(() => () => {
+    parseRequest.current?.abort();
+    parseRequest.current = null;
+  }, []);
 
   const [sources, setSources] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -65,6 +81,7 @@ const CandidateCreate = () => {
 
   const [confirmedCv, setConfirmedCv] =
     useState(false);
+  const [possibleDuplicates, setPossibleDuplicates] = useState([]);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -238,6 +255,9 @@ const CandidateCreate = () => {
       ...prev,
       [name]: value
     }));
+    if (name === 'email' || name === 'phone') {
+      setPossibleDuplicates([]);
+    }
   };
 
   const handleParsedChange = (event) => {
@@ -259,6 +279,9 @@ const CandidateCreate = () => {
      ========================================================= */
 
   const resetCv = () => {
+    parseRequest.current?.abort();
+    parseRequest.current = null;
+    setParsing(false);
     setCvFile(null);
     setParsedData(null);
     setParseMessage('');
@@ -271,6 +294,9 @@ const CandidateCreate = () => {
      ========================================================= */
 
   const handleCvChange = async (event) => {
+    parseRequest.current?.abort();
+    parseRequest.current = null;
+    setParsing(false);
     const file =
       event.target.files?.[0];
 
@@ -314,6 +340,8 @@ const CandidateCreate = () => {
 
     setCvFile(file);
     setParsing(true);
+    const controller = new AbortController();
+    parseRequest.current = controller;
 
     try {
       const token =
@@ -327,12 +355,15 @@ const CandidateCreate = () => {
         `${API_BASE}/candidates/parse-cv`,
         body,
         {
+          signal: controller.signal,
           headers: {
             Authorization:
               `Bearer ${token}`
           }
         }
       );
+
+      if (parseRequest.current !== controller || controller.signal.aborted) return;
 
       const result =
         response.data?.data;
@@ -365,6 +396,11 @@ const CandidateCreate = () => {
         'Đã đọc CV thành công. Vui lòng kiểm tra thông tin bên dưới.'
       );
     } catch (err) {
+      if (parseRequest.current !== controller || controller.signal.aborted) return;
+      if (err.response?.status === 413) {
+        setParseWarning('Dung lượng CV tối đa là 5 MB. Vui lòng chọn tệp nhỏ hơn.');
+        return;
+      }
       if (err.response?.status === 403) {
         setParseWarning(
           'Bạn không có quyền bóc tách CV ứng viên.'
@@ -378,7 +414,10 @@ const CandidateCreate = () => {
           'Không thể bóc tách CV. Bạn vẫn có thể nhập thông tin thủ công.'
       );
     } finally {
-      setParsing(false);
+      if (parseRequest.current === controller) {
+        parseRequest.current = null;
+        setParsing(false);
+      }
     }
   };
 
@@ -391,17 +430,23 @@ const CandidateCreate = () => {
       return;
     }
 
+    setPossibleDuplicates([]);
+    const name = parsedData.full_name?.trim();
+    const email = parsedData.email?.trim();
+    const phone = parsedData.phone?.trim();
+    const validPhone = /^\+?[\d\s().-]+$/.test(phone || '') &&
+      /^\d{9,15}$/.test((phone || '').replace(/\D/g, ''));
     setFormData((prev) => ({
       ...prev,
 
       full_name:
-        parsedData.full_name || '',
+        name || prev.full_name,
 
       email:
-        parsedData.email || '',
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '') ? email : prev.email,
 
       phone:
-        parsedData.phone || ''
+        validPhone ? phone : prev.phone
     }));
 
     setConfirmedCv(true);
@@ -415,9 +460,7 @@ const CandidateCreate = () => {
      LƯU HỒ SƠ ỨNG VIÊN
      ========================================================= */
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
+  const validateForm = () => {
     setError('');
 
     if (!formData.full_name.trim()) {
@@ -425,7 +468,7 @@ const CandidateCreate = () => {
         'Vui lòng nhập họ và tên ứng viên.'
       );
 
-      return;
+      return false;
     }
 
     if (!formData.email.trim()) {
@@ -433,7 +476,7 @@ const CandidateCreate = () => {
         'Vui lòng nhập email ứng viên.'
       );
 
-      return;
+      return false;
     }
 
     if (!formData.source_code) {
@@ -441,16 +484,57 @@ const CandidateCreate = () => {
         'Vui lòng chọn nguồn ứng viên.'
       );
 
-      return;
+      return false;
     }
 
+    return true;
+  };
+
+  const finishSave = () => {
+    rememberSave(null);
+    navigate('/candidates');
+  };
+
+  const mergeSavedCandidate = async (operation) => {
+    const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+    // A previous request may have committed even if its response was lost.
+    const response = await axios.get(`${API_BASE}/candidates/merges`, { headers });
+    const alreadyMerged = response.data.data?.some(merge =>
+      Number(merge.primary_id) === Number(operation.primary_id) &&
+      Number(merge.secondary_id) === Number(operation.secondary_id)
+    );
+    if (!alreadyMerged) {
+      await axios.post(`${API_BASE}/candidates/merge`, {
+        primary_id: operation.primary_id,
+        secondary_id: operation.secondary_id
+      }, { headers });
+    }
+    finishSave();
+  };
+
+  const retryMerge = async () => {
+    if (saving.current || pendingSave?.phase !== 'merge') return;
+    saving.current = true;
     setLoading(true);
+    setError('');
+    try { await mergeSavedCandidate(pendingSave); }
+    catch (err) { setError(err.response?.data?.message || 'Chưa thể xác nhận gộp hồ sơ. Bạn có thể thử lại.'); }
+    finally { saving.current = false; setLoading(false); }
+  };
+
+  const saveCandidate = async (primaryCandidate = null, allowDuplicate = Boolean(primaryCandidate)) => {
+    if (saving.current || pendingSave || !validateForm()) return;
+    saving.current = true;
+    setLoading(true);
+    let created = false;
 
     try {
       const token =
         localStorage.getItem('token');
 
-      await axios.post(
+      // Persist before sending: reload/network failure must not silently repeat POST.
+      rememberSave({ phase: 'creating' });
+      const response = await axios.post(
         `${API_BASE}/candidates`,
         {
           full_name:
@@ -470,7 +554,8 @@ const CandidateCreate = () => {
               ? Number(
                   formData.recruitment_request_id
                 )
-              : null
+              : null,
+          allow_duplicate: allowDuplicate
         },
         {
           headers: {
@@ -480,8 +565,27 @@ const CandidateCreate = () => {
         }
       );
 
-      navigate('/candidates');
+      created = true;
+      if (primaryCandidate) {
+        const operation = {
+          phase: 'merge',
+          primary_id: primaryCandidate.id,
+          secondary_id: response.data.data.id
+        };
+        rememberSave(operation);
+        await mergeSavedCandidate(operation);
+      } else {
+        finishSave();
+      }
     } catch (err) {
+      if (!created && err.response?.status >= 400 && err.response.status < 500) {
+        rememberSave(null);
+      }
+      if (!created && err.response?.status === 409 && err.response.data.duplicates) {
+        setPossibleDuplicates(err.response.data.duplicates);
+        setError('Phát hiện hồ sơ trùng. Hãy so sánh trước khi tiếp tục.');
+        return;
+      }
       if (err.response?.status === 403) {
         setError(
           'Bạn không có quyền tạo hồ sơ ứng viên.'
@@ -495,6 +599,31 @@ const CandidateCreate = () => {
           'Có lỗi xảy ra khi tạo hồ sơ ứng viên.'
       );
     } finally {
+      saving.current = false;
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (checkingDuplicates.current || saving.current || pendingSave || !validateForm()) return;
+
+    checkingDuplicates.current = true;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE}/candidates/duplicates`, {
+        params: { email: formData.email.trim(), phone: formData.phone.trim() },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const matches = response.data.data || [];
+      setPossibleDuplicates(matches);
+      if (matches.length) return;
+      await saveCandidate();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể kiểm tra hồ sơ trùng.');
+    } finally {
+      checkingDuplicates.current = false;
       setLoading(false);
     }
   };
@@ -674,6 +803,31 @@ const CandidateCreate = () => {
      UI
      ========================================================= */
 
+  if (pendingSave) {
+    return (
+      <section style={{ ...cardStyle, margin: 28, padding: 26 }} aria-busy={loading}>
+        <h2>{pendingSave.phase === 'merge' ? 'Hoàn tất gộp hồ sơ' : 'Kiểm tra kết quả lưu hồ sơ'}</h2>
+        {pendingSave.phase === 'merge' ? (
+          <p>Hồ sơ #{pendingSave.secondary_id} đã được tạo. Thử lại sẽ chỉ gộp vào hồ sơ #{pendingSave.primary_id}, không tạo ứng viên mới.</p>
+        ) : (
+          <p>{loading ? 'Đang lưu hồ sơ...' : 'Chưa xác định được kết quả lưu. Hãy kiểm tra danh sách ứng viên trước khi nhập lại để tránh hồ sơ trùng.'}</p>
+        )}
+        {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {pendingSave.phase === 'merge' && (
+            <button type="button" disabled={loading} onClick={retryMerge}>Thử lại gộp hồ sơ</button>
+          )}
+          <button type="button" disabled={loading} onClick={() => navigate('/candidates')}>Kiểm tra danh sách ứng viên</button>
+          {pendingSave.phase === 'merge' ? (
+            <button type="button" disabled={loading} onClick={finishSave}>Kết thúc và kiểm tra kết quả trong danh sách</button>
+          ) : (
+            <button type="button" disabled={loading} onClick={() => { rememberSave(null); setError(''); }}>Đã kiểm tra danh sách, nhập hồ sơ mới</button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <div
       style={{
@@ -796,6 +950,38 @@ const CandidateCreate = () => {
         </div>
 
         {/* ================= STEPS ================= */}
+
+        {possibleDuplicates.length > 0 && (
+          <section style={{ display: 'grid', gap: 12, padding: 18, background: '#fff', border: '1px solid #fbbf24', borderRadius: 10 }}>
+            <h3 style={{ margin: 0, color: '#92400e' }}>So sánh hồ sơ có thông tin trùng</h3>
+            {possibleDuplicates.map(candidate => (
+              <article key={candidate.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ padding: 14, background: '#f8fafc' }}>
+                  <strong>Hồ sơ hiện có #{candidate.id}</strong>
+                  <p>Họ tên: {candidate.full_name}</p>
+                  <p>Email: {candidate.email}</p>
+                  <p>Điện thoại: {candidate.phone || 'Chưa có'}</p>
+                  <p>Vị trí: {candidate.position_name || 'Chưa gắn yêu cầu'}</p>
+                </div>
+                <div style={{ padding: 14 }}>
+                  <strong>Hồ sơ đang nhập</strong>
+                  <p>Họ tên: {formData.full_name}</p>
+                  <p>Email: {formData.email}</p>
+                  <p>Điện thoại: {formData.phone || 'Chưa có'}</p>
+                  <p>Vị trí: {requests.find(request => String(request.id) === String(formData.recruitment_request_id))?.position_name || 'Chưa gắn yêu cầu'}</p>
+                </div>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 12, borderTop: '1px solid #e2e8f0' }}>
+                  <button type="button" disabled={loading} onClick={() => saveCandidate(candidate)} style={{ padding: '9px 12px', border: 0, borderRadius: 6, color: '#fff', background: '#4f46e5', fontWeight: 700, cursor: 'pointer' }}>
+                    {loading ? 'Đang gộp...' : 'Giữ hồ sơ hiện có và gộp thông tin mới'}
+                  </button>
+                  <button type="button" disabled={loading} onClick={() => saveCandidate(null, true)} style={{ padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 6, color: '#334155', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                    Lưu riêng, không gộp
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
 
         <div
           style={{

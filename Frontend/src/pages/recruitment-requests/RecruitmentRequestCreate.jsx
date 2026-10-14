@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { FaArrowLeft, FaSave, FaPaperPlane } from 'react-icons/fa';
+import { AuthContext } from '../../context/AuthContext';
 
 const RecruitmentRequestCreate = () => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
+  const [originalRequest, setOriginalRequest] = useState(null);
 
   const [formData, setFormData] = useState({
     department_id: '',
@@ -31,16 +36,23 @@ const RecruitmentRequestCreate = () => {
 
   useEffect(() => {
     fetchFormData();
-  }, []);
+  }, [id]);
 
   const fetchFormData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const [deptRes, posRes, masterDataRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/departments', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/job-positions', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/master-data', { headers: { Authorization: `Bearer ${token}` } })
-      ]);
+      const reqs = [
+        axios.get('http://localhost:5000/api/departments', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/job-positions', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/master-data', { headers: { Authorization: `Bearer ${token}` } })
+      ];
+      if (id) {
+        reqs.push(axios.get(`http://localhost:5000/api/recruitment-requests/${id}`, { headers: { Authorization: `Bearer ${token}` } }));
+      }
+
+      const results = await Promise.all(reqs);
+      const [deptRes, posRes, masterDataRes, detailRes] = results;
+
       if (deptRes.data.success) {
         const deptData = deptRes.data.data;
         setDepartments(Array.isArray(deptData) ? deptData : (deptData.departments || []));
@@ -55,8 +67,36 @@ const RecruitmentRequestCreate = () => {
         setLocations(md.filter(x => x.category_group === 'WORK_LOCATION' && x.is_active));
         setWorkTypes(md.filter(x => x.category_group === 'WORK_TYPE' && x.is_active));
       }
+
+      if (detailRes && detailRes.data.success) {
+        const d = detailRes.data.data;
+        if (user && user.user_id !== d.created_by && user.id !== d.created_by) {
+          setError('Bạn không có quyền chỉnh sửa yêu cầu này.');
+          return;
+        }
+        if (!['DRAFT', 'NEEDS_REVISION'].includes(d.status)) {
+          setError('Yêu cầu này không ở trạng thái cho phép chỉnh sửa.');
+          return;
+        }
+        setOriginalRequest(d);
+        setFormData({
+          department_id: d.department_id ? String(d.department_id) : '',
+          position_id: d.position_id ? String(d.position_id) : '',
+          headcount: d.headcount ? String(d.headcount) : '',
+          reason: d.reason || 'Thay thế',
+          proposed_salary_min: d.proposed_salary_min !== null && d.proposed_salary_min !== undefined ? String(d.proposed_salary_min) : '',
+          proposed_salary_max: d.proposed_salary_max !== null && d.proposed_salary_max !== undefined ? String(d.proposed_salary_max) : '',
+          needed_by_date: d.needed_by_date ? d.needed_by_date.split('T')[0] : '',
+          job_description: d.job_description || '',
+          candidate_requirements: d.candidate_requirements || '',
+          salary_explanation: d.salary_explanation || '',
+          work_location_code: d.work_location_code || '',
+          work_type_code: d.work_type_code || '',
+        });
+      }
     } catch (err) {
       console.error('Error fetching form data', err);
+      setError(err.response?.data?.message || 'Không thể tải dữ liệu yêu cầu.');
     }
   };
 
@@ -150,10 +190,18 @@ const RecruitmentRequestCreate = () => {
         proposed_salary_max: formData.proposed_salary_max ? parseInt(formData.proposed_salary_max) : null,
       };
 
-      await axios.post('http://localhost:3000/api/recruitment-requests', payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      navigate('/recruitment-requests');
+      if (isEdit) {
+        await axios.put(`http://localhost:5000/api/recruitment-requests/${id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert(status === 'PENDING' ? 'Gửi duyệt lại yêu cầu thành công!' : 'Lưu cập nhật thành công!');
+        navigate(`/recruitment-requests/${id}`);
+      } else {
+        await axios.post('http://localhost:5000/api/recruitment-requests', payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        navigate('/recruitment-requests');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu yêu cầu.');
       window.scrollTo(0, 0);
@@ -163,17 +211,19 @@ const RecruitmentRequestCreate = () => {
   };
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#4f46e5', padding: '16px 24px', borderRadius: '16px', color: 'white', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isEdit ? '#d97706' : '#4f46e5', padding: '16px 24px', borderRadius: '16px', color: 'white', boxShadow: isEdit ? '0 4px 12px rgba(217, 119, 6, 0.2)' : '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ background: 'rgba(255,255,255,0.2)', padding: '6px', borderRadius: '8px', display: 'flex' }}>✨</span> 
-              Tạo yêu cầu tuyển dụng
+              <span style={{ background: 'rgba(255,255,255,0.2)', padding: '6px', borderRadius: '8px', display: 'flex' }}>{isEdit ? '✏️' : '✨'}</span> 
+              {isEdit ? `Chỉnh sửa Yêu cầu Tuyển dụng #${id}` : 'Tạo yêu cầu tuyển dụng'}
             </h2>
-            <p className="g-page-subtitle">Điền các thông tin cần thiết để đăng tuyển vị trí mới</p>
+            <p className="g-page-subtitle" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              {isEdit ? 'Chỉnh sửa và hoàn thiện thông tin trước khi gửi duyệt lại' : 'Điền các thông tin cần thiết để đăng tuyển vị trí mới'}
+            </p>
           </div>
           <button 
             onClick={() => navigate(-1)}
@@ -184,6 +234,13 @@ const RecruitmentRequestCreate = () => {
             <FaArrowLeft /> Quay lại
           </button>
         </div>
+
+        {originalRequest?.rejection_reason && (originalRequest.status === 'NEEDS_REVISION' || originalRequest.status === 'REJECTED') && (
+          <div style={{ background: '#fef9c3', borderLeft: '4px solid #ca8a04', color: '#854d0e', padding: '12px 18px', borderRadius: '10px', fontWeight: '500', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: '700', textTransform: 'uppercase' }}>💬 Yêu cầu bổ sung từ người duyệt:</span>
+            <span>{originalRequest.rejection_reason}</span>
+          </div>
+        )}
 
         {error && (
           <div style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', color: '#b91c1c', padding: '10px 16px', borderRadius: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem' }}>
@@ -419,16 +476,16 @@ const RecruitmentRequestCreate = () => {
               onMouseOver={(e) => !loading && (e.currentTarget.style.background = '#f8fafc')}
               onMouseOut={(e) => !loading && (e.currentTarget.style.background = 'white')}
             >
-              <FaSave /> Lưu Nháp
+              <FaSave /> {isEdit ? 'Lưu thay đổi' : 'Lưu Nháp'}
             </button>
             <button 
               onClick={() => handleSubmit('PENDING')} 
               disabled={loading}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#4f46e5', border: 'none', color: 'white', padding: '8px 24px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isEdit ? '#d97706' : '#4f46e5', border: 'none', color: 'white', padding: '8px 24px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', boxShadow: isEdit ? '0 4px 10px rgba(217, 119, 6, 0.3)' : '0 4px 10px rgba(79, 70, 229, 0.3)' }}
               onMouseOver={(e) => !loading && (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseOut={(e) => !loading && (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              <FaPaperPlane /> {loading ? 'Đang gửi...' : 'Gửi Yêu Cầu Tuyển Dụng'}
+              <FaPaperPlane /> {loading ? 'Đang gửi...' : (isEdit ? 'Cập nhật & Gửi duyệt lại' : 'Gửi Yêu Cầu Tuyển Dụng')}
             </button>
           </div>
 
