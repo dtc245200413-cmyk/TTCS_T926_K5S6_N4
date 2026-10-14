@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight, FiEye, FiGlobe, FiPlus, FiRefreshCw, FiSearch, FiSend, FiEdit2, FiCheck, FiX, FiMoreHorizontal } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:3000/api';
+const API = 'http://localhost:5000/api';
 const PAGE_SIZE = 6;
 
 const tabs = [
@@ -19,6 +19,7 @@ const tabs = [
 const statusLabels = {
   DRAFT: 'Bản nháp',
   PENDING_REVIEW: 'Chờ duyệt',
+  PENDING_APPROVAL: 'Chờ duyệt',
   APPROVED: 'Đã duyệt',
   PUBLISHED: 'Đã xuất bản',
   REJECTED: 'Bị từ chối',
@@ -27,7 +28,8 @@ const statusLabels = {
 
 const statusColors = {
   DRAFT: { background: '#f1f5f9', color: '#475569' },
-  PENDING_REVIEW: { background: '#fff7ed', color: '#c2410c' },
+  PENDING_REVIEW: { background: '#fef3c7', color: '#d97706' },
+  PENDING_APPROVAL: { background: '#fef3c7', color: '#d97706' },
   APPROVED: { background: '#eff6ff', color: '#1d4ed8' },
   PUBLISHED: { background: '#dcfce7', color: '#15803d' },
   REJECTED: { background: '#fee2e2', color: '#b91c1c' },
@@ -74,14 +76,16 @@ const JobPostingList = () => {
 
   const counts = useMemo(() => postings.reduce((result, posting) => {
     result.ALL += 1;
-    result[posting.status] = (result[posting.status] || 0) + 1;
+    const key = posting.status === 'PENDING_APPROVAL' ? 'PENDING_REVIEW' : posting.status;
+    result[key] = (result[key] || 0) + 1;
     return result;
   }, { ALL: 0 }), [postings]);
 
   const filteredPostings = useMemo(() => {
     const keyword = search.trim().toLocaleLowerCase('vi');
     return postings.filter(posting => {
-      const matchesTab = activeTab === 'ALL' || posting.status === activeTab;
+      const currentStatus = posting.status === 'PENDING_APPROVAL' ? 'PENDING_REVIEW' : posting.status;
+      const matchesTab = activeTab === 'ALL' || currentStatus === activeTab;
       const matchesDepartment = !departmentId || String(posting.department_id) === departmentId;
       const searchable = [posting.title, posting.position_name, posting.department_name].filter(Boolean).join(' ').toLocaleLowerCase('vi');
       return matchesTab && matchesDepartment && (!keyword || searchable.includes(keyword));
@@ -155,7 +159,7 @@ const JobPostingList = () => {
         ) : (
           <div className="table-responsive">
             <table className="data-table" style={{ minWidth: 980 }}>
-              <thead><tr><th>#</th><th>Tiêu đề tin</th><th>Vị trí tuyển dụng</th><th>Phòng ban</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ngày xuất bản</th><th>Thao tác</th></tr></thead>
+              <thead><tr><th>#</th><th>Tiêu đề tin</th><th>Vị trí tuyển dụng</th><th>Phòng ban</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ngày xuất bản</th><th style={{ width: 230, minWidth: 210 }}>Thao tác</th></tr></thead>
               <tbody>
                 {visiblePostings.map((posting, index) => (
                   <tr key={posting.id}>
@@ -163,22 +167,87 @@ const JobPostingList = () => {
                     <td><strong>{posting.title}</strong><div style={{ color: '#64748b', fontSize: 12 }}>JOB-{String(posting.id).padStart(4, '0')}</div></td>
                     <td>{posting.position_name || '-'}</td>
                     <td>{posting.department_name || '-'}</td>
-                    <td><span className={`badge ${posting.status === 'PUBLISHED' ? 'badge-success' : posting.status === 'PENDING_REVIEW' ? 'badge-warning' : posting.status === 'REJECTED' ? 'badge-danger' : 'badge-info'}`}>{statusLabels[posting.status] || posting.status}</span></td>
+                    <td>
+                      <span
+                        className="badge"
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          background: statusColors[posting.status]?.background || '#f1f5f9',
+                          color: statusColors[posting.status]?.color || '#475569'
+                        }}
+                      >
+                        {statusLabels[posting.status] || posting.status}
+                      </span>
+                    </td>
                     <td>{formatDate(posting.created_at)}</td>
                     <td>{formatDate(posting.published_at)}</td>
-                    <td><div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      <Link title="Xem chi tiết" aria-label={`Xem ${posting.title}`} to={`/job-postings/${posting.id}`} className="btn-action-view"><FiEye /> Xem</Link>
-                      {['DRAFT', 'REJECTED'].includes(posting.status) && <>
-                        <Link title="Sửa bản nháp" to={`/job-postings/${posting.id}/edit`} className="btn-action-edit"><FiEdit2 /> Sửa</Link>
-                        <button className="btn-action-view" type="button" onClick={() => sendForReview(posting.id)}><FiSend /> Gửi duyệt</button>
-                      </>}
-                      {canReview && posting.status === 'PENDING_REVIEW' && <>
-                        <button className="btn-action-edit" type="button" onClick={() => review(posting.id, true)}><FiCheck /> Duyệt</button>
-                        <button className="btn-action-delete" type="button" onClick={() => review(posting.id, false)}><FiX /> Từ chối</button>
-                      </>}
-                      {posting.status === 'PUBLISHED' && <a href={`/jobs?job=${posting.id}`} target="_blank" rel="noreferrer" className="btn-action-view"><FiGlobe /> Xem công khai</a>}
-                      <Link title="Xem trước" to={`/job-postings/${posting.id}/preview`} className="btn-action-view"><FiMoreHorizontal /></Link>
-                    </div></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+                        <Link
+                          title="Xem chi tiết"
+                          aria-label={`Xem ${posting.title}`}
+                          to={`/job-postings/${posting.id}`}
+                          className="btn-action-view"
+                          style={{ padding: '6px 12px' }}
+                        >
+                          <FiEye style={{ marginRight: 4 }} /> Xem
+                        </Link>
+                        {['DRAFT', 'REJECTED'].includes(posting.status) && (
+                          <>
+                            <Link
+                              title="Sửa bản nháp"
+                              to={`/job-postings/${posting.id}/edit`}
+                              className="btn-action-edit"
+                              style={{ padding: '6px 12px' }}
+                            >
+                              <FiEdit2 style={{ marginRight: 4 }} /> Sửa
+                            </Link>
+                            <button
+                              className="btn-action-view"
+                              type="button"
+                              onClick={() => sendForReview(posting.id)}
+                              style={{ padding: '6px 12px', background: '#e0e7ff', color: '#4338ca' }}
+                            >
+                              <FiSend style={{ marginRight: 4 }} /> Gửi duyệt
+                            </button>
+                          </>
+                        )}
+                        {canReview && ['PENDING_REVIEW', 'PENDING_APPROVAL'].includes(posting.status) && (
+                          <>
+                            <button
+                              className="btn-action-edit"
+                              type="button"
+                              onClick={() => review(posting.id, true)}
+                              style={{ padding: '6px 12px' }}
+                            >
+                              <FiCheck style={{ marginRight: 4 }} /> Duyệt
+                            </button>
+                            <button
+                              className="btn-action-delete"
+                              type="button"
+                              onClick={() => review(posting.id, false)}
+                              style={{ padding: '6px 12px' }}
+                            >
+                              <FiX style={{ marginRight: 4 }} /> Từ chối
+                            </button>
+                          </>
+                        )}
+                        {posting.status === 'PUBLISHED' && (
+                          <a
+                            href={`/jobs?job=${posting.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn-action-view"
+                            style={{ padding: '6px 12px', background: '#ecfdf5', color: '#047857' }}
+                          >
+                            <FiGlobe style={{ marginRight: 4 }} /> Xem công khai
+                          </a>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

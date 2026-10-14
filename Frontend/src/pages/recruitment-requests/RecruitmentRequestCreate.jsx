@@ -42,12 +42,12 @@ const RecruitmentRequestCreate = () => {
     try {
       const token = localStorage.getItem('token');
       const reqs = [
-        axios.get('http://localhost:3000/api/departments', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/job-positions', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/master-data', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('http://localhost:5000/api/departments', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/job-positions', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/master-data', { headers: { Authorization: `Bearer ${token}` } })
       ];
       if (id) {
-        reqs.push(axios.get(`http://localhost:3000/api/recruitment-requests/${id}`, { headers: { Authorization: `Bearer ${token}` } }));
+        reqs.push(axios.get(`http://localhost:5000/api/recruitment-requests/${id}`, { headers: { Authorization: `Bearer ${token}` } }));
       }
 
       const results = await Promise.all(reqs);
@@ -191,13 +191,13 @@ const RecruitmentRequestCreate = () => {
       };
 
       if (isEdit) {
-        await axios.put(`http://localhost:3000/api/recruitment-requests/${id}`, payload, {
+        await axios.put(`http://localhost:5000/api/recruitment-requests/${id}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert(status === 'PENDING' ? 'Gửi duyệt lại yêu cầu thành công!' : 'Lưu cập nhật thành công!');
         navigate(`/recruitment-requests/${id}`);
       } else {
-        await axios.post('http://localhost:3000/api/recruitment-requests', payload, {
+        await axios.post('http://localhost:5000/api/recruitment-requests', payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         navigate('/recruitment-requests');

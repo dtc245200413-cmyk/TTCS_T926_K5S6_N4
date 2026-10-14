@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FiArrowLeft, FiBold, FiItalic, FiList, FiSave } from 'react-icons/fi';
 
-const API = 'http://localhost:3000/api';
+const API = 'http://localhost:5000/api';
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 const inputStyle = { width: '100%', padding: '9px 11px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', color: '#1e293b', fontSize: 13 };
 const labelStyle = { display: 'grid', gap: 6, color: '#334155', fontSize: 12, fontWeight: 700 };

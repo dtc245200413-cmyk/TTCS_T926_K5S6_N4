@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiClock, FiPlay, FiSave } from 'react-icons/fi';
 
-const API = 'http://localhost:3000/api/sla';
+const API = 'http://localhost:5000/api/sla';
 const stageNames = { NEW: 'Hồ sơ mới', INTERVIEWING: 'Đang phỏng vấn', OFFERED: 'Đã gửi đề nghị' };
 
 const SlaSettings = () => {

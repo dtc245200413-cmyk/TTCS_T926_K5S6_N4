@@ -20,7 +20,7 @@ const CandidateRegister = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:3000/api/candidate-portal/register', form);
+      const response = await axios.post('http://localhost:5000/api/candidate-portal/register', form);
       login(response.data.data.token, response.data.data.candidate);
       navigate('/candidate', { replace: true });
     } catch (requestError) {

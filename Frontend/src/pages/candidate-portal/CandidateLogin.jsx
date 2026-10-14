@@ -20,7 +20,7 @@ const CandidateLogin = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:3000/api/candidate-portal/login', { email, password });
+      const response = await axios.post('http://localhost:5000/api/candidate-portal/login', { email, password });
       login(response.data.data.token, response.data.data.candidate);
       const returnTo = searchParams.get('returnTo');
       navigate(returnTo?.startsWith('/candidate') ? returnTo : '/candidate', { replace: true });
