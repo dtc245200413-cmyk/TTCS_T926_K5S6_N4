@@ -1,0 +1,73 @@
+.interview-schedules { padding: 24px; background: #f0f4f8; color: #1e293b; min-height: calc(100vh - 80px); min-width: 0; max-width: 100%; box-sizing: border-box; }
+.interview-schedules .is-card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,.05); min-width: 0; }
+.interview-schedules .is-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.interview-schedules .is-button { font: inherit; font-size: .9rem; font-weight: 600; padding: 10px 14px; border: 1px solid transparent; border-radius: 8px; background: #4f46e5; color: #fff; cursor: pointer; }
+.interview-schedules .is-secondary { background: #fff; border-color: #cbd5e1; color: #475569; }
+.interview-schedules .is-danger { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+.interview-schedules button:disabled, .interview-schedules select:disabled { opacity: .55; cursor: not-allowed; }
+.interview-schedules :is(button, input, select, [tabindex]):focus-visible { outline: 3px solid #818cf8; outline-offset: 3px; }
+.interview-schedules .is-muted { color: #64748b; font-size: .9rem; }
+.interview-schedules .is-error, .interview-schedules .is-success { padding: 14px; border-radius: 8px; margin: 12px 0; overflow-wrap: anywhere; }
+.interview-schedules .is-error { background: #fef2f2; color: #b91c1c; }
+.interview-schedules .is-success { background: #f0fdf4; color: #166534; }
+.interview-schedules label { display: flex; flex-direction: column; gap: 8px; font-size: .9rem; font-weight: 600; min-width: 0; }
+.interview-schedules :is(select, input) { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font: inherit; color: #1e293b; background: #fff; }
+.interview-schedules .is-filters { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)) auto; align-items: end; gap: 16px; }
+.interview-schedules .is-scroll-hint { color: #64748b; font-size: .8rem; margin: 0 0 12px; }
+.interview-schedules .is-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; scrollbar-width: auto; }
+.interview-schedules .is-schedule-table { border-collapse: collapse; table-layout: fixed; width: 100%; min-width: 1430px; text-align: left; }
+.interview-schedules .is-col-candidate { width: 200px; }
+.interview-schedules .is-col-position, .interview-schedules .is-col-interviewer { width: 220px; }
+.interview-schedules .is-col-room { width: 160px; }
+.interview-schedules .is-col-start, .interview-schedules .is-col-end { width: 145px; }
+.interview-schedules .is-col-status { width: 130px; }
+.interview-schedules .is-col-actions { width: 210px; }
+.interview-schedules .is-schedule-table th { color: #475569; background: #f8fafc; font-size: .85rem; padding: 14px 16px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+.interview-schedules .is-schedule-table td { padding: 18px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; line-height: 1.5; word-break: normal; overflow-wrap: normal; }
+.interview-schedules .is-cell-text { display: block; white-space: normal; word-break: normal; overflow-wrap: normal; overflow: hidden; }
+.interview-schedules .is-schedule-table td:first-child { font-weight: 600; }
+.interview-schedules .is-schedule-table tbody tr:hover { background: #fafbff; }
+.interview-schedules .is-schedule-table tbody tr:last-child td { border-bottom: 0; }
+.interview-schedules .is-schedule-table :is(th, td):nth-child(n+7) { text-align: center; }
+.interview-schedules .is-schedule-table time { display: block; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.interview-schedules .is-time-clock { display: block; color: #1e293b; font-weight: 600; }
+.interview-schedules .is-time-date { display: block; color: #64748b; font-size: .85rem; margin-top: 2px; }
+.interview-schedules .is-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: .8rem; font-weight: 600; background: #dbeafe; color: #1d4ed8; white-space: nowrap; }
+.interview-schedules .is-cancelled { background: #f1f5f9; color: #64748b; }
+.interview-schedules .is-row-actions { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: nowrap; }
+.interview-schedules .is-row-actions .is-button { padding: 8px 10px; font-size: .85rem; white-space: nowrap; flex-shrink: 0; }
+.interview-schedules .is-modal-backdrop { position: fixed; inset: 0; z-index: 1100; background: rgba(15,23,42,.55); padding: 20px; display: flex; align-items: center; justify-content: center; }
+.interview-schedules .is-modal { background: #fff; border-radius: 16px; padding: 24px; width: 720px; max-width: 100%; max-height: calc(100dvh - 40px); box-sizing: border-box; overflow-y: auto; box-shadow: 0 20px 30px rgba(0,0,0,.2); }
+.interview-schedules .is-modal h2 { margin: 0; font-size: 1.25rem; }
+.interview-schedules .is-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.interview-schedules .is-form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.interview-schedules .is-time-section { margin-top: 24px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
+.interview-schedules .is-time-section h3 { margin: 0; font-size: 1rem; }
+.interview-schedules .is-time-zone { color: #4338ca; background: #eef2ff; border-radius: 6px; padding: 5px 8px; font-size: .75rem; font-weight: 600; }
+.interview-schedules .is-time-grid { display: grid; grid-template-columns: 1.25fr 1.3fr 1fr; gap: 14px; align-items: start; }
+.interview-schedules .is-time-picker { border: 0; padding: 0; margin: 0; min-width: 0; }
+.interview-schedules .is-time-picker legend { font-size: .9rem; font-weight: 600; padding: 0; margin-bottom: 8px; }
+.interview-schedules .is-clock-fields { display: flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+.interview-schedules .is-clock-fields select { padding: 10px 4px; flex: 1; }
+.interview-schedules .is-custom-time { margin-top: 16px; border-top: 1px solid #e2e8f0; }
+.interview-schedules .is-end-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 18px; padding: 14px; background: #eef2ff; color: #3730a3; border-radius: 8px; font-size: .85rem; }
+.interview-schedules .is-end-preview strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.interview-schedules .is-end-preview small { width: 100%; color: #64748b; }
+.interview-schedules .is-time-section input:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 700px) { .interview-schedules .is-time-grid { grid-template-columns: 1fr; } .interview-schedules .is-time-section { padding: 14px; } }
+@media (max-width: 1100px) { .interview-schedules .is-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .interview-schedules { padding: 12px; } .interview-schedules .is-card, .interview-schedules .is-modal { padding: 16px; } .interview-schedules .is-form-grid, .interview-schedules .is-filters { grid-template-columns: 1fr; } .interview-schedules .is-modal-backdrop { padding: 10px; } }
+/* The shared shell has desktop-only dimensions. Limit these overrides to this
+   page so other modules keep their layout and all navigation remains available. */
+@media (max-width: 1100px) {
+  .main-content:has(> .interview-schedules) { padding: 12px; }
+}
+@media (max-width: 700px) {
+  .app-container:has(.interview-schedules) { flex-direction: column; }
+  .app-container:has(.interview-schedules) > .sidebar { width: 100% !important; flex: 0 0 150px; min-height: 0; border-right: 0; border-bottom: 1px solid #334155; }
+  .app-container:has(.interview-schedules) > .sidebar .sidebar-header { display: none; }
+  .app-container:has(.interview-schedules) .main-content-wrapper { min-height: 0; min-width: 0; }
+  .app-container:has(.interview-schedules) .main-header { padding: 0 16px !important; flex-shrink: 0; }
+  .main-content:has(> .interview-schedules) { padding: 0; }
+  .interview-schedules > .is-header > div { min-width: 0; }
+}
