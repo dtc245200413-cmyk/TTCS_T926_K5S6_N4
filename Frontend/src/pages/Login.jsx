@@ -271,6 +271,14 @@ const Login = () => {
                 >
                   Người phê duyệt
                 </button>
+                <Link
+                  to="/jobs"
+                  style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '9px 10px', borderRadius: '8px', border: '1px solid rgba(37, 99, 235, 0.22)', background: 'rgba(37, 99, 235, 0.08)', color: '#2563eb', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s' }}
+                  onMouseOver={(event) => { event.currentTarget.style.background = '#2563eb'; event.currentTarget.style.color = '#fff'; }}
+                  onMouseOut={(event) => { event.currentTarget.style.background = 'rgba(37, 99, 235, 0.08)'; event.currentTarget.style.color = '#2563eb'; }}
+                >
+                  Ứng viên · Xem việc làm, ứng tuyển không cần tài khoản
+                </Link>
               </div>
             </div>
           </form>

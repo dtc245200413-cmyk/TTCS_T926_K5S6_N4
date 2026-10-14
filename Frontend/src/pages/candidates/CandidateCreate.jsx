@@ -9,6 +9,7 @@ const CandidateCreate = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [possibleDuplicates, setPossibleDuplicates] = useState([]);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -52,6 +53,38 @@ const CandidateCreate = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'email' || name === 'phone') setPossibleDuplicates([]);
+  };
+
+  const saveCandidate = async (primaryCandidate = null, allowDuplicate = Boolean(primaryCandidate)) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:3000/api/candidates', {
+        ...formData,
+        allow_duplicate: allowDuplicate
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const createdCandidate = response.data.data;
+      if (primaryCandidate) {
+        await axios.post('http://localhost:3000/api/candidates/merge', {
+          primary_id: primaryCandidate.id,
+          secondary_id: createdCandidate.id
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      }
+      navigate('/candidates');
+    } catch (err) {
+      if (err.response?.status === 409 && err.response.data.duplicates) {
+        setPossibleDuplicates(err.response.data.duplicates);
+        setError('Phát hiện hồ sơ trùng. Hãy so sánh trước khi tiếp tục.');
+        return;
+      }
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo ứng viên');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -60,17 +93,23 @@ const CandidateCreate = () => {
       setError('Vui lòng nhập Họ tên, Email và chọn Nguồn ứng viên');
       return;
     }
-    
+
     setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/candidates', formData, {
+      const response = await axios.get('http://localhost:3000/api/candidates/duplicates', {
+        params: { email: formData.email, phone: formData.phone },
         headers: { Authorization: `Bearer ${token}` }
       });
-      navigate('/candidates');
+      const matches = response.data.data || [];
+      if (matches.length) {
+        setPossibleDuplicates(matches);
+        return;
+      }
+      await saveCandidate();
     } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo ứng viên');
+      setError(err.response?.data?.message || 'Không thể kiểm tra hồ sơ trùng.');
     } finally {
       setLoading(false);
     }
@@ -97,6 +136,38 @@ const CandidateCreate = () => {
           <div style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', color: '#b91c1c', padding: '12px 16px', borderRadius: '8px', fontWeight: '500' }}>
             ⚠️ {error}
           </div>
+        )}
+
+        {possibleDuplicates.length > 0 && (
+          <section style={{ display: 'grid', gap: 12, padding: 18, background: '#fff', border: '1px solid #fbbf24', borderRadius: 10 }}>
+            <h3 style={{ margin: 0, color: '#92400e' }}>So sánh hồ sơ có thông tin trùng</h3>
+            {possibleDuplicates.map(candidate => (
+              <article key={candidate.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ padding: 14, background: '#f8fafc' }}>
+                  <strong>Hồ sơ hiện có #{candidate.id}</strong>
+                  <p>Họ tên: {candidate.full_name}</p>
+                  <p>Email: {candidate.email}</p>
+                  <p>Điện thoại: {candidate.phone || 'Chưa có'}</p>
+                  <p>Vị trí: {candidate.position_name || 'Chưa gắn yêu cầu'}</p>
+                </div>
+                <div style={{ padding: 14 }}>
+                  <strong>Hồ sơ đang nhập</strong>
+                  <p>Họ tên: {formData.full_name}</p>
+                  <p>Email: {formData.email}</p>
+                  <p>Điện thoại: {formData.phone || 'Chưa có'}</p>
+                  <p>Vị trí: {requests.find(request => String(request.id) === String(formData.recruitment_request_id))?.position_name || 'Chưa gắn yêu cầu'}</p>
+                </div>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 12, borderTop: '1px solid #e2e8f0' }}>
+                  <button type="button" disabled={loading} onClick={() => saveCandidate(candidate)} style={{ padding: '9px 12px', border: 0, borderRadius: 6, color: '#fff', background: '#4f46e5', fontWeight: 700, cursor: 'pointer' }}>
+                    {loading ? 'Đang gộp...' : 'Giữ hồ sơ hiện có và gộp thông tin mới'}
+                  </button>
+                  <button type="button" disabled={loading} onClick={() => saveCandidate(null, true)} style={{ padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 6, color: '#334155', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                    Lưu riêng, không gộp
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
         )}
 
         <form onSubmit={handleSubmit} style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

@@ -3,8 +3,8 @@ const { pool } = require('../config/database');
 async function create(data) {
   const sql = `
     INSERT INTO candidates
-      (full_name, email, phone, status, source_code, recruitment_request_id, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (full_name, email, phone, status, source_code, recruitment_request_id, created_by, resume_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const [result] = await pool.execute(sql, [
     data.full_name,
@@ -13,7 +13,8 @@ async function create(data) {
     data.status || 'NEW',
     data.source_code || null,
     data.recruitment_request_id || null,
-    data.created_by
+    data.created_by,
+    data.resume_url || null
   ]);
   return result.insertId;
 }
@@ -36,7 +37,7 @@ async function getAll(user) {
     LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
-    WHERE 1=1
+    WHERE c.merged_into_id IS NULL
   `;
   const params = [];
 
@@ -61,7 +62,7 @@ async function getAll(user) {
 }
 
 async function updateStatus(id, status, rejectionReasonCode = null) {
-  const sql = `UPDATE candidates SET status = ?, rejection_reason_code = ? WHERE id = ?`;
+  const sql = `UPDATE candidates SET status = ?, rejection_reason_code = ?, stage_changed_at = NOW(), sla_overdue = 0, sla_flagged_at = NULL WHERE id = ?`;
   await pool.execute(sql, [status, rejectionReasonCode, id]);
 }
 

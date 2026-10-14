@@ -30,6 +30,7 @@ const RecruitmentRequestList = () => {
       case 'DRAFT': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#f1f5f9', color: '#475569' }}>Lưu nháp</span>;
       case 'PENDING': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fef3c7', color: '#d97706' }}>Chờ duyệt</span>;
       case 'APPROVED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#dcfce7', color: '#16a34a' }}>Đã duyệt</span>;
+      case 'NEEDS_REVISION': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fef9c3', color: '#a16207' }}>Cần bổ sung</span>;
       case 'REJECTED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fee2e2', color: '#dc2626' }}>Từ chối</span>;
       default: return <span>{status}</span>;
     }
