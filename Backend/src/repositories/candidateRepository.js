@@ -1,5 +1,11 @@
 const { pool } = require('../config/database');
 
+function isMissingRecruitmentRequests(error) {
+  // Check MySQL's missing-table diagnostic, not the SQL query (which names all joins).
+  return error.code === 'ER_NO_SUCH_TABLE'
+    && /\bTable ['`](?:[^'`]+\.)?recruitment_requests['`] doesn't exist/i.test(error.sqlMessage || error.message || '');
+}
+
 async function create(data) {
   const sql = `
     INSERT INTO candidates
@@ -26,8 +32,19 @@ async function findById(id) {
     LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
     WHERE c.id = ? LIMIT 1
   `;
-  const [rows] = await pool.execute(sql, [id]);
-  return rows.length > 0 ? rows[0] : null;
+  try {
+    const [rows] = await pool.execute(sql, [id]);
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    if (!isMissingRecruitmentRequests(error)) throw error;
+    const [rows] = await pool.execute(`
+      SELECT c.*
+      FROM candidates c
+      WHERE c.id = ?
+      LIMIT 1
+    `, [id]);
+    return rows.length > 0 ? rows[0] : null;
+  }
 }
 
 async function getAll(user) {
@@ -57,8 +74,23 @@ async function getAll(user) {
 
   sql += ` ORDER BY c.created_at DESC`;
 
-  const [rows] = await pool.execute(sql, params);
-  return rows;
+  try {
+    const [rows] = await pool.execute(sql, params);
+    return rows;
+  } catch (error) {
+    if (!isMissingRecruitmentRequests(error)) throw error;
+    const canViewAll = user?.roles?.some(role =>
+      ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(role.role_code)
+    );
+    // Hiring Manager scope cannot be established without recruitment_requests.
+    if (!canViewAll) return [];
+    const [rows] = await pool.execute(`
+      SELECT c.*, NULL AS job_reason, NULL AS department_name, NULL AS position_name
+      FROM candidates c
+      ORDER BY c.created_at DESC
+    `);
+    return rows;
+  }
 }
 
 async function updateStatus(id, status, rejectionReasonCode = null) {

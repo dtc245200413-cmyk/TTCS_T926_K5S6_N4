@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiDownload } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
+import { candidateProfileAccess } from '../../utils/candidateProfile';
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
@@ -218,6 +219,9 @@ const CandidateList = () => {
                       {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>Quá SLA</span>}
                     </td>
                     <td style={{ padding: '16px' }}>
+                      {candidateProfileAccess(user).canView && (
+                        <Link to={`/candidates/${cand.id}`} style={{ display: 'inline-block', marginBottom: '8px', color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
+                      )}
                       {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
