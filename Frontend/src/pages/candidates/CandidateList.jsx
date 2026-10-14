@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import axios from '../../api/axiosClient';
 import { Link } from 'react-router-dom';
 import { FiDownload, FiEye, FiX, FiFileText, FiUser } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import { candidateProfileAccess } from '../../utils/candidateProfile';
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
+  const { canManage } = candidateProfileAccess(user);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rejectionReasons, setRejectionReasons] = useState([]);
@@ -25,7 +26,7 @@ const CandidateList = () => {
   const fetchCandidates = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/candidates', {
+      const response = await axios.get('/candidates', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCandidates(response.data.data);
@@ -39,7 +40,7 @@ const CandidateList = () => {
   const fetchRejectionReasons = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/master-data', {
+      const response = await axios.get('/master-data', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const md = response.data.data;
@@ -53,7 +54,7 @@ const CandidateList = () => {
   const fetchActiveMerges = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/candidates/merges', {
+      const response = await axios.get('/candidates/merges', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveMerges(response.data.data || []);
@@ -65,15 +66,15 @@ const CandidateList = () => {
   useEffect(() => {
     fetchCandidates();
     fetchRejectionReasons();
-    fetchActiveMerges();
-  }, []);
+    if (canManage) fetchActiveMerges();
+  }, [canManage]);
 
   const undoCandidateMerge = async (merge) => {
     if (!window.confirm(`Hoàn tác gộp ${merge.secondary_name} khỏi hồ sơ ${merge.primary_name}?`)) return;
     setMergeError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/candidates/merges/${merge.id}/undo`, {}, {
+      await axios.post(`/candidates/merges/${merge.id}/undo`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
@@ -90,7 +91,7 @@ const CandidateList = () => {
   const downloadResume = async (candidate) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/candidates/${candidate.id}/resume`, {
+      const response = await axios.get(`/candidates/${candidate.id}/resume`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -135,7 +136,7 @@ const CandidateList = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/candidates/${selectedCandidate.id}/status`, {
+      await axios.put(`/candidates/${selectedCandidate.id}/status`, {
         status: 'REJECTED',
         rejection_reason_code: rejectReason
       }, {
@@ -152,7 +153,7 @@ const CandidateList = () => {
     if (window.confirm(`Bạn có chắc chắn muốn tuyển dụng ứng viên ${candidate.full_name}?`)) {
       try {
         const token = localStorage.getItem('token');
-        await axios.put(`http://localhost:5000/api/candidates/${candidate.id}/status`, {
+        await axios.put(`/candidates/${candidate.id}/status`, {
           status: 'HIRED'
         }, {
           headers: { Authorization: `Bearer ${token}` }
@@ -174,9 +175,9 @@ const CandidateList = () => {
             <h1 className="g-page-title">Quản lý Hồ sơ Ứng viên</h1>
             <p className="g-page-subtitle">Theo dõi và quản lý ứng viên trên toàn hệ thống</p>
           </div>
-          <Link to="/candidates/create" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', transition: 'background 0.2s' }}>
+          {canManage && <Link to="/candidates/create" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', transition: 'background 0.2s' }}>
             <span>+</span> Thêm Ứng viên
-          </Link>
+          </Link>}
         </div>
 
         {activeMerges.length > 0 && (
@@ -258,9 +259,9 @@ const CandidateList = () => {
                       {candidateProfileAccess(user).canView && (
                         <Link to={`/candidates/${cand.id}`} style={{ display: 'inline-block', marginBottom: '8px', color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
                       )}
-                      {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
+                      {canManage && cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
+                          {user?.roles?.some(r => ['HR_MANAGER', 'ADMIN'].includes(r.role_code)) && (
                             <button 
                               onClick={() => handleHire(cand)}
                               style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}

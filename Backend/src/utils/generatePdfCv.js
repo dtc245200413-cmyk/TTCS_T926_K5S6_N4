@@ -1,4 +1,4 @@
-const puppeteer = require('d:/ttcs/TTCS_T926_K5S6_N4/Frontend/node_modules/puppeteer');
+const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
 
@@ -443,6 +443,10 @@ function getCvHtml(data) {
 }
 
 async function renderHtmlToPdf(html, outputPath) {
+  // Puppeteer is installed by Frontend; load its ESM entry only when rendering.
+  const { default: puppeteer } = await import(pathToFileURL(
+    require.resolve('../../../Frontend/node_modules/puppeteer')
+  ).href);
   const browser = await puppeteer.launch({
     headless: 'new',
     executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
