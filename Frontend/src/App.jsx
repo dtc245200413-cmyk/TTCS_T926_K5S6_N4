@@ -42,6 +42,8 @@ import CompanyProfile from './pages/company-profile/CompanyProfile';
 import MasterData from './pages/master-data/MasterData';
 import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
+import CandidateUnifiedProfile from './pages/candidates/CandidateUnifiedProfile';
+import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
 
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
@@ -170,10 +172,51 @@ function App() {
               <Route path=":id/edit" element={<RecruitmentRequestCreate />} />
             </Route>
 
-            {/* Candidate Routes */}
-            <Route path="/candidates" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
-              <Route index element={<CandidateList />} />
-              <Route path="create" element={<CandidateCreate />} />
+            {/* =================================================
+                CANDIDATE MANAGEMENT
+               ================================================= */}
+
+            <Route
+              path="/candidates"
+              element={
+                <ProtectedRoute>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+
+              <Route path=":id" element={<CandidateUnifiedProfile />} />
+
+              {/*
+                Danh sách ứng viên:
+                Hiring Manager vẫn có thể xem dữ liệu
+                thuộc phạm vi phòng ban của mình.
+              */}
+              <Route
+                index
+                element={<CandidateList />}
+              />
+
+              {/*
+                SCRUM-67:
+                ADMIN, RECRUITER hoặc HR_MANAGER
+                được tạo hồ sơ và bóc tách CV.
+              */}
+              <Route
+                path="create"
+                element={
+                  <ProtectedRoute
+                    requiredRoles={[
+                      'ADMIN',
+                      'RECRUITER',
+                      'HR_MANAGER'
+                    ]}
+                  >
+                    <CandidateCreate />
+                  </ProtectedRoute>
+                }
+              />
+
             </Route>
           </Route>
 

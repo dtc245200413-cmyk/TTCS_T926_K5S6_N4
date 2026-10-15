@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CandidateAuthContext } from '../../context/CandidateAuthContext';
 import { FiCheck, FiCheckCircle, FiUpload } from 'react-icons/fi';
 
-const API = 'http://localhost:3000/api';
+const API = 'http://localhost:5000/api';
 const steps = ['Thông tin hồ sơ', 'Tải CV', 'Hoàn tất'];
 
 const CandidateApplyWizard = () => {

@@ -23,6 +23,7 @@ const upload = multer({
 	}
 });
 
+router.get('/filter-options', controller.getPublicFilterOptions);
 router.get('/', controller.getPublicJobs);
 router.get('/:id', controller.getPublicJob);
 router.post('/:id/apply', upload.single('resume'), controller.applyPublicJob);
