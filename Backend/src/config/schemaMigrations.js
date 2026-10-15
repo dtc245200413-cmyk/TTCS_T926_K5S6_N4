@@ -109,6 +109,7 @@ async function runSchemaMigrations() {
   await ensureColumn('candidates', 'merged_into_id', 'INT NULL');
   await ensureColumn('candidates', 'merged_at', 'DATETIME NULL');
   await ensureColumn('candidates', 'resume_url', 'VARCHAR(500) NULL');
+  await ensureColumn('candidates', 'rejection_reason', 'TEXT NULL');
   // SLA
   await ensureColumn('candidates', 'stage_changed_at', 'DATETIME NULL');
   await ensureColumn('candidates', 'sla_overdue', 'TINYINT(1) NOT NULL DEFAULT 0');
@@ -118,6 +119,21 @@ async function runSchemaMigrations() {
   );
   await ensureIndex('candidates', 'idx_candidates_email', 'CREATE INDEX idx_candidates_email ON candidates (email)');
   await ensureIndex('candidates', 'idx_candidates_phone', 'CREATE INDEX idx_candidates_phone ON candidates (phone)');
+
+  // ── Ghi chú của Recruiter cho từng ứng viên ──
+  // Cấu trúc khớp với database.sql (author_id, note_content); bổ sung cột theo dõi chỉnh sửa.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS candidate_notes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      candidate_id INT NOT NULL,
+      author_id INT NOT NULL,
+      note_content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_candidate_notes_candidate (candidate_id, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumn('candidate_notes', 'updated_by', 'INT NULL');
+  await ensureColumn('candidate_notes', 'updated_at', 'TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS candidate_accounts (
@@ -383,6 +399,69 @@ async function runSchemaMigrations() {
       UNIQUE KEY uq_job_day (job_name, run_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  // ── Auto-seed Master Data (Candidate Sources) & Sample Job Positions / Recruitment Requests ──
+  const defaultSources = [
+    ['CANDIDATE_SOURCE', 'LINKEDIN', 'LinkedIn', 'Nguồn mạng xã hội LinkedIn', 1],
+    ['CANDIDATE_SOURCE', 'TOPCV', 'TopCV', 'Trang tuyển dụng TopCV', 2],
+    ['CANDIDATE_SOURCE', 'VIETNAMWORKS', 'VietnamWorks', 'Trang tuyển dụng VietnamWorks', 3],
+    ['CANDIDATE_SOURCE', 'REFERRAL', 'Giới thiệu nội bộ', 'Nhân viên công ty giới thiệu', 4],
+    ['CANDIDATE_SOURCE', 'FACEBOOK', 'Facebook', 'Mạng xã hội Facebook', 5],
+    ['CANDIDATE_SOURCE', 'OTHER', 'Nguồn khác', 'Nguồn tuyển dụng khác', 6]
+  ];
+  for (const s of defaultSources) {
+    await pool.query(
+      `INSERT IGNORE INTO master_data (category_group, code, name, description, display_order, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      s
+    );
+  }
+
+  // Seed sample positions if empty
+  const [positionsCount] = await pool.query('SELECT COUNT(*) as cnt FROM job_positions');
+  if (Number(positionsCount[0]?.cnt || 0) === 0) {
+    await pool.query(`
+      INSERT IGNORE INTO job_positions (position_code, position_name, position_level, min_salary, max_salary, status) VALUES
+      ('FE_DEV', 'Frontend Developer', 'Middle', 15000000, 25000000, 'ACTIVE'),
+      ('BE_DEV', 'Backend Developer', 'Senior', 20000000, 35000000, 'ACTIVE'),
+      ('FULLSTACK_DEV', 'Fullstack Developer', 'Senior', 22000000, 38000000, 'ACTIVE'),
+      ('HR_EXEC', 'HR Executive', 'Junior', 10000000, 16000000, 'ACTIVE'),
+      ('TESTER_QA', 'Tester / QA', 'Middle', 12000000, 20000000, 'ACTIVE')
+    `);
+  }
+
+  // Seed sample recruitment requests if empty
+  const [requestsCount] = await pool.query('SELECT COUNT(*) as cnt FROM recruitment_requests');
+  if (Number(requestsCount[0]?.cnt || 0) === 0) {
+    const [itDept] = await pool.query("SELECT department_id FROM departments WHERE department_code = 'IT' LIMIT 1");
+    const [hrDept] = await pool.query("SELECT department_id FROM departments WHERE department_code = 'HR' LIMIT 1");
+    const [posList] = await pool.query("SELECT position_id, position_code FROM job_positions");
+    const deptId = itDept[0]?.department_id || 1;
+    const hrId = hrDept[0]?.department_id || 2;
+    for (const p of posList) {
+      await pool.query(`
+        INSERT INTO recruitment_requests 
+          (department_id, position_id, headcount, reason, status, created_by)
+        VALUES (?, ?, 2, 'Tuyển dụng nhân sự cho dự án mới', 'APPROVED', 1)
+      `, [p.position_code === 'HR_EXEC' ? hrId : deptId, p.position_id]);
+    }
+  }
+
+  // Seed default rejection reasons in master_data if empty
+  const [reasonsCount] = await pool.query("SELECT COUNT(*) as cnt FROM master_data WHERE category_group = 'REJECTION_REASON'");
+  if (Number(reasonsCount[0]?.cnt || 0) === 0) {
+    await pool.query(`
+      INSERT IGNORE INTO master_data (category_group, code, name, description, display_order, is_active) VALUES
+      ('REJECTION_REASON', 'LACK_EXPERIENCE', 'Thiếu kinh nghiệm / Chuyên môn', 'Ứng viên không đáp ứng đủ yêu cầu về kinh nghiệm hoặc kỹ năng chuyên môn.', 1, 1),
+      ('REJECTION_REASON', 'FAIL_TEST', 'Không đạt Bài test / Ngoại ngữ', 'Ứng viên không vượt qua bài kiểm tra năng lực hoặc yêu cầu ngoại ngữ.', 2, 1),
+      ('REJECTION_REASON', 'HIGH_SALARY', 'Kỳ vọng lương quá cao', 'Mức lương kỳ vọng của ứng viên vượt quá ngân sách của công ty.', 3, 1),
+      ('REJECTION_REASON', 'NOT_FIT_CULTURE', 'Không hợp Văn hóa / Thái độ', 'Ứng viên có thái độ không phù hợp hoặc không hợp với văn hóa công ty.', 4, 1),
+      ('REJECTION_REASON', 'NO_SHOW', 'Bỏ lịch phỏng vấn (No-show)', 'Ứng viên không đến tham gia phỏng vấn như lịch đã hẹn.', 5, 1),
+      ('REJECTION_REASON', 'WITHDRAW', 'Ứng viên tự rút / Nhận việc khác', 'Ứng viên chủ động rút lui hoặc đã nhận được lời mời làm việc từ công ty khác.', 6, 1),
+      ('REJECTION_REASON', 'CANNOT_CONTACT', 'Không liên lạc được', 'Không thể liên lạc được với ứng viên qua điện thoại hoặc email.', 7, 1),
+      ('REJECTION_REASON', 'OTHER', 'Lý do khác (Tự nhập)', 'Lý do đánh trượt khác do người dùng tự nhập', 8, 1)
+    `);
+  }
 }
 
 module.exports = { runSchemaMigrations };
