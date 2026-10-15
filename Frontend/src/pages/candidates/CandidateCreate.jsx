@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSave } from 'react-icons/fa';
+import axiosClient from '../../api/axiosClient';
+import candidateApi from '../../api/candidateApi';
 
 const CandidateCreate = () => {
   const navigate = useNavigate();
@@ -15,16 +16,16 @@ const CandidateCreate = () => {
     email: '',
     phone: '',
     source_code: '',
-    recruitment_request_id: ''
+    recruitment_request_id: '',
+    cover_letter: '',
+    parsed_skills: '',
+    tags: ''
   });
 
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/master-data', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await axiosClient.get('/master-data');
         const md = response.data.data;
         setSources(md.filter(x => x.category_group === 'CANDIDATE_SOURCE' && x.is_active));
       } catch (err) {
@@ -34,12 +35,9 @@ const CandidateCreate = () => {
     
     const fetchRequests = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/recruitment-requests/my', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        // Sàng lọc các yêu cầu đã được duyệt
-        setRequests(response.data.data.filter(r => r.status === 'APPROVED'));
+        const response = await axiosClient.get('/recruitment-requests');
+        const reqList = response.data.data || [];
+        setRequests(reqList.filter(r => r.status === 'APPROVED' || r.status === 'PENDING' || r.status === 'DRAFT'));
       } catch (err) {
         console.error(err);
       }
@@ -64,11 +62,13 @@ const CandidateCreate = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/candidates', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      navigate('/candidates');
+      const res = await candidateApi.createCandidate ? candidateApi.createCandidate(formData) : axiosClient.post('/candidates', formData);
+      const newCandidateId = res.data?.data?.id;
+      if (newCandidateId) {
+        navigate(`/candidates/${newCandidateId}`);
+      } else {
+        navigate('/candidates');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo ứng viên');
     } finally {

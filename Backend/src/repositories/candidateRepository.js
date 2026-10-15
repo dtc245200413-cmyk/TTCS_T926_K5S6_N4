@@ -3,16 +3,24 @@ const { pool } = require('../config/database');
 async function create(data) {
   const sql = `
     INSERT INTO candidates
-      (full_name, email, phone, status, source_code, recruitment_request_id, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (full_name, email, phone, status, current_stage, source_code, recruitment_request_id, cv_file_path, cover_letter, tracking_code, parsed_skills, rating, is_talent_pool, tags, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const [result] = await pool.execute(sql, [
     data.full_name,
     data.email,
     data.phone || null,
     data.status || 'NEW',
+    data.current_stage || 'NEW',
     data.source_code || null,
     data.recruitment_request_id || null,
+    data.cv_file_path || null,
+    data.cover_letter || null,
+    data.tracking_code || `TRK-${Date.now().toString().slice(-6)}`,
+    data.parsed_skills || null,
+    data.rating || 0,
+    data.is_talent_pool ? 1 : 0,
+    data.tags || null,
     data.created_by
   ]);
   return result.insertId;
@@ -20,54 +28,371 @@ async function create(data) {
 
 async function findById(id) {
   const sql = `
-    SELECT c.*, r.department_id, r.position_id 
+    SELECT c.*, 
+           r.department_id, 
+           r.position_id, 
+           r.recruiter_id,
+           r.created_by AS hiring_manager_id,
+           d.department_name, 
+           p.position_name,
+           recruiter.full_name AS recruiter_name,
+           recruiter.company_email AS recruiter_email,
+           hm.full_name AS hiring_manager_name,
+           hm.company_email AS hiring_manager_email
     FROM candidates c
     LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
+    LEFT JOIN departments d ON r.department_id = d.department_id
+    LEFT JOIN job_positions p ON r.position_id = p.position_id
+    LEFT JOIN users recruiter ON r.recruiter_id = recruiter.user_id
+    LEFT JOIN users hm ON r.created_by = hm.user_id
     WHERE c.id = ? LIMIT 1
   `;
   const [rows] = await pool.execute(sql, [id]);
   return rows.length > 0 ? rows[0] : null;
 }
 
-async function getAll(user) {
-  let sql = `
-    SELECT c.*, r.reason as job_reason, d.department_name, p.position_name
+async function getAll(user, filters = {}) {
+  const {
+    search,
+    position_id,
+    stage,
+    source,
+    tag,
+    from_date,
+    to_date,
+    page = 1,
+    limit = 10,
+    sort_by = 'created_at',
+    sort_order = 'DESC'
+  } = filters;
+
+  const whereClauses = ['1=1'];
+  const params = [];
+
+  // Authorization filter: Hiring Manager sees only candidates in their department / request
+  if (user) {
+    const roles = user.roles ? user.roles.map(r => r.role_code) : [];
+    const isHiringManager = roles.includes('HIRING_MANAGER');
+    const isHRManager = roles.includes('HR_MANAGER') || roles.includes('ADMIN');
+    const isRecruiter = roles.includes('RECRUITER');
+    
+    if (isHiringManager && !isHRManager && !isRecruiter) {
+      whereClauses.push('(r.department_id = ? OR r.created_by = ?)');
+      params.push(user.department_id, user.user_id);
+    }
+  }
+
+  // 1. Search keyword (họ tên, email, số điện thoại)
+  if (search && search.trim()) {
+    const term = `%${search.trim()}%`;
+    whereClauses.push('(c.full_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)');
+    params.push(term, term, term);
+  }
+
+  // 2. Position filter (theo vị trí tuyển dụng)
+  if (position_id && position_id !== '' && position_id !== 'all') {
+    whereClauses.push('(r.position_id = ? OR c.recruitment_request_id = ?)');
+    params.push(position_id, position_id);
+  }
+
+  // 3. Stage filter (theo giai đoạn)
+  if (stage && stage !== '' && stage !== 'all') {
+    whereClauses.push('(c.current_stage = ? OR c.status = ?)');
+    params.push(stage, stage);
+  }
+
+  // 4. Source filter (theo nguồn ứng tuyển)
+  if (source && source !== '' && source !== 'all') {
+    whereClauses.push('c.source_code = ?');
+    params.push(source);
+  }
+
+  // 5. Tag filter (theo nhãn)
+  if (tag && tag !== '' && tag !== 'all') {
+    const tagTerm = `%${tag.trim()}%`;
+    whereClauses.push('c.tags LIKE ?');
+    params.push(tagTerm);
+  }
+
+  // 6. Date Range filter (khoảng ngày nộp: from_date -> to_date)
+  if (from_date && from_date.trim()) {
+    whereClauses.push('c.created_at >= ?');
+    params.push(`${from_date.trim()} 00:00:00`);
+  }
+  if (to_date && to_date.trim()) {
+    whereClauses.push('c.created_at <= ?');
+    params.push(`${to_date.trim()} 23:59:59`);
+  }
+
+  const whereSql = whereClauses.join(' AND ');
+
+  // Count total matching candidates
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM candidates c
+    LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
+    WHERE ${whereSql}
+  `;
+  const [countRows] = await pool.execute(countSql, params);
+  const total = countRows[0]?.total || 0;
+
+  // Sorting
+  const allowedSortCols = ['created_at', 'full_name', 'email', 'rating', 'current_stage'];
+  const sortCol = allowedSortCols.includes(sort_by) ? `c.${sort_by}` : 'c.created_at';
+  const sortDir = (sort_order && sort_order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
+
+  // Pagination
+  const numLimit = Math.max(1, parseInt(limit) || 10);
+  const numPage = Math.max(1, parseInt(page) || 1);
+  const offset = (numPage - 1) * numLimit;
+
+  // Query records
+  const dataSql = `
+    SELECT c.*, 
+           r.reason as job_reason, 
+           r.recruiter_id,
+           r.created_by AS hiring_manager_id,
+           d.department_name, 
+           p.position_name,
+           p.position_id,
+           recruiter.full_name AS recruiter_name,
+           hm.full_name AS hiring_manager_name,
+           (SELECT COUNT(*) FROM candidates c2 WHERE c2.email = c.email OR (c2.phone IS NOT NULL AND c2.phone != '' AND c2.phone = c.phone)) AS total_applications
     FROM candidates c
     LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
-    WHERE 1=1
+    LEFT JOIN users recruiter ON r.recruiter_id = recruiter.user_id
+    LEFT JOIN users hm ON r.created_by = hm.user_id
+    WHERE ${whereSql}
+    ORDER BY ${sortCol} ${sortDir}
+    LIMIT ${numLimit} OFFSET ${offset}
   `;
-  const params = [];
 
-  if (user) {
-    const isHiringManager = user.roles && user.roles.some(r => r.role_code === 'HIRING_MANAGER');
-    const isHRManager = user.roles && user.roles.some(r => r.role_code === 'HR_MANAGER' || r.role_code === 'ADMIN');
-    const isRecruiter = user.roles && user.roles.some(r => r.role_code === 'RECRUITER');
-    
-    // If not HR Manager and not Admin and not Recruiter, filter by department
-    if (isHiringManager && !isHRManager && !isRecruiter) {
-      // Show candidates applied to jobs in their department OR candidates with no job assigned yet (optional, but let's restrict to strictly their dept)
-      // Actually, if candidate has no recruitment_request_id (N/A), they shouldn't see them either, unless we want them to see "floating" candidates. But per matrix: "Chỉ trên dữ liệu của vị trí mình/phòng ban mình". So it's best to only show candidates explicitly linked to their department's requests.
-      sql += ` AND r.department_id = ? `;
-      params.push(user.department_id);
+  const [rows] = await pool.execute(dataSql, params);
+
+  // Fetch filter options for dropdowns
+  const [positions] = await pool.query('SELECT position_id, position_name FROM job_positions ORDER BY position_name ASC');
+  const [stages] = await pool.query('SELECT stage_code, stage_name, stage_order FROM pipeline_stages WHERE is_active = 1 ORDER BY stage_order ASC');
+  const [sources] = await pool.query("SELECT code, name FROM master_data WHERE category_group = 'CANDIDATE_SOURCE' AND is_active = 1 ORDER BY display_order ASC");
+
+  // Extract all distinct tags from candidates in database
+  const [tagRows] = await pool.query("SELECT tags FROM candidates WHERE tags IS NOT NULL AND tags != ''");
+  const uniqueTags = new Set();
+  tagRows.forEach(r => {
+    if (r.tags) {
+      r.tags.split(',').forEach(t => {
+        const tr = t.trim();
+        if (tr) uniqueTags.add(tr);
+      });
     }
+  });
+
+  return {
+    candidates: rows,
+    pagination: {
+      total,
+      page: numPage,
+      limit: numLimit,
+      totalPages: Math.ceil(total / numLimit) || 1
+    },
+    filterOptions: {
+      positions,
+      stages,
+      sources,
+      tags: Array.from(uniqueTags)
+    }
+  };
+}
+
+/**
+ * Check authorization for viewing candidate unified profile:
+ * Acceptance criteria: "Chỉ recruiter phụ trách và hiring manager của vị trí đó mở được"
+ * (Plus HR_MANAGER and ADMIN as system administrators)
+ */
+async function checkCandidateAccess(candidate, user) {
+  if (!candidate || !user) return false;
+
+  const roles = user.roles ? user.roles.map(r => r.role_code) : [];
+  const isAdmin = roles.includes('ADMIN');
+  const isHrManager = roles.includes('HR_MANAGER');
+  if (isAdmin || isHrManager) return true;
+
+  const isRecruiter = roles.includes('RECRUITER');
+  const isHiringManager = roles.includes('HIRING_MANAGER');
+
+  // If candidate is assigned to a request with a specific recruiter
+  if (isRecruiter) {
+    if (!candidate.recruiter_id) return true; // Unassigned recruiter can be viewed by recruiters
+    if (candidate.recruiter_id === user.user_id) return true; // Assigned recruiter
   }
 
-  sql += ` ORDER BY c.created_at DESC`;
+  // If user is Hiring Manager of this position / department
+  if (isHiringManager) {
+    if (candidate.hiring_manager_id === user.user_id) return true;
+    if (candidate.department_id && candidate.department_id === user.department_id) return true;
+  }
 
-  const [rows] = await pool.execute(sql, params);
+  return false;
+}
+
+/**
+ * Lịch sử ứng tuyển các vị trí của cùng ứng viên (qua email hoặc phone)
+ */
+async function getApplicationHistory(email, phone) {
+  const sql = `
+    SELECT 
+      c.id,
+      c.full_name,
+      c.email,
+      c.phone,
+      c.status,
+      c.current_stage,
+      c.tracking_code,
+      c.rating,
+      c.created_at,
+      c.updated_at,
+      r.id AS recruitment_request_id,
+      r.reason AS requisition_reason,
+      r.needed_by_date,
+      d.department_id,
+      d.department_name,
+      p.position_id,
+      p.position_name,
+      recruiter.full_name AS recruiter_name,
+      recruiter.company_email AS recruiter_email,
+      hm.full_name AS hiring_manager_name
+    FROM candidates c
+    LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id
+    LEFT JOIN departments d ON r.department_id = d.department_id
+    LEFT JOIN job_positions p ON r.position_id = p.position_id
+    LEFT JOIN users recruiter ON r.recruiter_id = recruiter.user_id
+    LEFT JOIN users hm ON r.created_by = hm.user_id
+    WHERE c.email = ? OR (c.phone IS NOT NULL AND c.phone != '' AND c.phone = ?)
+    ORDER BY c.created_at DESC
+  `;
+  const [rows] = await pool.execute(sql, [email, phone || '']);
+  return rows;
+}
+
+/**
+ * Danh sách ghi chú của ứng viên
+ */
+async function getNotes(candidateId) {
+  const sql = `
+    SELECT 
+      n.id,
+      n.candidate_id,
+      n.note_content,
+      n.created_at,
+      u.user_id AS author_id,
+      u.full_name AS author_name,
+      u.job_title AS author_title,
+      u.company_email AS author_email
+    FROM candidate_notes n
+    JOIN users u ON n.author_id = u.user_id
+    WHERE n.candidate_id = ?
+    ORDER BY n.created_at DESC
+  `;
+  const [rows] = await pool.execute(sql, [candidateId]);
+  return rows;
+}
+
+async function addNote(candidateId, authorId, noteContent) {
+  const sql = `INSERT INTO candidate_notes (candidate_id, author_id, note_content) VALUES (?, ?, ?)`;
+  const [result] = await pool.execute(sql, [candidateId, authorId, noteContent]);
+  return result.insertId;
+}
+
+/**
+ * Lịch sử xử lý / Dòng thời gian ứng viên
+ */
+async function getActivities(candidateId) {
+  const sql = `
+    SELECT 
+      a.id,
+      a.candidate_id,
+      a.action_type,
+      a.details,
+      a.created_at,
+      u.user_id AS performer_id,
+      u.full_name AS performer_name,
+      u.job_title AS performer_title
+    FROM candidate_activities a
+    LEFT JOIN users u ON a.performed_by = u.user_id
+    WHERE a.candidate_id = ?
+    ORDER BY a.created_at DESC
+  `;
+  const [rows] = await pool.execute(sql, [candidateId]);
+  return rows;
+}
+
+async function addActivity(candidateId, performedBy, actionType, details) {
+  const sql = `INSERT INTO candidate_activities (candidate_id, performed_by, action_type, details) VALUES (?, ?, ?, ?)`;
+  const [result] = await pool.execute(sql, [candidateId, performedBy, actionType, details]);
+  return result.insertId;
+}
+
+async function getPipelineStages() {
+  const sql = `SELECT * FROM pipeline_stages WHERE is_active = 1 ORDER BY stage_order ASC`;
+  const [rows] = await pool.execute(sql);
   return rows;
 }
 
 async function updateStatus(id, status, rejectionReasonCode = null) {
-  const sql = `UPDATE candidates SET status = ?, rejection_reason_code = ? WHERE id = ?`;
+  const sql = `UPDATE candidates SET status = ?, rejection_reason_code = ?, updated_at = NOW() WHERE id = ?`;
   await pool.execute(sql, [status, rejectionReasonCode, id]);
+}
+
+async function updateStage(id, stageCode) {
+  // Map pipeline stage to high level status
+  let mappedStatus = 'INTERVIEWING';
+  if (stageCode === 'NEW') mappedStatus = 'NEW';
+  else if (stageCode === 'SCREENING') mappedStatus = 'NEW';
+  else if (stageCode === 'INTERVIEW') mappedStatus = 'INTERVIEWING';
+  else if (stageCode === 'OFFER') mappedStatus = 'OFFERED';
+  else if (stageCode === 'HIRED') mappedStatus = 'HIRED';
+  else if (stageCode === 'REJECTED') mappedStatus = 'REJECTED';
+
+  const sql = `UPDATE candidates SET current_stage = ?, status = ?, updated_at = NOW() WHERE id = ?`;
+  await pool.execute(sql, [stageCode, mappedStatus, id]);
+}
+
+async function updateRating(id, rating) {
+  const sql = `UPDATE candidates SET rating = ?, updated_at = NOW() WHERE id = ?`;
+  await pool.execute(sql, [rating, id]);
+}
+
+async function updateTags(id, tags) {
+  const sql = `UPDATE candidates SET tags = ?, updated_at = NOW() WHERE id = ?`;
+  await pool.execute(sql, [tags, id]);
+}
+
+async function updateTalentPool(id, isTalentPool) {
+  const sql = `UPDATE candidates SET is_talent_pool = ?, updated_at = NOW() WHERE id = ?`;
+  await pool.execute(sql, [isTalentPool ? 1 : 0, id]);
+}
+
+async function updateCvFilePath(id, filePath) {
+  const sql = `UPDATE candidates SET cv_file_path = ?, updated_at = NOW() WHERE id = ?`;
+  await pool.execute(sql, [filePath, id]);
 }
 
 module.exports = {
   create,
   findById,
   getAll,
-  updateStatus
+  checkCandidateAccess,
+  getApplicationHistory,
+  getNotes,
+  addNote,
+  getActivities,
+  addActivity,
+  getPipelineStages,
+  updateStatus,
+  updateStage,
+  updateRating,
+  updateTags,
+  updateTalentPool,
+  updateCvFilePath
 };
