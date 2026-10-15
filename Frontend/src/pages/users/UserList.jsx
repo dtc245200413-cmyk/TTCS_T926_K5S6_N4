@@ -4,6 +4,7 @@ import { FiUserPlus, FiSearch, FiDownload, FiInfo } from 'react-icons/fi';
 import userApi from '../../api/userApi';
 import authApi from '../../api/authApi';
 import { AuthContext } from '../../context/AuthContext';
+import { getDisplayJobTitle } from '../../utils/userDisplay';
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -100,7 +101,6 @@ const UserList = () => {
           </div>
           <div style={{ flex: '0 0 190px' }}>
             <select
-              className="form-control"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="g-form-input"
@@ -113,7 +113,6 @@ const UserList = () => {
           </div>
           <div style={{ flex: '0 0 190px' }}>
             <select
-              className="form-control"
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
               className="g-form-input"
@@ -180,7 +179,7 @@ const UserList = () => {
                         </div>
                       </td>
                       <td style={{ color: '#475569', fontWeight: 600 }}>{u.department ? u.department.department_name : 'N/A'}</td>
-                      <td style={{ color: '#475569' }}>{u.job_title || 'N/A'}</td>
+                      <td style={{ color: '#475569' }}>{getDisplayJobTitle(u)}</td>
                       <td>
                         <span className={getStatusBadgeClass(u.status)}>
                           {u.status === 'ACTIVE' ? 'Hoạt động' : u.status === 'LOCKED' ? 'Đã khóa' : 'Vô hiệu'}

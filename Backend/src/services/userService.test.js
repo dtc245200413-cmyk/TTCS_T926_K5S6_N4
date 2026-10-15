@@ -16,6 +16,7 @@ jest.mock('../config/database', () => ({
 jest.mock('../repositories/userRepository', () => ({
   findById: jest.fn(),
   getRolesAndPermissions: jest.fn(),
+  phoneNumberExistsForOtherUser: jest.fn(),
   update: jest.fn()
 }));
 
@@ -47,6 +48,7 @@ describe('SCRUM-58 - updateUser', () => {
     userRepository.getRolesAndPermissions.mockResolvedValue([
       { role_id: 1, role_code: 'RECRUITER', role_name: 'Nhân viên tuyển dụng' }
     ]);
+    userRepository.phoneNumberExistsForOtherUser.mockResolvedValue(false);
     userRepository.update.mockResolvedValue(true);
     auditRepository.createLog.mockResolvedValue(undefined);
   });
@@ -85,6 +87,14 @@ describe('SCRUM-58 - updateUser', () => {
       phone_number: '0123456789'
     }, 1, '127.0.0.1')).rejects.toThrow('Số điện thoại không hợp lệ');
 
+    expect(userRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('từ chối số điện thoại đã thuộc tài khoản khác', async () => {
+    userRepository.phoneNumberExistsForOtherUser.mockResolvedValue(true);
+    await expect(userService.updateUser(1, {
+      phone_number: '0912345678'
+    }, 1, '127.0.0.1')).rejects.toThrow('Số điện thoại này đã được sử dụng');
     expect(userRepository.update).not.toHaveBeenCalled();
   });
 
