@@ -84,7 +84,7 @@ async function getUnifiedProfile(candidateId, currentUser, ipAddress) {
   const roles = currentUser.roles ? currentUser.roles.map(r => r.role_code) : [];
   const canManage = roles.includes('ADMIN') || 
                     roles.includes('HR_MANAGER') || 
-                    (roles.includes('RECRUITER') && (!candidate.recruiter_id || candidate.recruiter_id === currentUser.user_id)) ||
+                    roles.includes('RECRUITER') ||
                     (roles.includes('HIRING_MANAGER') && (candidate.hiring_manager_id === currentUser.user_id || candidate.department_id === currentUser.department_id));
 
   return {

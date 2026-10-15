@@ -216,18 +216,13 @@ async function checkCandidateAccess(candidate, user) {
   const roles = user.roles ? user.roles.map(r => r.role_code) : [];
   const isAdmin = roles.includes('ADMIN');
   const isHrManager = roles.includes('HR_MANAGER');
-  if (isAdmin || isHrManager) return true;
-
   const isRecruiter = roles.includes('RECRUITER');
+
+  // Admin, HR Manager và toàn bộ Nhân viên tuyển dụng (Recruiter) đều có quyền xem hồ sơ
+  if (isAdmin || isHrManager || isRecruiter) return true;
+
   const isHiringManager = roles.includes('HIRING_MANAGER');
-
-  // If candidate is assigned to a request with a specific recruiter
-  if (isRecruiter) {
-    if (!candidate.recruiter_id) return true; // Unassigned recruiter can be viewed by recruiters
-    if (candidate.recruiter_id === user.user_id) return true; // Assigned recruiter
-  }
-
-  // If user is Hiring Manager of this position / department
+  // Trưởng bộ phận của vị trí / phòng ban đó
   if (isHiringManager) {
     if (candidate.hiring_manager_id === user.user_id) return true;
     if (candidate.department_id && candidate.department_id === user.department_id) return true;
