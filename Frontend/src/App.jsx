@@ -79,7 +79,7 @@ import SlaSettings from './pages/candidates/SlaSettings';
 
 import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
-import CandidateDetail from './pages/candidates/CandidateDetail';
+import CandidateUnifiedProfile from './pages/candidates/CandidateUnifiedProfile';
 import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
 
 function App() {
@@ -394,7 +394,7 @@ function App() {
               }
             >
 
-              <Route path=":id" element={<CandidateDetail />} />
+              <Route path=":id" element={<CandidateUnifiedProfile />} />
 
               {/*
                 Danh sách ứng viên:

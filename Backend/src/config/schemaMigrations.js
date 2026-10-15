@@ -109,6 +109,14 @@ async function runSchemaMigrations() {
   await ensureColumn('candidates', 'merged_into_id', 'INT NULL');
   await ensureColumn('candidates', 'merged_at', 'DATETIME NULL');
   await ensureColumn('candidates', 'resume_url', 'VARCHAR(500) NULL');
+  await ensureColumn('candidates', 'cv_file_path', 'VARCHAR(500) NULL');
+  await ensureColumn('candidates', 'current_stage', "VARCHAR(50) NOT NULL DEFAULT 'NEW'");
+  await ensureColumn('candidates', 'cover_letter', 'TEXT NULL');
+  await ensureColumn('candidates', 'tracking_code', 'VARCHAR(50) NULL');
+  await ensureColumn('candidates', 'parsed_skills', 'TEXT NULL');
+  await ensureColumn('candidates', 'rating', 'INT DEFAULT 0');
+  await ensureColumn('candidates', 'is_talent_pool', 'TINYINT(1) DEFAULT 0');
+  await ensureColumn('candidates', 'tags', 'VARCHAR(500) NULL');
   // SLA
   await ensureColumn('candidates', 'stage_changed_at', 'DATETIME NULL');
   await ensureColumn('candidates', 'sla_overdue', 'TINYINT(1) NOT NULL DEFAULT 0');
@@ -118,6 +126,51 @@ async function runSchemaMigrations() {
   );
   await ensureIndex('candidates', 'idx_candidates_email', 'CREATE INDEX idx_candidates_email ON candidates (email)');
   await ensureIndex('candidates', 'idx_candidates_phone', 'CREATE INDEX idx_candidates_phone ON candidates (phone)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pipeline_stages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      stage_code VARCHAR(50) NOT NULL UNIQUE,
+      stage_name VARCHAR(100) NOT NULL,
+      stage_order INT NOT NULL,
+      description TEXT NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumn('pipeline_stages', 'description', 'TEXT NULL');
+
+  await pool.query(`
+    INSERT IGNORE INTO pipeline_stages (stage_code, stage_name, stage_order) VALUES
+    ('NEW', 'Ứng tuyển mới', 1),
+    ('SCREENING', 'Sàng lọc hồ sơ', 2),
+    ('INTERVIEW', 'Phỏng vấn', 3),
+    ('OFFER', 'Đề nghị nhận việc', 4),
+    ('HIRED', 'Đã tuyển dụng', 5),
+    ('REJECTED', 'Không phù hợp', 6)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS candidate_notes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      candidate_id INT NOT NULL,
+      author_id INT NOT NULL,
+      note_content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS candidate_activities (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      candidate_id INT NOT NULL,
+      performed_by INT NULL,
+      action_type VARCHAR(50) NOT NULL,
+      details TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS candidate_accounts (
