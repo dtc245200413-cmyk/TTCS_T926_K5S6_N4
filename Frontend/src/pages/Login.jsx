@@ -41,7 +41,7 @@ const Login = () => {
   useEffect(() => {
     const fetchCompanyProfile = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/company-profile');
+        const res = await axios.get('http://localhost:5000/api/company-profile');
         if (res.data.success) {
           setCompanyProfile(res.data.data);
         }
@@ -88,7 +88,7 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-banner" style={{ 
-        backgroundImage: companyProfile?.banner_url ? `url(http://localhost:3000${companyProfile.banner_url})` : undefined, 
+        backgroundImage: companyProfile?.banner_url ? `url(http://localhost:5000${companyProfile.banner_url})` : undefined, 
         backgroundSize: 'cover', 
         backgroundPosition: 'center',
         position: 'relative'
@@ -98,7 +98,7 @@ const Login = () => {
           
           {companyProfile?.logo_url && (
             <div style={{ width: '80px', height: '80px', backgroundColor: 'white', borderRadius: '16px', padding: '8px', marginBottom: '24px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
-              <img src={`http://localhost:3000${companyProfile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={`http://localhost:5000${companyProfile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
           )}
 
@@ -271,6 +271,14 @@ const Login = () => {
                 >
                   Người phê duyệt
                 </button>
+                <Link
+                  to="/jobs"
+                  style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '9px 10px', borderRadius: '8px', border: '1px solid rgba(37, 99, 235, 0.22)', background: 'rgba(37, 99, 235, 0.08)', color: '#2563eb', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s' }}
+                  onMouseOver={(event) => { event.currentTarget.style.background = '#2563eb'; event.currentTarget.style.color = '#fff'; }}
+                  onMouseOut={(event) => { event.currentTarget.style.background = 'rgba(37, 99, 235, 0.08)'; event.currentTarget.style.color = '#2563eb'; }}
+                >
+                  Ứng viên · Xem việc làm, ứng tuyển không cần tài khoản
+                </Link>
               </div>
             </div>
           </form>

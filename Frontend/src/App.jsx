@@ -30,10 +30,20 @@ import RecruitmentRequestCreate from './pages/recruitment-requests/RecruitmentRe
 import RecruitmentRequestList from './pages/recruitment-requests/RecruitmentRequestList';
 import RecruitmentRequestDetail from './pages/recruitment-requests/RecruitmentRequestDetail';
 import RecruitmentRequestApprovalList from './pages/recruitment-requests/RecruitmentRequestApprovalList';
+import ApprovalWorkflowSettings from './pages/recruitment-requests/ApprovalWorkflowSettings';
+import PublicJobs from './pages/jobs/PublicJobs';
+import PublicJobDetail from './pages/jobs/PublicJobDetail';
+import JobPostingList from './pages/job-postings/JobPostingList';
+import JobPostingDraft from './pages/job-postings/JobPostingDraft';
+import JobPostingDetail from './pages/job-postings/JobPostingDetail';
+import JobPostingPreview from './pages/job-postings/JobPostingPreview';
+import SlaSettings from './pages/candidates/SlaSettings';
 import CompanyProfile from './pages/company-profile/CompanyProfile';
 import MasterData from './pages/master-data/MasterData';
 import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
+import CandidateUnifiedProfile from './pages/candidates/CandidateUnifiedProfile';
+import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
 
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
@@ -51,6 +61,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/jobs" element={<PublicJobs />} />
+          <Route path="/jobs/:id" element={<PublicJobDetail />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -136,6 +148,15 @@ function App() {
               <Route index element={<DepartmentList />} />
             </Route>
 
+            <Route path="/approval-workflows" element={<ProtectedRoute requireHrManager={true}><ApprovalWorkflowSettings /></ProtectedRoute>} />
+            <Route path="/job-postings" element={<Outlet />}>
+              <Route index element={<JobPostingList />} />
+              <Route path="create" element={<JobPostingDraft />} />
+              <Route path=":id/edit" element={<JobPostingDraft />} />
+              <Route path=":id/preview" element={<JobPostingPreview />} />
+              <Route path=":id" element={<JobPostingDetail />} />
+            </Route>
+
             {/* Company Profile */}
             <Route path="/company-profile" element={<CompanyProfile />} />
             
@@ -148,12 +169,54 @@ function App() {
               <Route path="approvals" element={<RecruitmentRequestApprovalList />} />
               <Route path="create" element={<RecruitmentRequestCreate />} />
               <Route path=":id" element={<RecruitmentRequestDetail />} />
+              <Route path=":id/edit" element={<RecruitmentRequestCreate />} />
             </Route>
 
-            {/* Candidate Routes */}
-            <Route path="/candidates" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
-              <Route index element={<CandidateList />} />
-              <Route path="create" element={<CandidateCreate />} />
+            {/* =================================================
+                CANDIDATE MANAGEMENT
+               ================================================= */}
+
+            <Route
+              path="/candidates"
+              element={
+                <ProtectedRoute>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+
+              <Route path=":id" element={<CandidateUnifiedProfile />} />
+
+              {/*
+                Danh sách ứng viên:
+                Hiring Manager vẫn có thể xem dữ liệu
+                thuộc phạm vi phòng ban của mình.
+              */}
+              <Route
+                index
+                element={<CandidateList />}
+              />
+
+              {/*
+                SCRUM-67:
+                ADMIN, RECRUITER hoặc HR_MANAGER
+                được tạo hồ sơ và bóc tách CV.
+              */}
+              <Route
+                path="create"
+                element={
+                  <ProtectedRoute
+                    requiredRoles={[
+                      'ADMIN',
+                      'RECRUITER',
+                      'HR_MANAGER'
+                    ]}
+                  >
+                    <CandidateCreate />
+                  </ProtectedRoute>
+                }
+              />
+
             </Route>
           </Route>
 

@@ -5,9 +5,10 @@ import {
   FiGrid, FiUsers, FiUser, FiList, FiFileText, 
   FiShield, FiHome, FiShare2, FiBriefcase, 
   FiClipboard, FiEdit, FiCheckSquare, FiBookOpen, 
-  FiClock, FiKey, FiLogOut, FiBell, FiBarChart2, FiCheckCircle
+  FiClock, FiKey, FiLogOut, FiBell, FiBarChart2, FiCheckCircle, FiGitBranch
 } from 'react-icons/fi';
 import '../../styles/global.css';
+import { interviewAccess } from '../../utils/interviewSchedules';
 
 const Sidebar = () => {
   const { hasPermission, logout, user } = useContext(AuthContext);
@@ -147,6 +148,9 @@ const Sidebar = () => {
           <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle}>
             <FiEdit size={18} /> Yêu cầu tuyển dụng
           </NavLink>
+          <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+            <FiBriefcase size={18} /> Tin tuyển dụng
+          </NavLink>
           <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
             <FiCheckSquare size={18} /> Khung năng lực
           </NavLink>
@@ -179,8 +183,14 @@ const Sidebar = () => {
       <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
         <FiBriefcase size={18} /> Chức danh & dải lương
       </NavLink>
+      <NavLink to="/approval-workflows" className={getClassName} style={navLinkStyle}>
+        <FiGitBranch size={18} /> Luồng phê duyệt
+      </NavLink>
       <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
         <FiCheckSquare size={18} /> Khung năng lực
+      </NavLink>
+      <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+        <FiBriefcase size={18} /> Tin tuyển dụng
       </NavLink>
       <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
         <FiBookOpen size={18} /> Ngân hàng câu hỏi
@@ -231,6 +241,12 @@ const Sidebar = () => {
         </NavLink>
       )}
 
+      {isRecruiterRole && (
+        <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+          <FiBriefcase size={18} /> Tin tuyển dụng
+        </NavLink>
+      )}
+
       {(isRecruiterRole || isHrManager) && (
         <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
           <FiUsers size={18} /> Quản lý ứng viên
@@ -266,6 +282,11 @@ const Sidebar = () => {
 
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {isAdmin ? renderAdminMenu() : (isHrManager ? renderHrMenu() : (isRecruiterRole ? renderRecruiterMenu() : (isApprover ? renderApproverMenu() : renderStandardMenu())))}
+        {interviewAccess(user).canView && (
+          <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
+            <FiClock size={18} /> Lịch phỏng vấn
+          </NavLink>
+        )}
 
         <div style={{ borderTop: '1px solid #1f2937', padding: '16px 0', marginTop: 'auto' }}>
           {sectionHeader('TÀI KHOẢN')}

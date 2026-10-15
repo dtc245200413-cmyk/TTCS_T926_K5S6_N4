@@ -6,6 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:candidate-ratings": "npm run build && node candidate-rating.test.cjs",
+    "test:candidate-profile": "node candidate-profile.test.cjs",
+    "test:interview-schedules": "node interview-schedules.test.cjs",
+    "test:interview-time": "node --test interview-schedule-time.test.mjs",
+    "test:candidate-create": "node candidate-create.test.cjs",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
