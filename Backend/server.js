@@ -35,6 +35,20 @@ testConnection()
       }, 60 * 60 * 1000);
       slaTimer.unref();
     });
+
+    if (Number(PORT) !== 3000) {
+      try {
+        const http = require('http');
+        const legacyServer = http.createServer(app);
+        legacyServer.listen(3000, () => {
+          console.log(`🚀 Compatibility server also running on http://localhost:3000`);
+        }).on('error', (err) => {
+          console.log(`ℹ️ Port 3000 binding skipped: ${err.message}`);
+        });
+      } catch (e) {
+        console.error('Error starting port 3000 compatibility server:', e);
+      }
+    }
   })
   .catch(async (error) => {
     console.error(`❌ Không thể khởi động backend [${error.code || 'STARTUP_ERROR'}]: ${error.message}`);
