@@ -151,6 +151,9 @@ const Sidebar = () => {
           <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
             <FiBriefcase size={18} /> Tin tuyển dụng
           </NavLink>
+          <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
+            <FiUsers size={18} /> Quản lý ứng viên
+          </NavLink>
           <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
             <FiCheckSquare size={18} /> Khung năng lực
           </NavLink>
@@ -191,6 +194,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
         <FiBriefcase size={18} /> Tin tuyển dụng
+      </NavLink>
+      <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
+        <FiUsers size={18} /> Quản lý ứng viên
       </NavLink>
       <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
         <FiBookOpen size={18} /> Ngân hàng câu hỏi

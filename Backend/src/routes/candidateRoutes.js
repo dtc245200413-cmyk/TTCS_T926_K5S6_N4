@@ -86,6 +86,32 @@ const diskUpload = multer({
   }
 });
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const resumeDirectory = path.join(__dirname, '../../private_uploads/resumes');
+fs.mkdirSync(resumeDirectory, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: resumeDirectory,
+    filename: (req, file, callback) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      callback(null, `cv-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    const allowed = ['.pdf', '.doc', '.docx'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowed.includes(ext)) {
+      return callback(new Error('CV phải ở định dạng .pdf, .doc hoặc .docx'));
+    }
+    callback(null, true);
+  }
+});
+
 router.use(authenticate);
 
 // CV Parsing (SCRUM-67)
@@ -117,6 +143,18 @@ router.get('/:id/unified-profile', requireCandidateReader, candidateController.g
 // Resume download
 router.get('/:id/resume', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.downloadResume);
 
+<<<<<<< HEAD
+// Xem danh sách/chi tiết, thêm thủ công, ghi chú — chỉ ADMIN, HR_MANAGER, RECRUITER (403 nếu không đủ quyền)
+const candidateAccess = requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER');
+router.get('/positions', candidateAccess, candidateController.getAvailablePositions);
+router.get('/', candidateAccess, candidateController.getAllCandidates);
+router.post('/', candidateAccess, upload.single('resume'), candidateController.createCandidate);
+router.get('/:id/notes', candidateAccess, candidateController.getNotes);
+router.post('/:id/notes', candidateAccess, candidateController.addNote);
+router.put('/:id/notes/:noteId', candidateAccess, candidateController.updateNote);
+router.get('/:id', candidateAccess, candidateController.getCandidateDetail);
+router.put('/:id/status', candidateController.updateStatus);
+=======
 // Ratings (SCRUM-215 & SCRUM-189)
 router.put('/:id/ratings/me', candidateController.saveMyRating);
 router.get('/:id/ratings', candidateController.getRatings);
@@ -137,5 +175,6 @@ router.post('/:id/cv', requireCandidateWriter, diskUpload.single('cv'), candidat
 
 // Status update (Reject / Hire)
 router.put('/:id/status', requireCandidateWriter, requireStatusWriter, candidateController.updateStatus);
+>>>>>>> 27c5b55ac5c2c5fd3de79a2e5637d3ea01e18e22
 
 module.exports = router;

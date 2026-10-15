@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+
+/**
+ * Form thêm hồ sơ thủ công đã chuyển thành modal trong danh sách ứng viên.
+ * Giữ route cũ /candidates/create để không hỏng liên kết hiện có.
+ */
+const CandidateCreate = () => <Navigate to="/candidates" replace />;
+=======
 import React, {
   useContext,
   useEffect,
@@ -1992,5 +2002,6 @@ const CandidateCreate = () => {
     </div>
   );
 };
+>>>>>>> 27c5b55ac5c2c5fd3de79a2e5637d3ea01e18e22
 
 export default CandidateCreate;

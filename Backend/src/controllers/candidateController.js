@@ -66,19 +66,33 @@ const parseCv = async (req, res, next) => {
 
 const createCandidate = async (req, res, next) => {
   try {
+    const payload = { ...req.body };
+    if (req.file) {
+      payload.resume_url = req.file.filename;
+    }
     const result = await candidateService.createCandidate(
-      req.body,
+      payload,
       req.user.user_id,
       getIp(req),
-      req.body.allow_duplicate === true
+      req.body.allow_duplicate === true || req.body.allow_duplicate === 'true'
     );
     return sendSuccess(res, 'Tạo ứng viên thành công.', result, 201);
   } catch (error) {
     if (error.statusCode === 409) {
       return res.status(409).json({ success: false, message: error.message, duplicates: error.duplicates || [] });
     }
+    if (error.statusCode === 400 && error.errors) {
+      return res.status(400).json({ success: false, message: error.message, errors: error.errors });
+    }
     next(error);
   }
+};
+
+const getAvailablePositions = async (req, res, next) => {
+  try {
+    const result = await candidateService.getAvailablePositions();
+    return sendSuccess(res, 'Lấy danh sách vị trí thành công.', result);
+  } catch (error) { next(error); }
 };
 
 const findDuplicates = async (req, res, next) => {
@@ -111,6 +125,20 @@ const { getCandidateCvData, getCvHtml, renderHtmlToPdf } = require('../utils/gen
 
 const downloadResume = async (req, res, next) => {
   try {
+<<<<<<< HEAD
+    const filename = await candidateService.getCandidateResume(req.params.id);
+    if (!filename) {
+      return sendError(res, 'Hồ sơ này chưa có CV đính kèm.', 404);
+    }
+    if (filename.startsWith('http://') || filename.startsWith('https://')) {
+      return res.redirect(filename);
+    }
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(__dirname, '../../private_uploads/resumes', safeFilename);
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 'Tệp CV không tồn tại trên hệ thống.', 404);
+    }
+=======
     const candidate = await candidateRepo.findById(req.params.id);
     if (!candidate) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin ứng viên.' });
@@ -142,6 +170,7 @@ const downloadResume = async (req, res, next) => {
     }
 
     res.setHeader('Content-Type', 'application/pdf');
+>>>>>>> 27c5b55ac5c2c5fd3de79a2e5637d3ea01e18e22
     return res.download(filePath, safeFilename);
   } catch (error) { next(error); }
 };
@@ -155,6 +184,10 @@ const undoMerge = async (req, res, next) => {
 
 const getAllCandidates = async (req, res, next) => {
   try {
+<<<<<<< HEAD
+    const result = await candidateService.listCandidates(req.query, req.user);
+    return sendSuccess(res, 'Lấy danh sách thành công.', result);
+=======
     const result = await candidateService.getAllCandidates(req.user, req.query);
     return sendSuccess(res, 'Lấy danh sách ứng viên thành công.', result);
   } catch (error) { next(error); }
@@ -222,17 +255,62 @@ const uploadCv = async (req, res, next) => {
     const cvFilePath = `/uploads/cvs/${req.file.filename}`;
     const result = await candidateService.updateCandidateCv(id, cvFilePath, req.user, getIp(req));
     return sendSuccess(res, 'Tải lên CV thành công.', { cv_file_path: cvFilePath, candidate: result });
+>>>>>>> 27c5b55ac5c2c5fd3de79a2e5637d3ea01e18e22
   } catch (error) { next(error); }
+};
+
+const getCandidateDetail = async (req, res, next) => {
+  try {
+    const result = await candidateService.getCandidateDetail(req.params.id);
+    return sendSuccess(res, 'Lấy chi tiết ứng viên thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const getNotes = async (req, res, next) => {
+  try {
+    const result = await candidateService.getCandidateNotes(req.params.id);
+    return sendSuccess(res, 'Lấy ghi chú thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const noteErrorResponse = (error, res, next) => {
+  if (error.statusCode === 400 && error.errors) {
+    return res.status(400).json({ success: false, message: error.message, errors: error.errors });
+  }
+  return next(error);
+};
+
+const addNote = async (req, res, next) => {
+  try {
+    const result = await candidateService.addCandidateNote(req.params.id, req.body.content, req.user.user_id, getIp(req));
+    return sendSuccess(res, 'Thêm ghi chú thành công.', result, 201);
+  } catch (error) { noteErrorResponse(error, res, next); }
+};
+
+const updateNote = async (req, res, next) => {
+  try {
+    const result = await candidateService.updateCandidateNote(req.params.id, req.params.noteId, req.body.content, req.user.user_id, getIp(req));
+    return sendSuccess(res, 'Cập nhật ghi chú thành công.', result);
+  } catch (error) { noteErrorResponse(error, res, next); }
 };
 
 const updateStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
+<<<<<<< HEAD
+    const { status, rejection_reason_code, rejection_reason } = req.body;
+    
+=======
     const { status, rejection_reason_code } = req.body;
+>>>>>>> 27c5b55ac5c2c5fd3de79a2e5637d3ea01e18e22
     const result = await candidateService.updateCandidateStatus(
       id,
       status,
       rejection_reason_code || null,
+<<<<<<< HEAD
+      rejection_reason || null,
+=======
+>>>>>>> 27c5b55ac5c2c5fd3de79a2e5637d3ea01e18e22
       req.user.user_id,
       getIp(req)
     );
@@ -272,5 +350,10 @@ module.exports = {
   mergeCandidates,
   getActiveMerges,
   undoMerge,
-  downloadResume
+  downloadResume,
+  getCandidateDetail,
+  getNotes,
+  addNote,
+  updateNote,
+  getAvailablePositions
 };
