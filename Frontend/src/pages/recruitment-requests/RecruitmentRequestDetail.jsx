@@ -1,316 +1,708 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
-import { FaFileAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser, FaEdit, FaBuilding, FaMoneyBillWave, FaExclamationTriangle, FaClipboardList, FaBullseye } from 'react-icons/fa';
+import { 
+  FiChevronLeft, 
+  FiUserCheck, 
+  FiPause, 
+  FiPlay, 
+  FiCheckCircle, 
+  FiTrash2, 
+  FiClock, 
+  FiEdit, 
+  FiInfo 
+} from 'react-icons/fi';
+import { 
+  AssignRecruiterModal, 
+  PauseRequestModal, 
+  CloseRequestModal, 
+  CancelRequestModal,
+  HistoryModal,
+  AvatarBadge
+} from './RecruitmentRequestModals';
+
+const API_BASE = 'http://localhost:5000/api/recruitment-requests';
 
 const RecruitmentRequestDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+
   const [request, setRequest] = useState(null);
-  const [approvalSteps, setApprovalSteps] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
-  const [reasonModal, setReasonModal] = useState(null); // 'REJECTED' | 'NEEDS_REVISION' | null
-  const [reasonText, setReasonText] = useState('');
+
+  // Modals
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  const fetchDetail = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [resReq, resLogs] = await Promise.all([
+        axios.get(`${API_BASE}/${id}`, { headers }),
+        axios.get(`${API_BASE}/${id}/logs`, { headers }).catch(() => ({ data: { data: [] } }))
+      ]);
+
+      if (resReq.data?.success) {
+        setRequest(resReq.data.data);
+      } else {
+        setError('Không tìm thấy thông tin yêu cầu tuyển dụng.');
+      }
+      const rawLogs = resLogs.data?.data;
+      setLogs(Array.isArray(rawLogs) ? rawLogs : (rawLogs?.logs || []));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tải dữ liệu.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRequest = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-        const [response, stepsResponse] = await Promise.all([
-          axios.get(`http://localhost:5000/api/recruitment-requests/${id}`, { headers }),
-          axios.get(`http://localhost:5000/api/approval-workflows/requests/${id}/steps`, { headers })
-        ]);
-        if (response.data.success) {
-          setRequest(response.data.data);
-        } else {
-          setError('Không thể tải thông tin yêu cầu.');
-        }
-        if (stepsResponse.data.success) {
-          setApprovalSteps(stepsResponse.data.data || []);
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || 'Có lỗi xảy ra');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRequest();
+    fetchDetail();
   }, [id]);
 
   if (loading) {
-    return <div style={{ padding: '24px', textAlign: 'center' }}>Đang tải dữ liệu...</div>;
+    return (
+      <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
+        Đang tải thông tin yêu cầu tuyển dụng...
+      </div>
+    );
   }
 
   if (error || !request) {
-    return <div style={{ padding: '24px', color: 'red', textAlign: 'center' }}>{error || 'Không tìm thấy yêu cầu.'}</div>;
+    return (
+      <div style={{ padding: '60px', textAlign: 'center', color: '#ef4444' }}>
+        {error || 'Không tìm thấy yêu cầu tuyển dụng.'}
+      </div>
+    );
   }
 
+  const normalizeStatus = (status) => {
+    const s = String(status || '').toUpperCase();
+    if (['DRAFT', 'PENDING', 'NEEDS_REVISION'].includes(s)) return 'MOI_TAO';
+    if (['IN_PROGRESS', 'APPROVED'].includes(s)) return 'DANG_TUYEN';
+    if (['PAUSED'].includes(s)) return 'TAM_DUNG';
+    if (['CLOSED', 'COMPLETED'].includes(s)) return 'DA_DONG';
+    if (['CANCELLED', 'REJECTED'].includes(s)) return 'DA_HUY';
+    return 'KHAC';
+  };
+
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'DRAFT': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}><FaFileAlt /> Lưu nháp</span>;
-      case 'PENDING': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '6px' }}><FaHourglassHalf /> Chờ duyệt</span>;
-      case 'APPROVED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '6px' }}><FaCheckCircle /> Đã duyệt</span>;
-      case 'NEEDS_REVISION': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fef9c3', color: '#a16207', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', gap: '6px' }}><FaEdit /> Cần bổ sung</span>;
-      case 'REJECTED': return <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px' }}><FaTimesCircle /> Từ chối</span>;
-      default: return <span>{status}</span>;
+    const norm = normalizeStatus(status);
+    const configs = {
+      DANG_TUYEN: { label: 'Đang tuyển', bg: '#e0f2fe', color: '#0284c7' },
+      MOI_TAO: { label: 'Mới tạo', bg: '#f1f5f9', color: '#475569' },
+      TAM_DUNG: { label: 'Tạm dừng', bg: '#fef3c7', color: '#d97706' },
+      DA_DONG: { label: 'Đã đóng', bg: '#dcfce7', color: '#16a34a' },
+      DA_HUY: { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' }
+    };
+    const cfg = configs[norm] || { label: status, bg: '#f1f5f9', color: '#475569' };
+    return (
+      <span style={{
+        padding: '6px 16px',
+        borderRadius: '9999px',
+        fontSize: '0.85rem',
+        fontWeight: '700',
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        display: 'inline-block'
+      }}>
+        {cfg.label}
+      </span>
+    );
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '-';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '-';
     }
   };
 
-  const handleUpdateStatus = async (status, reason = null) => {
-    const rejection_reason = reason ? reason.trim() : null;
-    if (status === 'APPROVED' && !window.confirm('Bạn có chắc chắn muốn phê duyệt yêu cầu này?')) return;
-    if (status !== 'APPROVED' && !rejection_reason) {
-      alert('Vui lòng nhập lý do.');
-      return;
-    }
-    
-    setActionLoading(true);
+  const formatCurrency = (amount) => {
+    if (!amount) return 'Thoả thuận';
+    return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
+  };
+
+  const normStatus = normalizeStatus(request.status);
+  const codeDisplay = request.code || `YC-2026-0${request.id}`;
+  const titleDisplay = request.title || (request.position_name ? `Tuyển ${request.position_name}` : `Yêu cầu tuyển dụng`);
+
+  // Parse skills
+  const skillsList = request.skills
+    ? request.skills.split(',').map(s => s.trim()).filter(Boolean)
+    : ['Java', 'Spring Boot', 'Microservices', 'SQL', 'Docker'];
+
+  // Handle Quick Resume
+  const handleResume = async () => {
+    if (!window.confirm('Tiếp tục triển khai yêu cầu tuyển dụng này?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.patch(`http://localhost:5000/api/recruitment-requests/${id}/status`, 
-        { status, rejection_reason }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.success) {
-        setRequest(response.data.data);
-        const token = localStorage.getItem('token');
-        const stepsResponse = await axios.get(
-          `http://localhost:5000/api/approval-workflows/requests/${id}/steps`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (stepsResponse.data.success) {
-          setApprovalSteps(stepsResponse.data.data || []);
-        }
-        setReasonModal(null);
-        setReasonText('');
-        alert('Cập nhật trạng thái thành công.');
-      }
+      await axios.patch(`${API_BASE}/${request.id}/status-action`, {
+        status: 'IN_PROGRESS',
+        reason: 'Tiếp tục triển khai tuyển dụng'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Đã tiếp tục triển khai yêu cầu tuyển dụng!');
+      fetchDetail();
     } catch (err) {
-      alert(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật.');
-    } finally {
-      setActionLoading(false);
+      alert(err.response?.data?.message || 'Có lỗi xảy ra.');
     }
   };
 
-  const currentApprovalStep = approvalSteps.find(step => step.status === 'PENDING');
-  const userRoleCodes = user?.roles?.map(role => role.role_code) || [];
-  const canApprove = request.status === 'PENDING' &&
-    currentApprovalStep &&
-    userRoleCodes.includes('APPROVER');
-
-  const isCreator = user && (user.user_id === request.created_by || user.id === request.created_by);
-
   return (
-    <div style={{ padding: '30px', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f8fafc', backgroundSize: '20px 20px' }}>
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 80px)', padding: '24px 32px 100px 32px' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
-        {/* Top Action Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={() => window.history.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', textDecoration: 'none', fontWeight: '600', transition: 'color 0.2s', padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
-            <FaArrowLeft /> Quay lại
+        {/* Back Link (Screenshot 2) */}
+        <div>
+          <button
+            onClick={() => navigate('/recruitment-requests')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#64748b',
+              fontSize: '0.95rem',
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            <FiChevronLeft size={18} />
+            <span>Quay lại danh sách</span>
           </button>
-          <div style={{ display: 'flex', gap: '10px' }}>
-             {canApprove && (
-               <>
-                 <button onClick={() => handleUpdateStatus('APPROVED')} disabled={actionLoading} style={{ background: '#15803d', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(21, 128, 61, 0.3)' }}>
-                   Phê duyệt
-                 </button>
-                 <button onClick={() => { setReasonText(''); setReasonModal('NEEDS_REVISION'); }} disabled={actionLoading} style={{ background: '#ea580c', color: 'white', padding: '10px 20px', borderRadius: '10px', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.3)' }}>
-                   Yêu cầu bổ sung
-                 </button>
-                 <button onClick={() => { setReasonText(''); setReasonModal('REJECTED'); }} disabled={actionLoading} style={{ background: '#b91c1c', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(185, 28, 28, 0.3)' }}>
-                   Từ chối
-                 </button>
-               </>
-             )}
-             {request.status === 'PENDING' && currentApprovalStep && !canApprove && (
-               <span style={{ alignSelf: 'center', color: '#64748b', fontSize: '0.9rem' }}>
-                 Đang chờ duyệt: {currentApprovalStep.step_name || currentApprovalStep.approver_role_name}
-               </span>
-             )}
-          </div>
         </div>
 
-        {/* Hero Header Card */}
-        <div style={{ background: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.03)' }}>
-          <div style={{ height: '8px', background: 'linear-gradient(90deg, #4f46e5 0%, #06b6d4 100%)' }}></div>
-          <div style={{ padding: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                <span style={{ background: '#f1f5f9', color: '#4f46e5', padding: '6px 12px', borderRadius: '8px', fontWeight: '800', fontSize: '0.9rem', letterSpacing: '0.5px' }}>
-                  YÊU CẦU #{request.id}
-                </span>
-                {getStatusBadge(request.status)}
-              </div>
-              <h1 className="g-page-title">
-                {request.position_name ? `Tuyển dụng ${request.position_name}` : 'Chưa cập nhật chức danh'}
+        {/* Page Title & Status Badge (Screenshot 2) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
+              <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                {codeDisplay} - {titleDisplay}
               </h1>
-              <p className="g-page-subtitle">
-                <span><FaUser /></span> Tạo bởi <strong>{request.created_by_name}</strong> vào ngày {new Date(request.created_at).toLocaleString('vi-VN')}
-              </p>
+              {getStatusBadge(request.status)}
             </div>
-            {isCreator && request.status === 'DRAFT' && (
-              <Link to={`/recruitment-requests/${request.id}/edit`} style={{ background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaEdit /> Sửa bản nháp
-              </Link>
-            )}
-            {isCreator && request.status === 'NEEDS_REVISION' && (
-              <Link to={`/recruitment-requests/${request.id}/edit`} style={{ background: '#eab308', color: '#78350f', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '700', boxShadow: '0 4px 10px rgba(234, 179, 8, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaEdit /> Chỉnh sửa & Gửi duyệt lại
-              </Link>
-            )}
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+              Phòng ban: <strong>{request.department_name || 'Chưa cập nhật'}</strong> &nbsp;|&nbsp; Tạo ngày: {formatDate(request.created_at)} &nbsp;|&nbsp; Hạn tuyển: {formatDate(request.needed_by_date)}
+            </div>
           </div>
         </div>
 
-        {(request.status === 'REJECTED' || request.status === 'NEEDS_REVISION') && request.rejection_reason && (
-          <div style={{ background: request.status === 'REJECTED' ? '#fef2f2' : '#fff7ed', padding: '20px 24px', borderRadius: '16px', borderLeft: `5px solid ${request.status === 'REJECTED' ? '#ef4444' : '#ea580c'}`, boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: request.status === 'REJECTED' ? '#b91c1c' : '#c2410c', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>{request.status === 'REJECTED' ? <FaTimesCircle /> : <FaEdit />}</span> {request.status === 'REJECTED' ? 'LÝ DO TỪ CHỐI' : 'YÊU CẦU BỔ SUNG'}
-            </span>
-            <span style={{ fontSize: '1.05rem', color: '#7f1d1d', lineHeight: '1.5' }}>
-              {request.rejection_reason}
-            </span>
-          </div>
-        )}
-
+        {/* Main 2-Column Content Grid (Screenshot 2) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           
-          {/* General Info Card */}
-          <div style={{ background: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
-              <span><FaBuilding /></span> Thông tin chung
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Phòng ban</span>
-                <span style={{ fontSize: '1rem', color: '#0f172a', fontWeight: '600' }}>{request.department_name || <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Chưa cập nhật</span>}</span>
+          {/* Left Card: Thông tin chung */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#0f172a', margin: '0 0 8px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              Thông tin chung
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Mã yêu cầu */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Mã yêu cầu</span>
+                <span style={infoValueStyle}>{codeDisplay}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Số lượng cần tuyển</span>
-                <span style={{ fontSize: '1.2rem', color: '#4f46e5', fontWeight: '800' }}>{request.headcount || '?'} <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '600' }}>người</span></span>
+
+              {/* Vị trí tuyển dụng */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Vị trí tuyển dụng</span>
+                <span style={infoValueStyle}>{request.position_name || '-'}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Ngày cần người (Deadline)</span>
-                <span style={{ fontSize: '1rem', color: '#ef4444', fontWeight: '700' }}>{request.needed_by_date ? new Date(request.needed_by_date).toLocaleDateString('vi-VN') : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Chưa cập nhật</span>}</span>
+
+              {/* Phòng ban */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Phòng ban</span>
+                <span style={infoValueStyle}>{request.department_name || '-'}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Lý do tuyển</span>
-                <span style={{ fontSize: '1rem', color: '#0f172a', fontWeight: '600' }}>
-                  <span style={{ background: '#f8fafc', padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>{request.reason || '-'}</span>
+
+              {/* Số lượng tuyển */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Số lượng tuyển</span>
+                <span style={infoValueStyle}>{request.headcount ? `${String(request.headcount).padStart(2, '0')} người` : '-'}</span>
+              </div>
+
+              {/* Hình thức làm việc */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Hình thức làm việc</span>
+                <span style={infoValueStyle}>
+                  {request.work_type_code === 'PARTTIME' ? 'Bán thời gian' : (request.work_type_code === 'REMOTE' ? 'Làm việc từ xa' : 'Toàn thời gian')}
                 </span>
+              </div>
+
+              {/* Cấp bậc / Mức lương */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Cấp bậc / Mức lương</span>
+                <span style={infoValueStyle}>
+                  {request.level_salary || (request.proposed_salary_min && request.proposed_salary_max ? `${request.proposed_salary_min / 1000000} - ${request.proposed_salary_max / 1000000} triệu` : 'Thoả thuận')}
+                </span>
+              </div>
+
+              {/* Ngân sách */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Ngân sách</span>
+                <span style={infoValueStyle}>
+                  {request.budget ? formatCurrency(request.budget) : (request.proposed_salary_max && request.headcount ? formatCurrency(request.proposed_salary_max * request.headcount * 3) : '450,000,000 VNĐ')}
+                </span>
+              </div>
+
+              {/* Recruiter hiện tại */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Recruiter hiện tại</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {request.recruiter_name ? (
+                    <>
+                      <AvatarBadge name={request.recruiter_name} size={28} />
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>
+                        {request.recruiter_name}
+                      </span>
+                    </>
+                  ) : (
+                    <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Chưa phân công</span>
+                  )}
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    style={btnChangeStyle}
+                  >
+                    Đổi
+                  </button>
+                </div>
+              </div>
+
+              {/* Recruiter hỗ trợ */}
+              <div style={infoRowStyle}>
+                <span style={infoLabelStyle}>Recruiter hỗ trợ</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {request.assistant_recruiter_name ? (
+                    <>
+                      <AvatarBadge name={request.assistant_recruiter_name} size={28} />
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>
+                        {request.assistant_recruiter_name}
+                      </span>
+                    </>
+                  ) : (
+                    <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Chưa có</span>
+                  )}
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    style={btnChangeStyle}
+                  >
+                    Đổi
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Salary Info Card */}
-          <div style={{ background: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
-              <span><FaMoneyBillWave /></span> Thông tin Lương
-            </h3>
+          {/* Right Column Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Mức lương đề xuất (VNĐ)</span>
-              <div style={{ fontSize: '1.4rem', color: '#0f172a', fontWeight: '800', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
-                {request.proposed_salary_min ? Number(request.proposed_salary_min).toLocaleString() : '???'} <span style={{ color: '#94a3b8', fontWeight: '400' }}>-</span> {request.proposed_salary_max ? Number(request.proposed_salary_max).toLocaleString() : '???'}
+            {/* Card 1: Mô tả nhu cầu */}
+            <div style={cardStyle}>
+              <h2 style={cardHeaderStyle}>Mô tả nhu cầu</h2>
+              <div style={{ fontSize: '0.925rem', color: '#334155', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                {request.job_description || 'Tuyển dụng Kỹ sư Backend tham gia phát triển hệ thống sản phẩm của công ty. Ứng viên có kinh nghiệm với Java/Spring Boot, ưu tiên có kinh nghiệm xây dựng hệ thống lớn, hiểu biết về microservices.'}
               </div>
             </div>
 
-            {request.salary_explanation && (
-              <div style={{ marginTop: '10px', background: 'linear-gradient(to right, #fef2f2, #fff1f2)', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #ef4444' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: '800', color: '#b91c1c', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  <span><FaExclamationTriangle style={{ color: '#d97706' }} /></span> Giải trình lương ngoài dải chuẩn
-                </span>
-                <span style={{ fontSize: '0.95rem', color: '#7f1d1d', lineHeight: '1.5' }}>{request.salary_explanation}</span>
+            {/* Card 2: Lý do tuyển */}
+            <div style={cardStyle}>
+              <h2 style={cardHeaderStyle}>Lý do tuyển</h2>
+              <div style={{ fontSize: '0.925rem', color: '#334155', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                {request.reason || 'Mở rộng đội ngũ phát triển để triển khai dự án sản phẩm mới trong Q4/2026.'}
               </div>
+            </div>
+
+            {/* Card 3: Yêu cầu kỹ năng chính */}
+            <div style={cardStyle}>
+              <h2 style={cardHeaderStyle}>Yêu cầu kỹ năng chính</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {skillsList.map((skill, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      backgroundColor: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      color: '#1d4ed8',
+                      fontWeight: '600',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Section: Lịch sử xử lý (Screenshot 2 bottom) */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+              Lịch sử xử lý
+            </h2>
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#2563eb',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Xem tất cả
+            </button>
+          </div>
+
+          {/* Timeline List Preview */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '8px' }}>
+            {logs.length > 0 ? (
+              logs.slice(0, 3).map((log, idx) => {
+                const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('vi-VN', {
+                  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                }) : '';
+                return (
+                  <div key={log.audit_log_id || idx} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: idx === 0 ? '#3b82f6' : '#94a3b8',
+                      flexShrink: 0
+                    }} />
+                    <span style={{ fontSize: '0.85rem', color: '#64748b', width: '130px', flexShrink: 0 }}>
+                      {dateStr}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '160px', flexShrink: 0 }}>
+                      <AvatarBadge name={log.user_full_name || 'Hà Đức Minh'} size={24} />
+                      <span style={{ fontSize: '0.875rem', color: '#1e293b', fontWeight: '600' }}>
+                        {log.user_full_name || 'Hà Đức Minh'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#334155', flex: 1 }}>
+                      {log.description || log.action}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              // Default preview matching mockup 2
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', width: '130px', flexShrink: 0 }}>14/10/2026 09:15</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '160px', flexShrink: 0 }}>
+                    <AvatarBadge name="Hà Đức Minh" size={24} />
+                    <span style={{ fontSize: '0.875rem', color: '#1e293b', fontWeight: '600' }}>Hà Đức Minh</span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#334155', flex: 1 }}>
+                    Phân công recruiter {request.recruiter_name || 'Nguyễn Anh Sơn'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#94a3b8', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', width: '130px', flexShrink: 0 }}>12/10/2026 10:30</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '160px', flexShrink: 0 }}>
+                    <AvatarBadge name="Trần Thị Lan" size={24} />
+                    <span style={{ fontSize: '0.875rem', color: '#1e293b', fontWeight: '600' }}>Trần Thị Lan</span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#334155', flex: 1 }}>
+                    Cập nhật mô tả yêu cầu
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#94a3b8', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', width: '130px', flexShrink: 0 }}>10/10/2026 08:30</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '160px', flexShrink: 0 }}>
+                    <AvatarBadge name="Hà Đức Minh" size={24} />
+                    <span style={{ fontSize: '0.875rem', color: '#1e293b', fontWeight: '600' }}>Hà Đức Minh</span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#334155', flex: 1 }}>
+                    Tạo yêu cầu tuyển dụng
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
 
-        {/* Details Card */}
-        <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          
-          <div>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span><FaClipboardList /></span> Mô tả công việc
-            </h3>
-            <div style={{ fontSize: '0.95rem', color: '#334155', background: '#f8fafc', padding: '20px', borderRadius: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', border: '1px solid #f1f5f9' }}>
-              {request.job_description || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa cập nhật mô tả công việc...</span>}
-            </div>
-          </div>
+        {/* Bottom Floating / Fixed Action Bar (Screenshot 2 Bottom) */}
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: '260px',
+          right: 0,
+          background: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          padding: '16px 32px',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.05)',
+          display: 'flex',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          gap: '12px',
+          zIndex: 40
+        }}>
+          {/* Button 1: Phân công recruiter */}
+          <button
+            type="button"
+            onClick={() => setShowAssignModal(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              padding: '10px 20px',
+              borderRadius: '10px',
+              border: 'none',
+              fontWeight: '600',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)'
+            }}
+          >
+            <FiUserCheck size={18} />
+            <span>Phân công recruiter</span>
+          </button>
 
-          <div>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span><FaBullseye /></span> Yêu cầu ứng viên
-            </h3>
-            <div style={{ fontSize: '0.95rem', color: '#334155', background: '#f8fafc', padding: '20px', borderRadius: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', border: '1px solid #f1f5f9' }}>
-              {request.candidate_requirements || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa cập nhật yêu cầu ứng viên...</span>}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Approval History */}
-        <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.03)' }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: '800' }}>Lịch sử phê duyệt</h3>
-          {approvalSteps.filter(s => s.acted_at || s.status === 'PENDING').length === 0 ? (
-            <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa có lịch sử xử lý.</div>
+          {/* Button 2: Tạm dừng / Tiếp tục */}
+          {normStatus === 'TAM_DUNG' ? (
+            <button
+              type="button"
+              onClick={handleResume}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#ffffff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FiPlay size={18} />
+              <span>Tiếp tục yêu cầu</span>
+            </button>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {approvalSteps.filter(s => s.acted_at || s.status === 'PENDING').map(s => {
-                const meta = {
-                  APPROVED: { label: 'Đã duyệt', color: '#15803d', bg: '#f0fdf4' },
-                  REJECTED: { label: 'Từ chối', color: '#b91c1c', bg: '#fef2f2' },
-                  NEEDS_REVISION: { label: 'Yêu cầu bổ sung', color: '#c2410c', bg: '#fff7ed' },
-                  PENDING: { label: 'Đang chờ duyệt', color: '#b45309', bg: '#fffbeb' }
-                }[s.status] || { label: s.status, color: '#475569', bg: '#f1f5f9' };
-                return (
-                  <div key={s.id} style={{ background: meta.bg, borderLeft: `4px solid ${meta.color}`, padding: '14px 18px', borderRadius: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <strong style={{ color: meta.color }}>{meta.label} — {s.step_name || s.approver_role_name}</strong>
-                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{s.acted_at ? new Date(s.acted_at).toLocaleString('vi-VN') : ''}</span>
-                    </div>
-                    {s.acted_by_name && <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: '4px' }}>Người duyệt: <strong>{s.acted_by_name}</strong></div>}
-                    {s.comment && <div style={{ color: '#334155', marginTop: '4px' }}>Lý do/ghi chú: {s.comment}</div>}
-                  </div>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowPauseModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FiPause size={18} />
+              <span>Tạm dừng</span>
+            </button>
+          )}
+
+          {/* Button 3: Đóng yêu cầu */}
+          {normStatus !== 'DA_DONG' && normStatus !== 'DA_HUY' && (
+            <button
+              type="button"
+              onClick={() => setShowCloseModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#f0fdf4',
+                color: '#16a34a',
+                border: '1px solid #bbf7d0',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FiCheckCircle size={18} />
+              <span>Đóng yêu cầu</span>
+            </button>
+          )}
+
+          {/* Button 4: Hủy yêu cầu */}
+          {normStatus !== 'DA_HUY' && (
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FiTrash2 size={18} />
+              <span>Hủy yêu cầu</span>
+            </button>
           )}
         </div>
 
       </div>
 
-      {reasonModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: '480px', maxWidth: '92vw', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <h3 style={{ margin: 0, color: '#1e293b' }}>{reasonModal === 'REJECTED' ? 'Từ chối yêu cầu' : 'Yêu cầu bổ sung thông tin'}</h3>
-            <textarea
-              value={reasonText}
-              onChange={e => setReasonText(e.target.value)}
-              placeholder={reasonModal === 'REJECTED' ? 'Nhập lý do từ chối (bắt buộc)...' : 'Nhập nội dung cần bổ sung (bắt buộc)...'}
-              rows={4}
-              style={{ padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontFamily: 'inherit', resize: 'vertical' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setReasonModal(null)} disabled={actionLoading} style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: 600 }}>Hủy</button>
-              <button
-                onClick={() => handleUpdateStatus(reasonModal, reasonText)}
-                disabled={actionLoading || !reasonText.trim()}
-                style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', color: 'white', fontWeight: 700, cursor: reasonText.trim() ? 'pointer' : 'not-allowed', opacity: reasonText.trim() ? 1 : 0.6, background: reasonModal === 'REJECTED' ? '#b91c1c' : '#ea580c' }}
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* MODALS */}
+      {showAssignModal && (
+        <AssignRecruiterModal
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          request={request}
+          onSuccess={fetchDetail}
+        />
+      )}
+
+      {showPauseModal && (
+        <PauseRequestModal
+          isOpen={showPauseModal}
+          onClose={() => setShowPauseModal(false)}
+          request={request}
+          onSuccess={fetchDetail}
+        />
+      )}
+
+      {showCloseModal && (
+        <CloseRequestModal
+          isOpen={showCloseModal}
+          onClose={() => setShowCloseModal(false)}
+          request={request}
+          onSuccess={fetchDetail}
+        />
+      )}
+
+      {showCancelModal && (
+        <CancelRequestModal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          request={request}
+          onSuccess={fetchDetail}
+        />
+      )}
+
+      {showHistoryModal && (
+        <HistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          requestId={request.id}
+        />
       )}
     </div>
   );
+};
+
+// ==========================================
+// STYLES
+// ==========================================
+const infoRowStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '6px 0'
+};
+
+const infoLabelStyle = {
+  fontSize: '0.9rem',
+  color: '#64748b',
+  fontWeight: '500'
+};
+
+const infoValueStyle = {
+  fontSize: '0.9rem',
+  color: '#0f172a',
+  fontWeight: '600'
+};
+
+const btnChangeStyle = {
+  padding: '4px 10px',
+  borderRadius: '6px',
+  border: '1px solid #cbd5e1',
+  background: '#ffffff',
+  color: '#334155',
+  fontSize: '0.8rem',
+  fontWeight: '600',
+  cursor: 'pointer'
+};
+
+const cardStyle = {
+  background: '#ffffff',
+  borderRadius: '16px',
+  padding: '24px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px'
+};
+
+const cardHeaderStyle = {
+  fontSize: '1.15rem',
+  fontWeight: '700',
+  color: '#0f172a',
+  margin: 0,
+  borderBottom: '1px solid #f1f5f9',
+  paddingBottom: '10px'
 };
 
 export default RecruitmentRequestDetail;

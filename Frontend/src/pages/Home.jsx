@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FiUser, FiBell } from 'react-icons/fi';
+import { FiUser, FiBell, FiBriefcase } from 'react-icons/fi';
 import { getDisplayJobTitle } from '../utils/userDisplay';
 
 const ProfileField = ({ label, value }) => (
@@ -121,7 +121,13 @@ const Home = () => {
         <h2 style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>
           Thông báo & tiện ích
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+          <UtilityCard 
+            icon={<FiBriefcase size={24} color="#4f46e5" />}
+            title="Tin tuyển dụng"
+            description="Soạn thảo, gửi duyệt và quản lý các tin tuyển dụng"
+            onClick={() => navigate('/job-postings')}
+          />
           <UtilityCard 
             icon={<FiBell size={24} />}
             title="Thông báo"

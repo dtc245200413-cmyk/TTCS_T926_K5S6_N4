@@ -88,14 +88,14 @@ async function submitApplication(candidate, postingId, data, resumeUrl) {
   const posting = await jobPostingRepository.findPublicById(postingId);
   if (!posting) throw httpError('Tin tuyển dụng không tồn tại hoặc đã hết hạn.', 404);
   if (!resumeUrl) throw httpError('Vui lòng đính kèm CV.', 400);
-  const id = await repository.applyToPosting({
+  const { applicationId, applicationCode } = await repository.applyToPosting({
     candidateId: candidate.candidate_id,
     posting,
     resumeUrl,
     coverLetter: String(data.cover_letter || '').trim(),
     candidateProfile: { full_name: candidate.full_name, phone: candidate.phone }
   });
-  return { application_id: id, job_title: posting.title };
+  return { application_id: applicationId, application_code: applicationCode, job_title: posting.title };
 }
 
 async function getApplications(candidateId) {

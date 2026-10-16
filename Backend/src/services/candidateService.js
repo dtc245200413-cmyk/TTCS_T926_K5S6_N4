@@ -112,11 +112,18 @@ async function getCandidateResume(id) {
   return candidate.resume_url;
 }
 
-async function updateCandidateStatus(id, status, rejectionReasonCode, userId, ipAddress) {
+async function updateCandidateStatus(id, status, rejectionReasonCode, rejectionNote, userId, ipAddress) {
   const candidate = await candidateRepo.findById(id);
   if (!candidate) {
     const error = new Error('Không tìm thấy ứng viên.');
     error.statusCode = 404;
+    throw error;
+  }
+
+  const validStatuses = ['NEW', 'SCREENING', 'INTERVIEWING', 'OFFERED', 'HIRED', 'REJECTED'];
+  if (!validStatuses.includes(status)) {
+    const error = new Error(`Trạng thái "${status}" không hợp lệ. Các giai đoạn hợp lệ: ${validStatuses.join(', ')}`);
+    error.statusCode = 400;
     throw error;
   }
 
@@ -126,24 +133,37 @@ async function updateCandidateStatus(id, status, rejectionReasonCode, userId, ip
     throw error;
   }
 
-  await candidateRepo.updateStatus(id, status, rejectionReasonCode);
+  await candidateRepo.updateStatus(id, status, rejectionReasonCode, rejectionNote, userId, candidate.status);
 
   // Reference Locking logic for Rejection Reason
   if (status === 'REJECTED' && rejectionReasonCode) {
     await pool.query("UPDATE master_data SET is_referenced = 1 WHERE category_group = 'REJECTION_REASON' AND code = ?", [rejectionReasonCode]);
   }
 
+  const stageNames = {
+    NEW: 'Hồ sơ mới',
+    SCREENING: 'Sàng lọc',
+    INTERVIEWING: 'Phỏng vấn',
+    OFFERED: 'Đề xuất offer',
+    HIRED: 'Nhận việc',
+    REJECTED: 'Loại'
+  };
+
   await auditRepo.createLog({
     userId,
     performedBy: userId,
-    action: 'CANDIDATE_STATUS_UPDATED',
+    action: 'CANDIDATE_STAGE_CHANGED',
     entityType: 'candidates',
     entityId: String(id),
-    description: `Updated candidate status to ${status}`,
+    description: `Chuyển ứng viên "${candidate.full_name}" từ giai đoạn [${stageNames[candidate.status] || candidate.status}] sang [${stageNames[status] || status}]${rejectionReasonCode ? ` (Lý do: ${rejectionReasonCode})` : ''}`,
     ipAddress
   });
 
   return await candidateRepo.findById(id);
+}
+
+async function getCandidateHistory(id) {
+  return await candidateRepo.getStageHistory(id);
 }
 
 module.exports = {
@@ -154,5 +174,6 @@ module.exports = {
   undoCandidateMerge,
   getAllCandidates,
   getCandidateResume,
-  updateCandidateStatus
+  updateCandidateStatus,
+  getCandidateHistory
 };

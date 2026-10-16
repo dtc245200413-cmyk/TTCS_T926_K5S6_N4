@@ -33,6 +33,7 @@ import RecruitmentRequestApprovalList from './pages/recruitment-requests/Recruit
 import ApprovalWorkflowSettings from './pages/recruitment-requests/ApprovalWorkflowSettings';
 import PublicJobs from './pages/jobs/PublicJobs';
 import PublicJobDetail from './pages/jobs/PublicJobDetail';
+import TrackApplication from './pages/jobs/TrackApplication';
 import JobPostingList from './pages/job-postings/JobPostingList';
 import JobPostingDraft from './pages/job-postings/JobPostingDraft';
 import JobPostingDetail from './pages/job-postings/JobPostingDetail';
@@ -62,6 +63,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/jobs" element={<PublicJobs />} />
+          <Route path="/jobs/track" element={<TrackApplication />} />
+          <Route path="/tra-cuu" element={<TrackApplication />} />
           <Route path="/jobs/:id" element={<PublicJobDetail />} />
 
           {/* Protected Routes */}

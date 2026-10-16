@@ -74,11 +74,46 @@ const updateRequest = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const assignRecruiter = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await requestService.assignRecruiter(id, req.body, req.user.user_id, getIp(req));
+    return sendSuccess(res, 'Phân công recruiter thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const updateStatusAction = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await requestService.updateStatusAction(id, req.body, req.user.user_id, getIp(req));
+    return sendSuccess(res, 'Cập nhật trạng thái thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const getRequestLogs = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await requestService.getRequestLogs(id);
+    return sendSuccess(res, 'Lấy lịch sử xử lý thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const getRecruitersWorkload = async (req, res, next) => {
+  try {
+    const result = await requestService.getRecruitersWorkload();
+    return sendSuccess(res, 'Lấy danh sách recruiter thành công.', result);
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createRequest,
   updateRequest,
   getMyRequests,
   getRequestById,
   getRequestsForApproval,
-  updateStatus
+  updateStatus,
+  assignRecruiter,
+  updateStatusAction,
+  getRequestLogs,
+  getRecruitersWorkload
 };

@@ -14,6 +14,7 @@ router.post('/merges/:mergeId/undo', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUI
 router.get('/:id/resume', requireRoles('ADMIN', 'HR_MANAGER', 'RECRUITER'), candidateController.downloadResume);
 router.get('/', candidateController.getAllCandidates);
 router.post('/', candidateController.createCandidate);
+router.get('/:id/history', candidateController.getStageHistory);
 router.put('/:id/status', candidateController.updateStatus);
 
 module.exports = router;

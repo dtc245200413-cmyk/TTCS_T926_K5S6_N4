@@ -103,7 +103,7 @@ const Sidebar = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiUser size={18} /> Quản lý tài khoản
         </div>
-        <span style={{ fontSize: '0.8rem', opacity: 0.7, transform: openMenus.account ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.account ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.account && (
         <div style={{ paddingLeft: '24px' }}>
@@ -124,7 +124,7 @@ const Sidebar = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiHome size={18} /> Quản lý tổ chức
         </div>
-        <span style={{ fontSize: '0.8rem', opacity: 0.7, transform: openMenus.org ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.org ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.org && (
         <div style={{ paddingLeft: '24px' }}>
@@ -141,7 +141,7 @@ const Sidebar = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiClipboard size={18} /> Quản lý tuyển dụng
         </div>
-        <span style={{ fontSize: '0.8rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.recruit && (
         <div style={{ paddingLeft: '24px' }}>
@@ -175,31 +175,57 @@ const Sidebar = () => {
   const renderHrMenu = () => (
     <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', gap: '2px' }}>
       <NavLink to="/" className={getClassName} style={navLinkStyle} end>
-        <FiGrid size={18} /> Tổng quan
+        <FiHome size={18} /> Trang chủ
       </NavLink>
-      <NavLink to="/departments" className={getClassName} style={navLinkStyle}>
-        <FiHome size={18} /> Quản lý phòng ban
+
+      {/* Tuyển dụng (Collapsible with ▼) */}
+      <div onClick={() => toggleMenu('recruit')} style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FiBriefcase size={18} /> Tuyển dụng
+        </div>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+      </div>
+      {openMenus.recruit && (
+        <div style={{ paddingLeft: '24px' }}>
+          <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle} end>
+            <FiEdit size={18} /> Yêu cầu tuyển dụng
+          </NavLink>
+          <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+            <FiFileText size={18} /> Tin tuyển dụng
+          </NavLink>
+        </div>
+      )}
+
+      <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
+        <FiUsers size={18} /> Ứng viên
       </NavLink>
-      <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
-        <FiBriefcase size={18} /> Chức danh & dải lương
+      <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
+        <FiClock size={18} /> Lịch phỏng vấn
       </NavLink>
+      <NavLink to="/reports" className={getClassName} style={navLinkStyle}>
+        <FiBarChart2 size={18} /> Báo cáo
+      </NavLink>
+
+      {/* Quản lý tổ chức (Collapsible with ▼ matching screenshot) */}
+      <div onClick={() => toggleMenu('org')} style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FiHome size={18} /> Quản lý tổ chức
+        </div>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.org ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+      </div>
+      {openMenus.org && (
+        <div style={{ paddingLeft: '24px' }}>
+          <NavLink to="/departments" className={getClassName} style={navLinkStyle}>
+            <FiShare2 size={18} /> Phòng ban
+          </NavLink>
+          <NavLink to="/positions" className={getClassName} style={navLinkStyle}>
+            <FiBriefcase size={18} /> Chức danh & dải lương
+          </NavLink>
+        </div>
+      )}
+
       <NavLink to="/approval-workflows" className={getClassName} style={navLinkStyle}>
         <FiGitBranch size={18} /> Luồng phê duyệt
-      </NavLink>
-      <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
-        <FiCheckSquare size={18} /> Khung năng lực
-      </NavLink>
-      <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
-        <FiBriefcase size={18} /> Tin tuyển dụng
-      </NavLink>
-      <NavLink to="/questions" className={getClassName} style={navLinkStyle}>
-        <FiBookOpen size={18} /> Ngân hàng câu hỏi
-      </NavLink>
-      <NavLink to="/master-data" className={getClassName} style={navLinkStyle}>
-        <FiList size={18} /> Danh mục tuyển dụng
-      </NavLink>
-      <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
-        <FiFileText size={18} /> Hồ sơ công ty
       </NavLink>
     </div>
   );
@@ -211,6 +237,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/recruitment-requests" className={getClassName} style={navLinkStyle} end>
         <FiEdit size={18} /> Quản lý yêu cầu
+      </NavLink>
+      <NavLink to="/job-postings" className={getClassName} style={navLinkStyle}>
+        <FiBriefcase size={18} /> Tin tuyển dụng
       </NavLink>
       <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
         <FiUsers size={18} /> Quản lý ứng viên
@@ -298,6 +327,40 @@ const Sidebar = () => {
           </NavLink>
           <div onClick={handleLogout} style={{ ...navLinkStyle({ isActive: false }), cursor: 'pointer' }}>
             <FiLogOut size={18} color="#f97316" /> Đăng xuất
+          </div>
+        </div>
+
+        {/* User Profile Footer (Screenshot 1 & 2) */}
+        <div style={{
+          padding: '16px 20px',
+          borderTop: '1px solid #1f2937',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          backgroundColor: '#0b0f19'
+        }}>
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '700',
+            fontSize: '0.85rem',
+            flexShrink: 0
+          }}>
+            {user?.full_name ? user.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'HM'}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.full_name || 'Hà Đức Minh'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {getSubtitle()}
+            </div>
           </div>
         </div>
       </div>

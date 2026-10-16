@@ -107,10 +107,25 @@ const getAllCandidates = async (req, res, next) => {
 const updateStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, rejection_reason_code } = req.body;
+    const { status, rejection_reason_code, rejection_note } = req.body;
     
-    const result = await candidateService.updateCandidateStatus(id, status, rejection_reason_code || null, req.user.user_id, getIp(req));
+    const result = await candidateService.updateCandidateStatus(
+      id, 
+      status, 
+      rejection_reason_code || null, 
+      rejection_note || null,
+      req.user.user_id, 
+      getIp(req)
+    );
     return sendSuccess(res, 'Cập nhật trạng thái thành công.', result);
+  } catch (error) { next(error); }
+};
+
+const getStageHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const history = await candidateService.getCandidateHistory(id);
+    return sendSuccess(res, 'Lấy lịch sử chuyển giai đoạn thành công.', history);
   } catch (error) { next(error); }
 };
 
@@ -118,6 +133,7 @@ module.exports = {
   createCandidate,
   getAllCandidates,
   updateStatus,
+  getStageHistory,
   findDuplicates,
   mergeCandidates,
   getActiveMerges,

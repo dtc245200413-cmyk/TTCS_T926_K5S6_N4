@@ -60,9 +60,20 @@ exports.getPublicJob = async (req, res, next) => {
 
 exports.applyPublicJob = async (req, res, next) => {
   try {
+    const postingId = req.params.id || req.body.job_posting_id;
+    if (!postingId) return sendError(res, 'Vui lòng chọn vị trí tuyển dụng.', 400);
     const resumeFilename = req.file?.filename || null;
-    const result = await service.applyToPublicJob(req.params.id, req.body, resumeFilename, req.ip);
+    const result = await service.applyToPublicJob(postingId, req.body, resumeFilename, req.ip);
     return sendSuccess(res, 'Hồ sơ ứng tuyển đã được gửi thành công.', result, 201);
+  } catch (error) { next(error); }
+};
+
+exports.trackApplication = async (req, res, next) => {
+  try {
+    const code = req.body?.application_code || req.query?.code;
+    const email = req.body?.email || req.query?.email;
+    const result = await service.trackApplication(code, email);
+    return sendSuccess(res, 'Tra cứu trạng thái hồ sơ thành công.', result);
   } catch (error) { next(error); }
 };
 

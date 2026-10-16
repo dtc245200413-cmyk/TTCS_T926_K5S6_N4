@@ -21,3 +21,7 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Uploads
+Backend/private_uploads/resumes/*
+!Backend/private_uploads/resumes/cv_*.pdf

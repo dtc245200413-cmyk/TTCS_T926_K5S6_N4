@@ -40,12 +40,20 @@ const PublicJobs = () => {
   return (
     <main style={{ minHeight: '100vh', background: '#f5f7fb', color: '#172033' }}>
       <header style={{ background: '#111827', color: '#fff', padding: '24px clamp(20px, 6vw, 88px)' }}>
-        <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+        <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12, textTransform: 'uppercase' }}>TechCorp · Tuyển dụng</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 30 }}>Cơ hội nghề nghiệp</h1>
+            <div style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TechCorp · Cổng Tuyển Dụng</div>
+            <h1 style={{ margin: '6px 0 0', fontSize: 28, color: '#fff' }}>Cơ hội nghề nghiệp</h1>
           </div>
-          <a href="/login" style={{ color: '#fff', textDecoration: 'none', border: '1px solid #475569', borderRadius: 6, padding: '9px 14px', fontWeight: 600 }}>Đăng nhập</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Link to="/jobs/track" style={{ color: '#93c5fd', textDecoration: 'none', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(147, 197, 253, 0.3)', borderRadius: 6, padding: '8px 14px', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>🔍</span> Tra cứu hồ sơ
+            </Link>
+            <Link to="/jobs/track?tab=apply" style={{ color: '#86efac', textDecoration: 'none', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(134, 239, 172, 0.3)', borderRadius: 6, padding: '8px 14px', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>📝</span> Nộp hồ sơ online
+            </Link>
+            <a href="/login" style={{ color: '#fff', textDecoration: 'none', border: '1px solid #475569', borderRadius: 6, padding: '8px 14px', fontWeight: 600, fontSize: 13 }}>Đăng nhập nội bộ</a>
+          </div>
         </div>
       </header>
 

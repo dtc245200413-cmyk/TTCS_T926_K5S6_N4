@@ -102,7 +102,7 @@ async function submit(id, userId) {
 async function updateDraft(id, data) {
   await pool.execute(`
     UPDATE job_postings
-    SET title = ?, description = ?, requirements = ?, benefits = ?, deadline = ?, review_note = NULL
+    SET title = ?, description = ?, requirements = ?, benefits = ?, deadline = ?
     WHERE id = ?
   `, [data.title, data.description, data.requirements, data.benefits, data.deadline, id]);
 }

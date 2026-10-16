@@ -15,15 +15,27 @@ const upload = multer({
 			callback(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
 		}
 	}),
-	limits: { fileSize: 5 * 1024 * 1024 },
+	limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB tối đa theo yêu cầu
 	fileFilter: (req, file, callback) => {
-		const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-		if (!allowedTypes.includes(file.mimetype)) return callback(new Error('CV phải ở định dạng PDF hoặc Word.'));
+		const ext = path.extname(file.originalname).toLowerCase();
+		const allowedExts = ['.pdf', '.doc', '.docx'];
+		const allowedTypes = [
+			'application/pdf',
+			'application/msword',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'application/octet-stream'
+		];
+		if (!allowedExts.includes(ext) && !allowedTypes.includes(file.mimetype)) {
+			return callback(new Error('CV phải ở định dạng PDF hoặc Word (.pdf, .doc, .docx).'));
+		}
 		callback(null, true);
 	}
 });
 
 router.get('/', controller.getPublicJobs);
+router.post('/track', controller.trackApplication);
+router.get('/track', controller.trackApplication);
+router.post('/apply', upload.single('resume'), controller.applyPublicJob);
 router.get('/:id', controller.getPublicJob);
 router.post('/:id/apply', upload.single('resume'), controller.applyPublicJob);
 

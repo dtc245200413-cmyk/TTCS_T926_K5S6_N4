@@ -383,6 +383,31 @@ async function runSchemaMigrations() {
       UNIQUE KEY uq_job_day (job_name, run_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  // ── Candidate Application Tracking & Stage History ──
+  await ensureColumn('candidate_applications', 'application_code', 'VARCHAR(50) NULL');
+  await ensureIndex('candidate_applications', 'uq_cand_app_code', 'CREATE UNIQUE INDEX uq_cand_app_code ON candidate_applications (application_code)');
+  await pool.query("UPDATE candidate_applications SET application_code = CONCAT('HS', DATE_FORMAT(applied_at, '%y%m'), '-', LPAD(id, 5, '0')) WHERE application_code IS NULL");
+
+  await ensureColumn('candidates', 'application_code', 'VARCHAR(50) NULL');
+  await ensureColumn('candidates', 'rejection_note', 'TEXT NULL');
+  await ensureColumn('candidates', 'stage_changed_by', 'INT NULL');
+  await pool.query("UPDATE candidates c JOIN candidate_applications ca ON ca.candidate_id = c.id SET c.application_code = ca.application_code WHERE c.application_code IS NULL");
+  await pool.query("UPDATE candidates SET application_code = CONCAT('HS', DATE_FORMAT(COALESCE(created_at, NOW()), '%y%m'), '-', LPAD(id, 5, '0')) WHERE application_code IS NULL");
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS candidate_stage_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      candidate_id INT NOT NULL,
+      from_stage VARCHAR(50) NULL,
+      to_stage VARCHAR(50) NOT NULL,
+      rejection_reason_code VARCHAR(50) NULL,
+      rejection_note TEXT NULL,
+      changed_by INT NULL,
+      changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_csh_candidate (candidate_id, changed_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 module.exports = { runSchemaMigrations };

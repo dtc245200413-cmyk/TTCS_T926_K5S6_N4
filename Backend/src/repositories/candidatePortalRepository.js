@@ -86,32 +86,45 @@ async function updateProfile(candidateId, { fullName, phone }) {
   );
 }
 
+function generateApplicationCode() {
+  const dateStr = new Date().toISOString().slice(2, 7).replace('-', '');
+  const randomChars = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `HS${dateStr}-${randomChars}`;
+}
+
 async function applyToPosting({ candidateId, posting, resumeUrl, coverLetter, candidateProfile }) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     const [existing] = await connection.execute(
-      'SELECT id FROM candidate_applications WHERE candidate_id = ? AND job_posting_id = ? LIMIT 1 FOR UPDATE',
+      'SELECT id, application_code FROM candidate_applications WHERE candidate_id = ? AND job_posting_id = ? LIMIT 1 FOR UPDATE',
       [candidateId, posting.id]
     );
-    if (existing.length) throw Object.assign(new Error('Bạn đã ứng tuyển vị trí này.'), { statusCode: 409 });
+    if (existing.length) {
+      const err = new Error(`Bạn đã ứng tuyển vị trí này rồi. Mã tra cứu hồ sơ: ${existing[0].application_code || ('HS-' + existing[0].id)}`);
+      err.statusCode = 409;
+      err.existingApplicationCode = existing[0].application_code;
+      throw err;
+    }
+
+    const applicationCode = generateApplicationCode();
 
     const [result] = await connection.execute(`
       INSERT INTO candidate_applications
-        (candidate_id, job_posting_id, recruitment_request_id, status, resume_url, cover_letter, applied_at)
-      VALUES (?, ?, ?, 'SUBMITTED', ?, ?, NOW())
-    `, [candidateId, posting.id, posting.recruitment_request_id, resumeUrl, coverLetter || null]);
+        (candidate_id, job_posting_id, recruitment_request_id, status, resume_url, cover_letter, application_code, applied_at)
+      VALUES (?, ?, ?, 'SUBMITTED', ?, ?, ?, NOW())
+    `, [candidateId, posting.id, posting.recruitment_request_id, resumeUrl, coverLetter || null, applicationCode]);
     await connection.execute(`
       UPDATE candidates
-      SET full_name = COALESCE(?, full_name), phone = COALESCE(?, phone), resume_url = ?, recruitment_request_id = COALESCE(recruitment_request_id, ?)
+      SET full_name = COALESCE(?, full_name), phone = COALESCE(?, phone), resume_url = ?, recruitment_request_id = COALESCE(recruitment_request_id, ?), application_code = COALESCE(application_code, ?)
       WHERE id = ?
-    `, [candidateProfile?.full_name || null, candidateProfile?.phone || null, resumeUrl, posting.recruitment_request_id, candidateId]);
+    `, [candidateProfile?.full_name || null, candidateProfile?.phone || null, resumeUrl, posting.recruitment_request_id, applicationCode, candidateId]);
     await connection.execute(`
       INSERT INTO candidate_notifications (candidate_id, title, message, type, link)
       VALUES (?, ?, ?, 'APPLICATION_SUBMITTED', ?)
-    `, [candidateId, 'Đã nhận hồ sơ ứng tuyển', `Hồ sơ của bạn cho vị trí ${posting.title} đã được gửi thành công.`, `/candidate/applications/${result.insertId}`]);
+    `, [candidateId, 'Đã nhận hồ sơ ứng tuyển', `Hồ sơ của bạn cho vị trí ${posting.title} đã được gửi thành công. Mã hồ sơ tra cứu: ${applicationCode}`, `/candidate/applications/${result.insertId}`]);
     await connection.commit();
-    return result.insertId;
+    return { applicationId: result.insertId, applicationCode };
   } catch (error) {
     await connection.rollback();
     throw error;

@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { FiDownload, FiEye, FiX, FiFileText, FiUser } from 'react-icons/fi';
+import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { getCandidateCvData } from '../../utils/candidateCvHelper';
 import { candidateProfileAccess } from '../../utils/candidateProfile';
+import CandidateKanbanBoard from '../../components/candidates/CandidateKanbanBoard';
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [rejectionReasons, setRejectionReasons] = useState([]);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectNote, setRejectNote] = useState('');
   const [rejectError, setRejectError] = useState('');
   const [candidateSources, setCandidateSources] = useState([]);
   const [activeMerges, setActiveMerges] = useState([]);
@@ -125,7 +128,24 @@ const CandidateList = () => {
     setSelectedCandidate(candidate);
     setShowRejectModal(true);
     setRejectReason('');
+    setRejectNote('');
     setRejectError('');
+  };
+
+  const handleUpdateCandidateStatus = async (candidateId, newStatus, rejectionReasonCode = null, rejectionNoteParam = null) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/candidates/${candidateId}/status`, {
+        status: newStatus,
+        rejection_reason_code: rejectionReasonCode,
+        rejection_note: rejectionNoteParam
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchCandidates();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái');
+    }
   };
 
   const submitReject = async () => {
@@ -137,7 +157,8 @@ const CandidateList = () => {
       const token = localStorage.getItem('token');
       await axios.put(`http://localhost:5000/api/candidates/${selectedCandidate.id}/status`, {
         status: 'REJECTED',
-        rejection_reason_code: rejectReason
+        rejection_reason_code: rejectReason,
+        rejection_note: rejectNote
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -168,14 +189,62 @@ const CandidateList = () => {
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          <div>
-            <h1 className="g-page-title">Quản lý Hồ sơ Ứng viên</h1>
-            <p className="g-page-subtitle">Theo dõi và quản lý ứng viên trên toàn hệ thống</p>
+        {/* Header (Exact match to screenshot) */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: '#ffffff',
+          padding: '16px 24px',
+          borderRadius: 14,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          border: '1px solid #e2e8f0',
+          flexWrap: 'wrap',
+          gap: 14
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              background: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontSize: 22,
+              boxShadow: '0 4px 10px rgba(37,99,235,0.25)'
+            }}>
+              <FiUsers />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                Quản lý Hồ sơ Ứng viên
+              </h1>
+              <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: 13 }}>
+                Theo dõi tiến độ tuyển dụng qua bảng Pipeline Kanban hoặc danh sách chi tiết
+              </p>
+            </div>
           </div>
-          <Link to="/candidates/create" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#4f46e5', color: 'white', padding: '10px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: '600', transition: 'background 0.2s' }}>
-            <span>+</span> Thêm Ứng viên
+
+          <Link
+            to="/candidates/create"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#2563eb',
+              color: '#ffffff',
+              padding: '9px 18px',
+              borderRadius: 8,
+              textDecoration: 'none',
+              fontWeight: 600,
+              fontSize: 13,
+              boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+              transition: 'background 0.15s ease'
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Thêm ứng viên
           </Link>
         </div>
 
@@ -197,13 +266,82 @@ const CandidateList = () => {
           </section>
         )}
 
-        {/* Content */}
-        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Đang tải dữ liệu...</div>
-          ) : candidates.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Bạn chưa có hồ sơ ứng viên nào.</div>
-          ) : (
+        {/* Content Area */}
+        {loading ? (
+          <div style={{ background: '#fff', padding: '40px', textAlign: 'center', color: '#64748b', borderRadius: 16 }}>
+            Đang tải dữ liệu hồ sơ ứng viên...
+          </div>
+        ) : viewMode === 'kanban' ? (
+          <CandidateKanbanBoard
+            candidates={candidates}
+            rejectionReasons={rejectionReasons}
+            candidateSources={candidateSources}
+            onUpdateStatus={handleUpdateCandidateStatus}
+            openCvModal={openCvModal}
+            downloadResume={downloadResume}
+            user={user}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* View Mode Switcher bar in Table View */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: 12,
+              border: '1px solid #e2e8f0',
+              padding: '12px 20px',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('kanban')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #e2e8f0',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    backgroundColor: '#ffffff',
+                    color: '#64748b'
+                  }}
+                >
+                  <FiGrid size={14} /> Pipeline Kanban
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #3b82f6',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    backgroundColor: '#eff6ff',
+                    color: '#2563eb'
+                  }}
+                >
+                  <FiList size={14} /> Danh sách
+                </button>
+              </div>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            {candidates.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Bạn chưa có hồ sơ ứng viên nào.</div>
+            ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
@@ -288,30 +426,42 @@ const CandidateList = () => {
             </table>
           )}
         </div>
+      </div>
+        )}
 
       </div>
 
       {/* Reject Modal */}
       {showRejectModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#1e293b', fontSize: '1.2rem' }}>Đánh trượt Ứng viên</h3>
-            <p className="g-page-subtitle">Bạn đang đánh trượt ứng viên <strong>{selectedCandidate?.full_name}</strong>. Vui lòng chọn lý do từ danh mục chung.</p>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '440px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ margin: '0 0 12px 0', color: '#1e293b', fontSize: '1.2rem', fontWeight: 800 }}>Đánh trượt Ứng viên</h3>
+            <p className="g-page-subtitle" style={{ margin: '0 0 16px' }}>Bạn đang đánh trượt ứng viên <strong>{selectedCandidate?.full_name}</strong>. Vui lòng chọn lý do từ danh mục chung.</p>
             
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Lý do loại hồ sơ <span style={{ color: '#ef4444' }}>*</span></label>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Lý do loại hồ sơ <span style={{ color: '#ef4444' }}>*</span></label>
             <select 
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '8px', outline: 'none' }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '12px', outline: 'none' }}
             >
               <option value="">-- Chọn lý do --</option>
               {rejectionReasons.map(r => (
                 <option key={r.code} value={r.code}>{r.name}</option>
               ))}
             </select>
+
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Ghi chú chi tiết (Tùy chọn)</label>
+            <textarea
+              rows={3}
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              placeholder="Ghi chú chi tiết lý do loại..."
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '12px', outline: 'none', resize: 'vertical' }}
+            />
+
             {rejectError && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '16px' }}>{rejectError}</div>}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}>
               <button onClick={() => setShowRejectModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', cursor: 'pointer', fontWeight: '600' }}>Hủy</button>
               <button onClick={submitReject} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: '600' }}>Xác nhận Trượt</button>
             </div>
