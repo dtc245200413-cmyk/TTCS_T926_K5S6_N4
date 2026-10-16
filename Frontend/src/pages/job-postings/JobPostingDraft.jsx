@@ -21,7 +21,7 @@ import {
   FiUnderline
 } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('vi-VN') : '-';

@@ -32,6 +32,7 @@ const upload = multer({
 	}
 });
 
+router.get('/filter-options', controller.getPublicFilterOptions);
 router.get('/', controller.getPublicJobs);
 router.post('/track', controller.trackApplication);
 router.get('/track', controller.trackApplication);

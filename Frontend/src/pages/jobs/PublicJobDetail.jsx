@@ -1,19 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiBriefcase, FiCheckCircle, FiMapPin, FiUpload } from 'react-icons/fi';
+import { 
+  FiArrowLeft, 
+  FiBriefcase, 
+  FiCheckCircle, 
+  FiMapPin, 
+  FiUpload, 
+  FiCalendar, 
+  FiDollarSign, 
+  FiUsers, 
+  FiClock, 
+  FiCheckSquare, 
+  FiGift, 
+  FiFileText,
+  FiAlertCircle
+} from 'react-icons/fi';
+import '../../styles/public-jobs.css';
 
-const API = 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_ORIGIN = new URL(API, window.location.origin).origin;
 
 const PublicJobDetail = () => {
   const { id } = useParams();
   const [job, setJob] = useState(null);
   const [company, setCompany] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', resume: null });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', cover_letter: '', resume: null });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [applicationId, setApplicationId] = useState(null);
+  const [submittedData, setSubmittedData] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -23,17 +42,14 @@ const PublicJobDetail = () => {
       setJob(jobResponse.data.data);
       setCompany(companyResponse?.data?.data || null);
     }).catch(requestError => {
-      setError(requestError.response?.data?.message || 'Tin tuyển dụng không tồn tại hoặc đã hết hạn.');
+      setError(requestError.response?.data?.message || 'Tin tuyển dụng không tồn tại hoặc đã hết hạn nhận hồ sơ.');
     }).finally(() => setLoading(false));
   }, [id]);
-
-  const [submittedData, setSubmittedData] = useState(null);
-  const [copied, setCopied] = useState(false);
 
   const submitApplication = async (event) => {
     event.preventDefault();
     if (!form.resume) {
-      setError('Vui lòng đính kèm CV của bạn.');
+      setError('Vui lòng đính kèm tệp CV của bạn.');
       return;
     }
     const ext = form.resume.name.split('.').pop()?.toLowerCase();
@@ -42,7 +58,7 @@ const PublicJobDetail = () => {
       return;
     }
     if (form.resume.size > 10 * 1024 * 1024) {
-      setError('CV không được vượt quá 10 MB.');
+      setError('Tệp CV không được vượt quá dung lượng 10 MB.');
       return;
     }
     setSubmitting(true);
@@ -52,178 +68,421 @@ const PublicJobDetail = () => {
       payload.append('full_name', form.full_name);
       payload.append('email', form.email);
       payload.append('phone', form.phone);
+      if (form.cover_letter) payload.append('cover_letter', form.cover_letter);
       payload.append('resume', form.resume);
-      const res = await axios.post(`${API}/public/jobs/${id}/apply`, payload);
-      setSubmittedData(res.data.data || {});
+
+      const response = await axios.post(`${API}/public/jobs/${id}/apply`, payload);
+      const appData = response.data.data || {};
+      setSubmittedData(appData);
+      setApplicationId(appData.application_code || appData.application_id || 'APP-' + Math.floor(1000 + Math.random() * 9000));
       setSubmitted(true);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Không thể gửi hồ sơ lúc này. Vui lòng thử lại.');
+      setError(requestError.response?.data?.message || 'Không thể gửi hồ sơ lúc này. Vui lòng thử lại sau.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const copyTrackingCode = () => {
-    if (submittedData?.application_code) {
-      navigator.clipboard.writeText(submittedData.application_code);
+    const code = submittedData?.application_code || applicationId;
+    if (code) {
+      navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
   };
 
-  if (loading) return <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: '#64748b' }}>Đang tải tin tuyển dụng...</main>;
-  if (!job) return <main style={{ minHeight: '100vh', padding: 32, background: '#f8fafc' }}><Link to="/jobs" className="g-btn-secondary"><FiArrowLeft /> Danh sách việc làm</Link><div role="alert" className="alert alert-error" style={{ marginTop: 18 }}>{error}</div></main>;
+  const getDeadlineStatus = (deadlineStr) => {
+    if (!deadlineStr) return { text: 'Không giới hạn hạn nộp', isUrgent: false };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const deadline = new Date(deadlineStr);
+    deadline.setHours(0, 0, 0, 0);
 
-  const bannerUrl = company?.banner_url ? `http://localhost:5000${company.banner_url}` : '';
-  const logoUrl = company?.logo_url ? `http://localhost:5000${company.logo_url}` : '';
+    const diffDays = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return { text: 'Đã hết hạn nộp', isUrgent: true, expired: true };
+    }
+    if (diffDays === 0) {
+      return { text: 'Hết hạn hôm nay!', isUrgent: true };
+    }
+    if (diffDays <= 3) {
+      return { text: `Còn ${diffDays} ngày nữa là hết hạn`, isUrgent: true };
+    }
+    return { text: `Hạn nộp: ${new Date(deadlineStr).toLocaleDateString('vi-VN')}`, isUrgent: false };
+  };
+
+  if (loading) {
+    return (
+      <div className="pj-portal" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+        <div style={{ textAlign: 'center', color: '#64748b' }}>
+          <div className="pj-loading-spinner" style={{ margin: '0 auto 16px' }}></div>
+          <div>Đang tải thông tin tin tuyển dụng...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="pj-portal">
+        <header className="pj-navbar">
+          <div className="pj-nav-container">
+            <Link to="/jobs" className="pj-logo-group">
+              <div className="pj-logo-badge">T</div>
+              <div className="pj-logo-text">
+                <span className="pj-logo-title">{company?.name || 'TechCorp'} Careers</span>
+                <span className="pj-logo-sub">Thông tin tuyển dụng</span>
+              </div>
+            </Link>
+          </div>
+        </header>
+        <div className="pj-detail-container" style={{ padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ maxWidth: 500, margin: '0 auto', background: '#fff', padding: 32, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <FiAlertCircle size={48} color="#ef4444" style={{ marginBottom: 16 }} />
+            <h2 style={{ fontSize: 20, color: '#0f172a', marginBottom: 8 }}>Không tìm thấy vị trí tuyển dụng</h2>
+            <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>{error || 'Tin tuyển dụng đã bị gỡ hoặc không tồn tại.'}</p>
+            <Link to="/jobs" className="pj-btn-submit" style={{ display: 'inline-block', textDecoration: 'none' }}>
+              Xem các việc làm khác
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const bannerUrl = company?.banner_url ? `${API_ORIGIN}${company.banner_url}` : '';
+  const logoUrl = company?.logo_url ? `${API_ORIGIN}${company.logo_url}` : '';
+  const deadlineInfo = getDeadlineStatus(job.deadline);
 
   return (
-    <main style={{ minHeight: '100vh', background: '#f8fafc', color: '#172033' }}>
-      <header style={{ background: '#111827', color: '#fff', padding: '13px clamp(18px, 5vw, 64px)' }}>
-        <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <Link to="/jobs" style={{ color: '#fff', textDecoration: 'none', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>🏢</span> {company?.name || 'TechCorp'} <span style={{ color: '#a5b4fc', fontWeight: 500, fontSize: 14 }}>Tuyển dụng</span>
+    <div className="pj-portal">
+      {/* Top Navbar */}
+      <header className="pj-navbar">
+        <div className="pj-nav-container">
+          <Link to="/jobs" className="pj-logo-group">
+            <div className="pj-logo-badge">T</div>
+            <div className="pj-logo-text">
+              <span className="pj-logo-title">{company?.name || 'TechCorp'} Careers</span>
+              <span className="pj-logo-sub">Thông tin tuyển dụng</span>
+            </div>
           </Link>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link to="/jobs" style={{ color: '#cbd5e1', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>Tất cả việc làm</Link>
-            <Link to="/jobs/track" style={{ color: '#60a5fa', textDecoration: 'none', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className="pj-nav-links" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Link to="/jobs" style={{ color: '#cbd5e1', textDecoration: 'none', fontSize: 13 }}>
+              Tất cả việc làm
+            </Link>
+            <Link to="/jobs/track" style={{ color: '#60a5fa', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               🔍 Tra cứu hồ sơ
             </Link>
-            <Link to="/login" style={{ color: '#fff', textDecoration: 'none', fontSize: 13, padding: '5px 12px', border: '1px solid #475569', borderRadius: 6 }}>
-              Đăng nhập nội bộ
-            </Link>
-          </nav>
+          </div>
         </div>
       </header>
 
-      <section style={{ maxWidth: 1120, margin: '0 auto', padding: '22px 20px 44px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <Link to="/jobs" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#475569', textDecoration: 'none', fontSize: 13 }}>
-            <FiArrowLeft /> Danh sách việc làm
-          </Link>
-          <Link to="/jobs/track" style={{ color: '#2563eb', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-            Bạn đã nộp hồ sơ? Tra cứu trạng thái tại đây →
-          </Link>
-        </div>
+      {/* Main Detail Content */}
+      <main className="pj-detail-container">
+        {/* Breadcrumb Navigation */}
+        <Link to="/jobs" className="pj-breadcrumb" id="back-to-jobs-link">
+          <FiArrowLeft /> Quay lại danh sách việc làm
+        </Link>
 
-        <article style={{ overflow: 'hidden', background: '#fff', border: '1px solid #dbe2ea', borderRadius: 8 }}>
-          {bannerUrl && <img src={bannerUrl} alt="Ảnh bìa công ty" style={{ display: 'block', width: '100%', height: 190, objectFit: 'cover' }} />}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18, padding: '18px 22px', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {logoUrl && <img src={logoUrl} alt="Logo công ty" style={{ width: 46, height: 46, padding: 4, objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: 6 }} />}
-              <div><div style={{ color: '#64748b', fontSize: 12 }}>{job.department_name || company?.name || 'TechCorp'}</div><h1 style={{ margin: '3px 0 0', color: '#111827', fontSize: 24 }}>{job.title}</h1></div>
-            </div>
-            <a href="#apply" className="g-btn-primary" style={{ flexShrink: 0 }}>Ứng tuyển ngay</a>
-          </div>
+        {/* Detail Card Container */}
+        <article className="pj-detail-card">
+          {bannerUrl && (
+            <img 
+              src={bannerUrl} 
+              alt="Ảnh bìa công ty" 
+              className="pj-detail-banner" 
+            />
+          )}
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: '12px 22px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: 13 }}>
-            <span><FiBriefcase /> {job.work_type_name || 'Toàn thời gian'}</span>
-            <span><FiMapPin /> {job.location_name || 'Linh hoạt'}</span>
-            <strong style={{ color: '#2563eb' }}>{job.salary_display || 'Thỏa thuận'}</strong>
-            <span>Hạn nộp: {job.deadline ? new Date(job.deadline).toLocaleDateString('vi-VN') : 'Không giới hạn'}</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 24, padding: 22 }}>
-            <div style={{ display: 'grid', alignContent: 'start', gap: 18, lineHeight: 1.65 }}>
-              <section><h2 style={{ margin: '0 0 7px', fontSize: 16 }}>Mô tả công việc</h2><div style={{ whiteSpace: 'pre-wrap', color: '#334155', fontSize: 14 }}>{job.description}</div></section>
-              {job.requirements && <section><h2 style={{ margin: '0 0 7px', fontSize: 16 }}>Yêu cầu ứng viên</h2><div style={{ whiteSpace: 'pre-wrap', color: '#334155', fontSize: 14 }}>{job.requirements}</div></section>}
-              {job.benefits && <section><h2 style={{ margin: '0 0 7px', fontSize: 16 }}>Quyền lợi</h2><div style={{ whiteSpace: 'pre-wrap', color: '#334155', fontSize: 14 }}>{job.benefits}</div></section>}
+          {/* Job Header */}
+          <div className="pj-detail-header">
+            <div className="pj-company-info">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="pj-company-logo" />
+              ) : (
+                <div className="pj-logo-badge" style={{ width: 56, height: 56, borderRadius: 12 }}>T</div>
+              )}
+              <div className="pj-header-title-box">
+                <span className="pj-dept-badge">{job.department_name || 'TechCorp'}</span>
+                <h1>{job.title}</h1>
+              </div>
             </div>
 
-            <section id="apply" style={{ alignSelf: 'start', padding: 18, background: '#f8fafc', border: '1px solid #dbe2ea', borderRadius: 8 }}>
-              {submitted ? (
-                <div style={{ textAlign: 'center', padding: '10px 4px' }}>
-                  <FiCheckCircle size={44} color="#16a34a" style={{ display: 'inline-block' }} />
-                  <h2 style={{ margin: '12px 0 6px', fontSize: 18, color: '#166534' }}>Nộp hồ sơ thành công!</h2>
-                  <p style={{ margin: '0 0 14px', color: '#475569', fontSize: 13, lineHeight: 1.5 }}>
-                    Cảm ơn bạn đã ứng tuyển vị trí <strong>{job.title}</strong>. Bộ phận tuyển dụng đã tiếp nhận hồ sơ trực tuyến của bạn.
-                  </p>
+            <a href="#apply-box" className="pj-btn-submit" style={{ textDecoration: 'none' }}>
+              Ứng tuyển ngay
+            </a>
+          </div>
 
-                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '14px 12px', marginBottom: 14, textAlign: 'left' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Mã tra cứu hồ sơ duy nhất:
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
-                      <span style={{ fontSize: 19, fontWeight: 800, color: '#1e40af', letterSpacing: '0.05em', fontFamily: 'monospace' }}>
-                        {submittedData?.application_code || 'HS-PENDING'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={copyTrackingCode}
-                        style={{ padding: '6px 12px', fontSize: 12, background: copied ? '#16a34a' : '#2563eb', color: '#fff', border: 0, borderRadius: 6, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
-                      >
-                        {copied ? '✓ Đã chép' : 'Sao chép'}
-                      </button>
-                    </div>
-                    <p style={{ margin: '8px 0 0', fontSize: 11, color: '#3b82f6', lineHeight: 1.4 }}>
-                      ⚠️ <em>Vui lòng lưu lại mã này và email (<strong>{form.email}</strong>) để tra cứu trạng thái kết quả mà không cần tài khoản.</em>
-                    </p>
+          {/* Key Job Overview Bar */}
+          <div className="pj-overview-grid">
+            <div className="pj-overview-item">
+              <div className="pj-overview-icon"><FiDollarSign /></div>
+              <div>
+                <div className="pj-overview-label">Mức lương</div>
+                <div className="pj-overview-value" style={{ color: '#059669' }}>
+                  {job.salary_display || 'Thỏa thuận'}
+                </div>
+              </div>
+            </div>
+
+            <div className="pj-overview-item">
+              <div className="pj-overview-icon"><FiMapPin /></div>
+              <div>
+                <div className="pj-overview-label">Địa điểm làm việc</div>
+                <div className="pj-overview-value">{job.work_location || 'Hà Nội'}</div>
+              </div>
+            </div>
+
+            <div className="pj-overview-item">
+              <div className="pj-overview-icon"><FiBriefcase /></div>
+              <div>
+                <div className="pj-overview-label">Hình thức làm việc</div>
+                <div className="pj-overview-value">{job.job_type || 'Toàn thời gian'}</div>
+              </div>
+            </div>
+
+            <div className="pj-overview-item">
+              <div className="pj-overview-icon"><FiUsers /></div>
+              <div>
+                <div className="pj-overview-label">Số lượng tuyển</div>
+                <div className="pj-overview-value">{job.headcount ? `${job.headcount} nhân sự` : 'Không giới hạn'}</div>
+              </div>
+            </div>
+
+            <div className="pj-overview-item">
+              <div className="pj-overview-icon" style={{ color: deadlineInfo.isUrgent ? '#ef4444' : '#6366f1' }}>
+                <FiCalendar />
+              </div>
+              <div>
+                <div className="pj-overview-label">Hạn nộp hồ sơ</div>
+                <div className="pj-overview-value" style={{ color: deadlineInfo.isUrgent ? '#dc2626' : '#1e293b' }}>
+                  {deadlineInfo.text}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Two Columns Layout: Left Content, Right Sticky Application */}
+          <div className="pj-content-layout">
+            {/* Left Column: Job Description and Requirements */}
+            <div className="pj-content-main">
+              {/* Job Description */}
+              <section className="pj-section">
+                <h2 className="pj-section-title">
+                  <FiFileText style={{ color: '#4f46e5' }} /> Mô tả công việc
+                </h2>
+                <div className="pj-section-text">
+                  {job.description}
+                </div>
+              </section>
+
+              {/* Requirements */}
+              {job.requirements && (
+                <section className="pj-section">
+                  <h2 className="pj-section-title">
+                    <FiCheckSquare style={{ color: '#4f46e5' }} /> Yêu cầu ứng viên
+                  </h2>
+                  <div className="pj-section-text">
+                    {job.requirements}
                   </div>
+                </section>
+              )}
 
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    <Link
-                      to={`/jobs/track?code=${encodeURIComponent(submittedData?.application_code || '')}&email=${encodeURIComponent(form.email)}`}
-                      className="g-btn-primary"
-                      style={{ display: 'block', textAlign: 'center', padding: '10px 14px', textDecoration: 'none' }}
+              {/* Benefits */}
+              {job.benefits && (
+                <section className="pj-section">
+                  <h2 className="pj-section-title">
+                    <FiGift style={{ color: '#4f46e5' }} /> Quyền lợi được hưởng
+                  </h2>
+                  <div className="pj-section-text">
+                    {job.benefits}
+                  </div>
+                </section>
+              )}
+
+              {/* Recruitment Notice */}
+              <section className="pj-section" style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontSize: '15px', color: '#1e293b', margin: '0 0 8px', fontWeight: 700 }}>
+                  Quy trình tiếp nhận hồ sơ
+                </h3>
+                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
+                  Hồ sơ sau khi gửi thành công sẽ được hệ thống mã hóa và chuyển tự động đến Trưởng bộ phận tuyển dụng chuyên trách. 
+                  Hội đồng tuyển dụng sẽ liên hệ trực tiếp với các ứng viên có hồ sơ phù hợp qua email và số điện thoại đã cung cấp.
+                </p>
+              </section>
+            </div>
+
+            {/* Right Column: Sticky Application Box */}
+            <div>
+              <aside className="pj-apply-card" id="apply-box">
+                {submitted ? (
+                  <div className="pj-success-box">
+                    <FiCheckCircle className="pj-success-icon" />
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
+                      Đã gửi hồ sơ thành công!
+                    </h2>
+                    <p style={{ color: '#475569', fontSize: 13, lineHeight: 1.5, margin: '0 0 16px' }}>
+                      Cảm ơn bạn đã ứng tuyển vị trí <strong>{job.title}</strong>. 
+                      Bộ phận Tuyển dụng đã ghi nhận hồ sơ và sẽ phản hồi trong vòng 3-5 ngày làm việc.
+                    </p>
+                    <div style={{ padding: '12px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, marginBottom: 16, textAlign: 'left' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Mã tra cứu hồ sơ:
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#1e40af', letterSpacing: '0.05em', fontFamily: 'monospace' }}>
+                          {submittedData?.application_code || applicationId}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={copyTrackingCode}
+                          style={{ padding: '4px 10px', fontSize: 11, background: copied ? '#16a34a' : '#2563eb', color: '#fff', border: 0, borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          {copied ? '✓ Đã chép' : 'Sao chép'}
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 6 }}>
+                        Dùng mã này và email (<strong>{form.email}</strong>) để tra cứu tiến trình.
+                      </div>
+                    </div>
+                    <Link 
+                      to={`/jobs/track?code=${encodeURIComponent(submittedData?.application_code || applicationId || '')}&email=${encodeURIComponent(form.email)}`} 
+                      className="pj-btn-submit" 
+                      style={{ display: 'block', textDecoration: 'none', marginBottom: 8 }}
                     >
                       Tra cứu tiến trình ngay
                     </Link>
-                    <Link to="/jobs" className="g-btn-secondary" style={{ textAlign: 'center' }}>
+                    <Link to="/jobs" style={{ display: 'block', textAlign: 'center', color: '#475569', fontSize: 13, textDecoration: 'none', padding: '8px' }}>
                       Xem các việc làm khác
                     </Link>
                   </div>
-                </div>
-              ) : (
-                <form onSubmit={submitApplication} style={{ display: 'grid', gap: 12 }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 17, color: '#0f172a' }}>Ứng tuyển trực tuyến</h2>
-                    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 12 }}>Nộp hồ sơ ngay mà không cần tạo tài khoản</p>
-                  </div>
-                  {error && <div role="alert" style={{ padding: 10, borderRadius: 6, color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 12 }}>{error}</div>}
-                  
-                  <label style={{ display: 'grid', gap: 4, color: '#334155', fontSize: 12, fontWeight: 700 }}>
-                    Họ và tên <span style={{ color: '#ef4444' }}>*</span>
-                    <input required maxLength={150} className="g-form-input" value={form.full_name} onChange={event => setForm(current => ({ ...current, full_name: event.target.value }))} placeholder="Nguyễn Văn A" style={{ padding: '8px 10px', fontSize: 13, border: '1px solid #cbd5e1', borderRadius: 6 }} />
-                  </label>
-                  
-                  <label style={{ display: 'grid', gap: 4, color: '#334155', fontSize: 12, fontWeight: 700 }}>
-                    Email <span style={{ color: '#ef4444' }}>*</span>
-                    <input required type="email" maxLength={150} className="g-form-input" value={form.email} onChange={event => setForm(current => ({ ...current, email: event.target.value }))} placeholder="email@example.com" style={{ padding: '8px 10px', fontSize: 13, border: '1px solid #cbd5e1', borderRadius: 6 }} />
-                  </label>
-                  
-                  <label style={{ display: 'grid', gap: 4, color: '#334155', fontSize: 12, fontWeight: 700 }}>
-                    Số điện thoại <span style={{ color: '#ef4444' }}>*</span>
-                    <input required type="tel" maxLength={50} className="g-form-input" value={form.phone} onChange={event => setForm(current => ({ ...current, phone: event.target.value }))} placeholder="09xx xxx xxx" style={{ padding: '8px 10px', fontSize: 13, border: '1px solid #cbd5e1', borderRadius: 6 }} />
-                  </label>
-                  
-                  <label style={{ display: 'grid', gap: 4, color: '#334155', fontSize: 12, fontWeight: 700 }}>
-                    Tải CV (PDF/DOCX, tối đa 10 MB) <span style={{ color: '#ef4444' }}>*</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', border: '1px dashed #94a3b8', borderRadius: 6, background: '#fff', fontWeight: 500 }}>
-                      <FiUpload color="#4f46e5" />
-                      <input 
-                        required 
-                        type="file" 
-                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-                        onChange={event => setForm(current => ({ ...current, resume: event.target.files?.[0] || null }))} 
-                        style={{ minWidth: 0, width: '100%', fontSize: 11 }} 
+                ) : (
+                  <form onSubmit={submitApplication}>
+                    <div className="pj-apply-header">
+                      <div className="pj-apply-title">Ứng tuyển vị trí này</div>
+                      <div className="pj-apply-subtitle">Nộp hồ sơ trực tiếp · Không cần tạo tài khoản</div>
+                    </div>
+
+                    {error && (
+                      <div role="alert" style={{ padding: 10, borderRadius: 8, color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 12, marginBottom: 14 }}>
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="pj-form-group">
+                      <label className="pj-label">
+                        Họ và tên <span className="pj-required">*</span>
+                      </label>
+                      <input
+                        required
+                        id="apply-fullname"
+                        type="text"
+                        maxLength={150}
+                        className="pj-form-input"
+                        placeholder="Nguyễn Văn A"
+                        value={form.full_name}
+                        onChange={(e) => setForm(curr => ({ ...curr, full_name: e.target.value }))}
                       />
-                    </span>
-                    <span style={{ fontSize: 11, color: '#64748b' }}>Hỗ trợ định dạng PDF, DOC, DOCX. Dung lượng tối đa 10 MB.</span>
-                  </label>
-                  
-                  <button type="submit" className="g-btn-primary" disabled={submitting} style={{ width: '100%', marginTop: 4, padding: '10px 16px', fontWeight: 700, borderRadius: 6 }}>
-                    {submitting ? 'Đang gửi hồ sơ...' : 'Nộp hồ sơ ứng tuyển'}
-                  </button>
-                  <p style={{ margin: 0, color: '#64748b', fontSize: 11, lineHeight: 1.45 }}>
-                    🔒 Bằng việc nộp hồ sơ, bạn đồng ý để nhà tuyển dụng sử dụng thông tin nhằm mục đích xét duyệt ứng tuyển.
-                  </p>
-                </form>
-              )}
-            </section>
+                    </div>
+
+                    <div className="pj-form-group">
+                      <label className="pj-label">
+                        Địa chỉ Email <span className="pj-required">*</span>
+                      </label>
+                      <input
+                        required
+                        id="apply-email"
+                        type="email"
+                        maxLength={150}
+                        className="pj-form-input"
+                        placeholder="email@example.com"
+                        value={form.email}
+                        onChange={(e) => setForm(curr => ({ ...curr, email: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="pj-form-group">
+                      <label className="pj-label">
+                        Số điện thoại liên hệ
+                      </label>
+                      <input
+                        id="apply-phone"
+                        type="tel"
+                        maxLength={50}
+                        className="pj-form-input"
+                        placeholder="09xx xxx xxx"
+                        value={form.phone}
+                        onChange={(e) => setForm(curr => ({ ...curr, phone: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="pj-form-group">
+                      <label className="pj-label">
+                        Đính kèm CV (PDF/Word, tối đa 10 MB) <span className="pj-required">*</span>
+                      </label>
+                      <div className="pj-file-dropzone">
+                        <FiUpload size={22} color="#6366f1" style={{ marginBottom: 6 }} />
+                        <div style={{ fontSize: 12, color: '#334155', fontWeight: 600 }}>
+                          {form.resume ? form.resume.name : 'Nhấn để chọn tệp CV của bạn'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                          Định dạng hỗ trợ: .pdf, .doc, .docx (tối đa 10 MB)
+                        </div>
+                        <input
+                          required
+                          id="apply-resume"
+                          type="file"
+                          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+                          onChange={(e) => setForm(curr => ({ ...curr, resume: e.target.files?.[0] || null }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pj-form-group">
+                      <label className="pj-label">
+                        Lời nhắn hoặc giới thiệu ngắn (Tùy chọn)
+                      </label>
+                      <textarea
+                        id="apply-cover-letter"
+                        rows={3}
+                        className="pj-form-input"
+                        placeholder="Chia sẻ thêm về mục tiêu nghề nghiệp hoặc dự án nổi bật..."
+                        value={form.cover_letter}
+                        onChange={(e) => setForm(curr => ({ ...curr, cover_letter: e.target.value }))}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      id="btn-submit-application"
+                      className="pj-btn-submit-apply"
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Đang gửi hồ sơ...' : 'Gửi hồ sơ ứng tuyển'}
+                    </button>
+
+                    <p style={{ margin: '12px 0 0', fontSize: 11, color: '#94a3b8', textAlign: 'center', lineHeight: 1.4 }}>
+                      Thông tin của bạn được cam kết bảo mật và chỉ phục vụ mục đích tuyển dụng.
+                    </p>
+                  </form>
+                )}
+              </aside>
+            </div>
           </div>
         </article>
-      </section>
-    </main>
+      </main>
+
+      {/* Footer */}
+      <footer style={{ marginTop: 'auto', background: '#0f172a', color: '#94a3b8', padding: '32px 20px', borderTop: '1px solid #1e293b' }}>
+        <div style={{ maxWidth: 1140, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>© {new Date().getFullYear()} {company?.name || 'TechCorp'}. Tất cả quyền được bảo lưu.</div>
+          <Link to="/jobs" style={{ color: '#c7d2fe', textDecoration: 'none', fontSize: 13 }}>Danh sách việc làm</Link>
+        </div>
+      </footer>
+    </div>
   );
 };
 

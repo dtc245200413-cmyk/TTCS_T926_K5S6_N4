@@ -35,7 +35,8 @@ app.use(cors({
     'http://localhost:5174'
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition']
 }));
 
 // ── Health Check ─────────────────────────────────────────────
@@ -78,15 +79,12 @@ const masterDataRoutes = require('./routes/masterDataRoutes');
 app.use('/api/master-data', masterDataRoutes);
 
 const candidateRoutes = require('./routes/candidateRoutes');
-const candidateProfileRoutes = require('./routes/candidateProfileRoutes');
 const auditLogRoutes = require('./routes/auditLogRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-app.use('/api/candidates', candidateProfileRoutes);
 app.use('/api/candidates', candidateRoutes);
 
 app.use('/api/competency-frameworks', competencyFrameworkRoutes);
 app.use('/api/interview-questions', interviewQuestionRoutes);
-app.use('/api/interview-schedules', require('./routes/interviewScheduleRoutes'));
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
 

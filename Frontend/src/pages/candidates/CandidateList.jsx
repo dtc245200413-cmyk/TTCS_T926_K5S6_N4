@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers } from 'react-icons/fi';
+import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
+import candidateApi from '../../api/candidateApi';
+import CandidateRatingModal from '../../components/CandidateRatingModal';
 import { getCandidateCvData } from '../../utils/candidateCvHelper';
 import { candidateProfileAccess } from '../../utils/candidateProfile';
 import CandidateKanbanBoard from '../../components/candidates/CandidateKanbanBoard';
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
+  const { canManage } = candidateProfileAccess(user);
+  const canRate = canManage;
+  const canViewRatings = candidateProfileAccess(user).canView;
+
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
@@ -24,6 +30,13 @@ const CandidateList = () => {
   const [showCvModal, setShowCvModal] = useState(false);
   const [viewingCandidate, setViewingCandidate] = useState(null);
   const [cvData, setCvData] = useState(null);
+
+  // Candidate rating states (SCRUM-129)
+  const [ratingCandidate, setRatingCandidate] = useState(null);
+  const [ratingSummaries, setRatingSummaries] = useState({});
+  const [ratingUpdates, setRatingUpdates] = useState({});
+  const [ratingNotice, setRatingNotice] = useState('');
+  const [summaryAttempt, setSummaryAttempt] = useState(0);
 
   const fetchCandidates = async () => {
     try {
@@ -70,6 +83,59 @@ const CandidateList = () => {
     fetchRejectionReasons();
     fetchActiveMerges();
   }, []);
+
+  // Background rating fetch
+  useEffect(() => {
+    if (!canViewRatings || !candidates.length) return;
+    const controller = new AbortController();
+    candidates.forEach(async (candidate) => {
+      try {
+        const response = await candidateApi.getRatings(candidate.id, controller.signal);
+        const { average_rating, rating_count } = response.data.data;
+        setRatingSummaries(current => ({ ...current, [candidate.id]: { average_rating, rating_count } }));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setRatingSummaries(current => ({ ...current, [candidate.id]: { error: error.response?.data?.message || 'Không thể tải điểm đánh giá.' } }));
+        }
+      }
+    });
+    return () => controller.abort();
+  }, [candidates, canViewRatings, user?.user_id, summaryAttempt]);
+
+  const renderRatingSummary = candidate => {
+    const summary = ratingUpdates[candidate.id] || ratingSummaries[candidate.id];
+    if (!summary) return <span style={{ color: '#94a3b8', fontSize: 12 }}>Đang tải...</span>;
+    if (summary.error) {
+      return (
+        <div style={{ fontSize: 12, color: '#ef4444' }}>
+          <span>{summary.error}</span>{' '}
+          <button type="button" onClick={() => setSummaryAttempt(value => value + 1)} style={{ textDecoration: 'underline', background: 'none', border: 0, color: '#2563eb', cursor: 'pointer', fontSize: 11 }}>Tải lại</button>
+        </div>
+      );
+    }
+    if (!summary.rating_count || summary.average_rating == null) {
+      return <span style={{ color: '#94a3b8', fontSize: 12 }}>Chưa có đánh giá</span>;
+    }
+    const average = Number(summary.average_rating);
+    const filled = Math.min(5, Math.max(0, Math.round(average)));
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+        <span style={{ color: '#f59e0b' }}>{'★'.repeat(filled)}{'☆'.repeat(5 - filled)}</span>
+        <span style={{ fontWeight: 600, color: '#1e293b' }}>{average.toFixed(1)}</span>
+        <span style={{ color: '#64748b' }}>({summary.rating_count})</span>
+      </div>
+    );
+  };
+
+  const handleRatingSaved = (candidateId, data) => {
+    setRatingUpdates(current => ({
+      ...current,
+      [candidateId]: { average_rating: data.average_rating, rating_count: data.rating_count }
+    }));
+    setRatingCandidate(null);
+    setRatingNotice('Đã lưu đánh giá thành công.');
+    setTimeout(() => setRatingNotice(''), 4000);
+  };
 
   const undoCandidateMerge = async (merge) => {
     if (!window.confirm(`Hoàn tác gộp ${merge.secondary_name} khỏi hồ sơ ${merge.primary_name}?`)) return;
@@ -189,7 +255,7 @@ const CandidateList = () => {
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
-        {/* Header (Exact match to screenshot) */}
+        {/* Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -338,95 +404,132 @@ const CandidateList = () => {
               </div>
             </div>
 
+            {canViewRatings && ratingNotice && (
+              <div style={{ padding: '10px 14px', background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: 8, fontSize: 13 }}>
+                {ratingNotice}
+              </div>
+            )}
+
             <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            {candidates.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Bạn chưa có hồ sơ ứng viên nào.</div>
-            ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Họ Tên</th>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Email</th>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Vị trí ứng tuyển</th>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nguồn (Master Data)</th>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>CV</th>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Trạng thái</th>
-                  <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidates.map(cand => (
-                  <tr key={cand.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '16px', color: '#1e293b', fontWeight: '600' }}>{cand.full_name}</td>
-                    <td style={{ padding: '16px', color: '#475569' }}>{cand.email}</td>
-                    <td style={{ padding: '16px', color: '#475569' }}>
-                      {cand.position_name ? `${cand.position_name} - ${cand.department_name}` : 'N/A'}
-                    </td>
-                    <td style={{ padding: '16px', color: '#4f46e5', fontWeight: '600' }}>
-                      {candidateSources.find(s => s.code === cand.source_code)?.name || cand.source_code || '-'}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      {cand.resume_url ? (
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <button 
-                            type="button" 
-                            onClick={() => openCvModal(cand)} 
-                            className="btn-action-view"
-                            style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1' }}
-                            title="Xem trước CV"
-                          >
-                            <FiEye /> Xem CV
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => downloadResume(cand)} 
-                            className="btn-action-view"
-                            title="Tải tệp PDF CV"
-                          >
-                            <FiDownload /> Tải CV
-                          </button>
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      {getStatusBadge(cand.status)}
-                      {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>Quá SLA</span>}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      {candidateProfileAccess(user).canView && (
-                        <Link to={`/candidates/${cand.id}`} style={{ display: 'inline-block', marginBottom: '8px', color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
-                      )}
-                      {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
-                            <button 
-                              onClick={() => handleHire(cand)}
-                              style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
-                            >
-                              Tuyển dụng
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleOpenReject(cand)}
-                            style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
-                          >
-                            Đánh trượt
-                          </button>
-                        </div>
-                      )}
-                      {cand.status === 'REJECTED' && cand.rejection_reason_code && (
-                        <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
-                          Lý do: {rejectionReasons.find(r => r.code === cand.rejection_reason_code)?.name || cand.rejection_reason_code}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+              {candidates.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Bạn chưa có hồ sơ ứng viên nào.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Họ Tên</th>
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Email</th>
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Vị trí ứng tuyển</th>
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nguồn (Master Data)</th>
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>CV</th>
+                      {canViewRatings && <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Đánh giá</th>}
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Trạng thái</th>
+                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {candidates.map(cand => (
+                      <tr key={cand.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '16px', color: '#1e293b', fontWeight: '600' }}>{cand.full_name}</td>
+                        <td style={{ padding: '16px', color: '#475569' }}>{cand.email}</td>
+                        <td style={{ padding: '16px', color: '#475569' }}>
+                          {cand.position_name ? `${cand.position_name} - ${cand.department_name}` : 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px', color: '#4f46e5', fontWeight: '600' }}>
+                          {candidateSources.find(s => s.code === cand.source_code)?.name || cand.source_code || '-'}
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          {cand.resume_url ? (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button 
+                                type="button" 
+                                onClick={() => openCvModal(cand)} 
+                                className="btn-action-view"
+                                style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1' }}
+                                title="Xem trước CV"
+                              >
+                                <FiEye /> Xem CV
+                              </button>
+                              <button 
+                                type="button" 
+                                onClick={() => downloadResume(cand)} 
+                                className="btn-action-view"
+                                style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1' }}
+                                title="Tải tệp PDF CV"
+                              >
+                                <FiDownload /> Tải CV
+                              </button>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        {canViewRatings && (
+                          <td style={{ padding: '16px' }}>
+                            {renderRatingSummary(cand)}
+                          </td>
+                        )}
+                        <td style={{ padding: '16px' }}>
+                          {getStatusBadge(cand.status)}
+                          {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>Quá SLA</span>}
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            {candidateProfileAccess(user).canView && (
+                              <Link to={`/candidates/${cand.id}`} style={{ color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
+                            )}
+                            {canViewRatings && (
+                              <button
+                                type="button"
+                                onClick={() => setRatingCandidate(cand)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fde68a',
+                                  background: '#fefce8',
+                                  color: '#b45309',
+                                  cursor: 'pointer',
+                                  fontWeight: '600',
+                                  fontSize: '0.8rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                                title="Đánh giá ứng viên"
+                              >
+                                <FiStar size={12} /> {canRate ? 'Đánh giá' : 'Xem điểm'}
+                              </button>
+                            )}
+                            {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
+                              <>
+                                {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
+                                  <button 
+                                    onClick={() => handleHire(cand)}
+                                    style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#16a34a', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                                  >
+                                    Tuyển dụng
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => handleOpenReject(cand)}
+                                  style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                                >
+                                  Đánh trượt
+                                </button>
+                              </>
+                            )}
+                            {cand.status === 'REJECTED' && cand.rejection_reason_code && (
+                              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
+                                Lý do: {rejectionReasons.find(r => r.code === cand.rejection_reason_code)?.name || cand.rejection_reason_code}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         )}
 
       </div>
@@ -469,7 +572,7 @@ const CandidateList = () => {
         </div>
       )}
 
-      {/* CV Preview Modal matching Images 1 & 2 */}
+      {/* CV Preview Modal */}
       {showCvModal && cvData && (
         <div style={{
           position: 'fixed',
@@ -547,7 +650,7 @@ const CandidateList = () => {
               </div>
             </div>
 
-            {/* Modal Scrollable Body - EXACT visual from Images 1 & 2 */}
+            {/* Modal Scrollable Body */}
             <div style={{ padding: '32px 40px', overflowY: 'auto' }}>
               <div style={{ maxWidth: '740px', margin: '0 auto', fontFamily: 'inherit' }}>
                 {/* Breadcrumb */}
@@ -775,6 +878,16 @@ const CandidateList = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Candidate Rating Modal */}
+      {ratingCandidate && (
+        <CandidateRatingModal
+          candidate={ratingCandidate}
+          canRate={canRate}
+          onClose={() => setRatingCandidate(null)}
+          onRatingSaved={data => handleRatingSaved(ratingCandidate.id, data)}
+        />
       )}
     </div>
   );

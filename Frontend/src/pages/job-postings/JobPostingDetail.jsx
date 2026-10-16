@@ -3,28 +3,35 @@ import axios from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   FiAlertCircle,
+  FiAlertTriangle,
+  FiArrowLeft,
   FiBriefcase,
   FiCalendar,
   FiCheck,
+  FiClock,
   FiDollarSign,
   FiExternalLink,
   FiEye,
+  FiEyeOff,
   FiGlobe,
   FiMapPin,
+  FiSend,
   FiTag,
-  FiX
+  FiX,
+  FiXCircle
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const statusLabels = {
-  DRAFT: 'Bản nháp',
-  PENDING_REVIEW: 'Chờ duyệt',
-  APPROVED: 'Đã duyệt',
-  PUBLISHED: 'Đã xuất bản',
-  REJECTED: 'Yêu cầu chỉnh sửa',
-  CLOSED: 'Đã đóng'
+const statusLabels = { 
+  DRAFT: 'Bản nháp', 
+  PENDING_REVIEW: 'Chờ duyệt', 
+  APPROVED: 'Đã duyệt', 
+  PUBLISHED: 'Đang xuất bản', 
+  HIDDEN: 'Đang ẩn', 
+  REJECTED: 'Yêu cầu chỉnh sửa', 
+  CLOSED: 'Đã gỡ' 
 };
 
 const statusColors = {
@@ -34,15 +41,29 @@ const statusColors = {
   REJECTED: { background: '#fee2e2', color: '#ef4444', border: '#fecaca' },
   APPROVED: { background: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
   PUBLISHED: { background: '#dcfce7', color: '#16a34a', border: '#bbf7d0' },
+  HIDDEN: { background: '#f5f3ff', color: '#7c3aed', border: '#ddd6fe' },
   CLOSED: { background: '#f1f5f9', color: '#64748b', border: '#e2e8f0' }
 };
-
 const formatDate = value => value ? new Date(value).toLocaleDateString('vi-VN') : '-';
+
+const isExpired = (deadlineStr) => {
+  if (!deadlineStr) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadline = new Date(deadlineStr);
+  deadline.setHours(0, 0, 0, 0);
+  return deadline < today;
+};
 
 const JobPostingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+
+  const isRecruiterOrAdmin = user?.roles?.some(role => ['ADMIN', 'RECRUITER'].includes(role.role_code));
+  const hasPostingPermission = user?.permissions?.includes('JOB_POSTING_CLOSE');
+  const canManagePostings = isRecruiterOrAdmin && hasPostingPermission;
+
   const canReview = user?.roles?.some(role => ['ADMIN', 'HR_MANAGER'].includes(role.role_code));
 
   const [posting, setPosting] = useState(null);
@@ -50,7 +71,6 @@ const JobPostingDetail = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-
   // Tab: 'CONTENT' (Nội dung) | 'PREVIEW' (Xem trước hiển thị)
   const [activeTab, setActiveTab] = useState('CONTENT');
 
@@ -60,6 +80,11 @@ const JobPostingDetail = () => {
 
   // Modal 7: Xuất bản thành công
   const [publishSuccessModal, setPublishSuccessModal] = useState(false);
+
+  const showNotification = (msg) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 4000);
+  };
 
   const loadPosting = async () => {
     try {
@@ -86,7 +111,7 @@ const JobPostingDetail = () => {
       await axios.patch(`${API}/job-postings/${id}/review`, { approved: true, note: '' }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setSuccessMsg('Tin tuyển dụng đã được phê duyệt thành công!');
+      showNotification('Tin tuyển dụng đã được phê duyệt thành công!');
       await loadPosting();
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể phê duyệt tin.');
@@ -108,7 +133,7 @@ const JobPostingDetail = () => {
       await axios.patch(`${API}/job-postings/${id}/review`, { approved: false, note: rejectReason }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setSuccessMsg('Đã trả lại tin tuyển dụng để nhân viên chỉnh sửa.');
+      showNotification('Đã trả lại tin tuyển dụng để nhân viên chỉnh sửa.');
       setRejectModalOpen(false);
       setRejectReason('');
       await loadPosting();
@@ -132,6 +157,70 @@ const JobPostingDetail = () => {
       await loadPosting();
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể xuất bản tin.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Recruiter action: Ẩn tin
+  const handleHide = async () => {
+    if (!window.confirm(`Ẩn tin "${posting?.title}" khỏi trang tuyển dụng công khai?\nỨng viên sẽ không tìm thấy hoặc xem được tin này cho đến khi bạn mở lại.`)) {
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await axios.patch(`${API}/job-postings/${id}/hide`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      showNotification('Đã ẩn tin tuyển dụng khỏi trang công khai thành công.');
+      await loadPosting();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Không thể ẩn tin tuyển dụng.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Recruiter action: Hiện lại tin
+  const handleUnhide = async () => {
+    if (!window.confirm(`Hiển thị lại tin "${posting?.title}" lên trang tuyển dụng công khai?`)) {
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await axios.patch(`${API}/job-postings/${id}/unhide`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      showNotification('Đã hiển thị lại tin tuyển dụng trên trang công khai.');
+      await loadPosting();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Không thể hiển thị lại tin tuyển dụng.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Recruiter action: Gỡ tin
+  const handleClose = async () => {
+    const expired = isExpired(posting?.deadline);
+    const confirmMsg = expired 
+      ? `Gỡ tin đã hết hiệu lực "${posting?.title}" khỏi trang công khai?`
+      : `Gỡ vĩnh viễn tin "${posting?.title}" khỏi trang tuyển dụng công khai?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setSaving(true);
+    setError('');
+    try {
+      await axios.patch(`${API}/job-postings/${id}/close`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      showNotification('Đã gỡ tin tuyển dụng khỏi trang công khai thành công.');
+      await loadPosting();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Không thể gỡ tin tuyển dụng.');
     } finally {
       setSaving(false);
     }
@@ -436,6 +525,96 @@ const JobPostingDetail = () => {
             >
               <FiGlobe /> Xem trên trang công khai
             </a>
+          )}
+
+          {posting.status === 'PUBLISHED' && (
+            <>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleHide}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '9px 18px',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#7c3aed',
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  cursor: 'pointer'
+                }}
+              >
+                <FiEyeOff /> Ẩn tin
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleClose}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '9px 18px',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#dc2626',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  cursor: 'pointer'
+                }}
+              >
+                <FiXCircle /> Gỡ tin
+              </button>
+            </>
+          )}
+
+          {posting.status === 'HIDDEN' && (
+            <>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleUnhide}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '9px 18px',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#2563eb',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  cursor: 'pointer'
+                }}
+              >
+                <FiEye /> Hiện lại tin
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleClose}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '9px 18px',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#dc2626',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  cursor: 'pointer'
+                }}
+              >
+                <FiXCircle /> Gỡ tin
+              </button>
+            </>
           )}
         </div>
       </div>

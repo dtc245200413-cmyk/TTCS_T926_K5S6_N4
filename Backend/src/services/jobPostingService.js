@@ -176,8 +176,78 @@ async function publish(id, userId, ipAddress) {
   return repository.findById(id);
 }
 
+async function hide(id, userId, ipAddress) {
+  const posting = await repository.findById(id);
+  if (!posting) throw httpError('Không tìm thấy tin tuyển dụng.', 404);
+  if (posting.status === 'CLOSED') {
+    throw httpError('Tin tuyển dụng đã bị gỡ, không thể ẩn.', 400);
+  }
+  if (posting.status !== 'PUBLISHED') {
+    throw httpError('Chỉ có thể ẩn tin tuyển dụng đang xuất bản.', 400);
+  }
+  await repository.hide(id, userId);
+  await auditRepository.createLog({
+    userId,
+    performedBy: userId,
+    action: 'JOB_POSTING_HIDDEN',
+    entityType: 'job_postings',
+    entityId: String(id),
+    description: `Ẩn tin tuyển dụng khỏi trang công khai: ${posting.title}`,
+    ipAddress
+  });
+  return repository.findById(id);
+}
+
+async function unhide(id, userId, ipAddress) {
+  const posting = await repository.findById(id);
+  if (!posting) throw httpError('Không tìm thấy tin tuyển dụng.', 404);
+  if (posting.status !== 'HIDDEN') {
+    throw httpError('Chỉ có thể bỏ ẩn tin đang ở trạng thái ẩn.', 400);
+  }
+  if (posting.deadline && new Date(posting.deadline) < new Date(new Date().setHours(0, 0, 0, 0))) {
+    throw httpError('Tin tuyển dụng đã hết hạn nộp hồ sơ, không thể hiển thị lại. Vui lòng gia hạn trước.', 400);
+  }
+  await repository.unhide(id);
+  await auditRepository.createLog({
+    userId,
+    performedBy: userId,
+    action: 'JOB_POSTING_UNHIDDEN',
+    entityType: 'job_postings',
+    entityId: String(id),
+    description: `Hiển thị lại tin tuyển dụng trên trang công khai: ${posting.title}`,
+    ipAddress
+  });
+  return repository.findById(id);
+}
+
+async function close(id, userId, ipAddress) {
+  const posting = await repository.findById(id);
+  if (!posting) throw httpError('Không tìm thấy tin tuyển dụng.', 404);
+  if (posting.status === 'CLOSED') {
+    throw httpError('Tin tuyển dụng đã được gỡ trước đó.', 400);
+  }
+  if (!['PUBLISHED', 'HIDDEN'].includes(posting.status)) {
+    throw httpError('Chỉ có thể gỡ tin đang xuất bản hoặc đang ẩn.', 400);
+  }
+  await repository.close(id);
+  await auditRepository.createLog({
+    userId,
+    performedBy: userId,
+    action: 'JOB_POSTING_CLOSED',
+    entityType: 'job_postings',
+    entityId: String(id),
+    description: `Gỡ tin tuyển dụng khỏi trang công khai: ${posting.title}`,
+    ipAddress
+  });
+  return repository.findById(id);
+}
+
 async function getPublicJobs(filters) {
   return repository.findPublic(filters);
+}
+
+async function getPublicFilterOptions() {
+  return repository.findPublicFilterOptions();
 }
 
 async function getPublicJob(id) {
@@ -381,7 +451,11 @@ module.exports = {
   submit,
   review,
   publish,
+  hide,
+  unhide,
+  close,
   getPublicJobs,
+  getPublicFilterOptions,
   getPublicJob,
   applyToPublicJob,
   trackApplication

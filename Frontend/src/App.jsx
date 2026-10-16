@@ -43,7 +43,7 @@ import CompanyProfile from './pages/company-profile/CompanyProfile';
 import MasterData from './pages/master-data/MasterData';
 import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
-import CandidateDetail from './pages/candidates/CandidateDetail';
+import CandidateUnifiedProfile from './pages/candidates/CandidateUnifiedProfile';
 import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
 
 // Competency Framework Pages
@@ -83,7 +83,6 @@ function App() {
             <Route path="/questions" element={<QuestionBank />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/interview-schedules" element={<InterviewScheduleList />} />
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}
@@ -176,11 +175,51 @@ function App() {
               <Route path=":id/edit" element={<RecruitmentRequestCreate />} />
             </Route>
 
-            {/* Candidate Routes */}
-            <Route path="/candidates" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
-              <Route index element={<CandidateList />} />
-              <Route path="create" element={<CandidateCreate />} />
-              <Route path=":id" element={<CandidateDetail />} />
+            {/* =================================================
+                CANDIDATE MANAGEMENT
+               ================================================= */}
+
+            <Route
+              path="/candidates"
+              element={
+                <ProtectedRoute>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+
+              <Route path=":id" element={<CandidateUnifiedProfile />} />
+
+              {/*
+                Danh sách ứng viên:
+                Hiring Manager vẫn có thể xem dữ liệu
+                thuộc phạm vi phòng ban của mình.
+              */}
+              <Route
+                index
+                element={<CandidateList />}
+              />
+
+              {/*
+                SCRUM-67:
+                ADMIN, RECRUITER hoặc HR_MANAGER
+                được tạo hồ sơ và bóc tách CV.
+              */}
+              <Route
+                path="create"
+                element={
+                  <ProtectedRoute
+                    requiredRoles={[
+                      'ADMIN',
+                      'RECRUITER',
+                      'HR_MANAGER'
+                    ]}
+                  >
+                    <CandidateCreate />
+                  </ProtectedRoute>
+                }
+              />
+
             </Route>
           </Route>
 

@@ -46,9 +46,33 @@ exports.publish = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+exports.hide = async (req, res, next) => {
+  try {
+    return sendSuccess(res, 'Đã ẩn tin tuyển dụng khỏi trang công khai.', await service.hide(req.params.id, req.user.user_id, getIp(req)));
+  } catch (error) { next(error); }
+};
+
+exports.unhide = async (req, res, next) => {
+  try {
+    return sendSuccess(res, 'Đã hiển thị lại tin tuyển dụng trên trang công khai.', await service.unhide(req.params.id, req.user.user_id, getIp(req)));
+  } catch (error) { next(error); }
+};
+
+exports.close = async (req, res, next) => {
+  try {
+    return sendSuccess(res, 'Đã gỡ tin tuyển dụng khỏi trang công khai.', await service.close(req.params.id, req.user.user_id, getIp(req)));
+  } catch (error) { next(error); }
+};
+
 exports.getPublicJobs = async (req, res, next) => {
   try {
     return sendSuccess(res, 'Lấy danh sách việc làm công khai thành công.', await service.getPublicJobs(req.query));
+  } catch (error) { next(error); }
+};
+
+exports.getPublicFilterOptions = async (req, res, next) => {
+  try {
+    return sendSuccess(res, 'Lấy danh mục lọc việc làm thành công.', await service.getPublicFilterOptions());
   } catch (error) { next(error); }
 };
 

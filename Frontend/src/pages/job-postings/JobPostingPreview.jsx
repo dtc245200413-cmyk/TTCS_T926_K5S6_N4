@@ -13,7 +13,7 @@ import {
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const JobPostingPreview = () => {
   const { id } = useParams();
@@ -114,8 +114,9 @@ const JobPostingPreview = () => {
   if (loading) return <div style={{ padding: 24 }}>Đang tải bản xem trước...</div>;
   if (!posting) return <div role="alert" className="alert alert-error">{error || 'Không tìm thấy tin tuyển dụng.'}</div>;
 
-  const imageUrl = company?.banner_url ? `http://localhost:5000${company.banner_url}` : '';
-  const logoUrl = company?.logo_url ? `http://localhost:5000${company.logo_url}` : '';
+  const apiOrigin = new URL(API, window.location.origin).origin;
+  const imageUrl = company?.banner_url ? `${apiOrigin}${company.banner_url}` : '';
+  const logoUrl = company?.logo_url ? `${apiOrigin}${company.logo_url}` : '';
 
   return (
     <div className="g-page-container" style={{ maxWidth: 1040, margin: '0 auto' }}>

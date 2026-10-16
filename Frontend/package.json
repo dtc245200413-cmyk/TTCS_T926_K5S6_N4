@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:candidate-ratings": "npm run build && node candidate-rating.test.cjs",
     "test:candidate-profile": "node candidate-profile.test.cjs",
     "test:interview-schedules": "node interview-schedules.test.cjs",
     "test:interview-time": "node --test interview-schedule-time.test.mjs",
+    "test:candidate-create": "node candidate-create.test.cjs",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.6.8",
+    "docx-preview": "^0.4.1",
+    "mammoth": "^1.13.0",
     "puppeteer": "^25.13.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

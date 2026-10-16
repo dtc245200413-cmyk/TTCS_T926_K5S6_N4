@@ -678,7 +678,61 @@ INSERT INTO questions (competency_criteria_id, difficulty_level, question_text, 
 (4, 'Medium', 'Giải thích nguyên lý hoạt động của cơ chế Database Connection Pool và cách cấu hình phù hợp với tải hệ thống.', 'Ứng viên giải thích việc tái sử dụng connection thay vì mở mới liên tục, tránh quá tải RAM/CPU của DB server.'),
 (5, 'Easy', 'Can you introduce yourself and talk briefly about the most recent technology stack you worked with?', 'Ứng viên phát âm rõ ràng, sử dụng đúng từ vựng chuyên ngành, ngữ pháp cơ bản ổn định và tự tin giao tiếp.');
 
+-- ============================================================
 -- SPRINT 3: LUỒNG PHÊ DUYỆT HEADCOUNT VÀ ĐĂNG TIN
+-- ============================================================
+
+-- Bảng yêu cầu tuyển dụng (Recruitment Requests)
+CREATE TABLE IF NOT EXISTS recruitment_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    department_id INT NULL,
+    position_id INT NULL,
+    headcount INT NULL,
+    reason VARCHAR(100) NULL,
+    proposed_salary_min DECIMAL(15,2) NULL,
+    proposed_salary_max DECIMAL(15,2) NULL,
+    needed_by_date DATE NULL,
+    job_description TEXT NULL,
+    candidate_requirements TEXT NULL,
+    salary_explanation TEXT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
+    rejection_reason TEXT NULL,
+    work_location_code VARCHAR(50) NULL,
+    work_type_code VARCHAR(50) NULL,
+    recruiter_id INT NULL,
+    current_step INT NULL,
+    submitted_at DATETIME NULL,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_rr_department FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL,
+    CONSTRAINT fk_rr_position FOREIGN KEY (position_id) REFERENCES job_positions(position_id) ON DELETE SET NULL,
+    CONSTRAINT fk_rr_created_by FOREIGN KEY (created_by) REFERENCES users(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Bảng ứng viên (Candidates)
+CREATE TABLE IF NOT EXISTS candidates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    phone VARCHAR(50) NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'NEW',
+    source_code VARCHAR(50) NULL,
+    rejection_reason_code VARCHAR(50) NULL,
+    recruitment_request_id INT NULL,
+    merged_into_id INT NULL,
+    merged_at DATETIME NULL,
+    resume_url VARCHAR(500) NULL,
+    stage_changed_at DATETIME NULL,
+    sla_overdue TINYINT(1) NOT NULL DEFAULT 0,
+    sla_flagged_at DATETIME NULL,
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_candidates_email (email),
+    INDEX idx_candidates_phone (phone),
+    CONSTRAINT fk_cand_req FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1. Cấu hình luồng phê duyệt (Approval Workflows)
 CREATE TABLE IF NOT EXISTS approval_workflows (
@@ -733,8 +787,6 @@ CREATE TABLE IF NOT EXISTS job_postings (
     FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id)
 );
 
--- Bổ sung Recruiter phụ trách vào recruitment_requests
-ALTER TABLE recruitment_requests ADD COLUMN recruiter_id INT NULL;
 
 -- =========================================================================
 -- SPRINT 4: CỔNG ỨNG TUYỂN VÀ HỒ SƠ ỨNG VIÊN
