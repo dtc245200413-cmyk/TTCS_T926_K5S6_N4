@@ -14,7 +14,7 @@ const CandidateUnifiedProfile = () => {
   const { user } = useContext(AuthContext);
 
   const [loading, setLoading] = useState(true);
-  const [forbiddenError, setForbiddenError] = useState(null);
+  const [errorState, setErrorState] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'notes' | 'activities'
   
@@ -40,17 +40,26 @@ const CandidateUnifiedProfile = () => {
   const fetchProfile = async (targetId = id) => {
     try {
       setLoading(true);
-      setForbiddenError(null);
+      setErrorState(null);
       const res = await candidateApi.getUnifiedProfile(targetId);
       setProfileData(res.data.data);
     } catch (err) {
       console.error('Failed to load candidate unified profile:', err);
       if (err.response && err.response.status === 403) {
-        setForbiddenError(err.response.data?.message || 'Bạn không có quyền truy cập hồ sơ này. Chỉ Recruiter phụ trách và Hiring Manager của vị trí mới có quyền xem.');
+        setErrorState({
+          type: '403',
+          message: err.response.data?.message || 'Bạn không có quyền truy cập hồ sơ này. Chỉ Recruiter phụ trách và Hiring Manager của vị trí mới có quyền xem.'
+        });
       } else if (err.response && err.response.status === 404) {
-        setForbiddenError('Không tìm thấy thông tin ứng viên trong hệ thống.');
+        setErrorState({
+          type: '404',
+          message: 'Không tìm thấy thông tin ứng viên trong hệ thống.'
+        });
       } else {
-        setForbiddenError('Có lỗi xảy ra khi tải hồ sơ ứng viên. Vui lòng thử lại sau.');
+        setErrorState({
+          type: 'error',
+          message: err.response?.data?.message || 'Có lỗi xảy ra khi tải hồ sơ ứng viên. Vui lòng thử lại sau.'
+        });
       }
     } finally {
       setLoading(false);
@@ -70,26 +79,41 @@ const CandidateUnifiedProfile = () => {
     );
   }
 
-  // Handle 403 Unauthorized Access
-  if (forbiddenError) {
+  // Handle Errors
+  if (errorState) {
+    const is403 = errorState.type === '403';
     return (
       <div style={{ padding: '40px 24px', maxWidth: '700px', margin: '40px auto', textAlign: 'center', background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '32px' }}>
-          <FiShield />
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: is403 ? '#fee2e2' : '#fef3c7', color: is403 ? '#ef4444' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '32px' }}>
+          {is403 ? <FiShield /> : <FiAlertTriangle />}
         </div>
-        <h2 style={{ fontSize: '1.5rem', color: '#1e293b', marginBottom: '12px', fontWeight: '700' }}>Giới Hạn Quyền Truy Cập</h2>
+        <h2 style={{ fontSize: '1.5rem', color: '#1e293b', marginBottom: '12px', fontWeight: '700' }}>
+          {is403 ? 'Giới Hạn Quyền Truy Cập' : errorState.type === '404' ? 'Không Tìm Thấy Hồ Sơ' : 'Có Lỗi Xảy Ra'}
+        </h2>
         <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
-          {forbiddenError}
+          {errorState.message}
         </p>
-        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '24px', border: '1px solid #e2e8f0', fontSize: '0.85rem', color: '#475569' }}>
-          <strong>Quy tắc bảo mật theo Scrum:</strong> Chỉ Nhân viên tuyển dụng (Recruiter) phụ trách và Trưởng bộ phận (Hiring Manager) của vị trí tuyển dụng tương ứng mới được phép mở và xem hồ sơ hợp nhất của ứng viên này.
+        {is403 && (
+          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '24px', border: '1px solid #e2e8f0', fontSize: '0.85rem', color: '#475569' }}>
+            <strong>Quy tắc bảo mật theo Scrum:</strong> Chỉ Nhân viên tuyển dụng (Recruiter) phụ trách và Trưởng bộ phận (Hiring Manager) của vị trí tuyển dụng tương ứng mới được phép mở và xem hồ sơ hợp nhất của ứng viên này.
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {!is403 && errorState.type !== '404' && (
+            <button 
+              onClick={() => fetchProfile(id)}
+              style={{ background: '#2563eb', color: 'white', padding: '10px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              Thử lại
+            </button>
+          )}
+          <button 
+            onClick={() => navigate('/candidates')}
+            style={{ background: is403 ? '#4f46e5' : '#f1f5f9', color: is403 ? 'white' : '#334155', padding: '10px 24px', borderRadius: '10px', border: is403 ? 'none' : '1px solid #cbd5e1', cursor: 'pointer', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <FiArrowLeft /> Quay lại Danh sách Ứng viên
+          </button>
         </div>
-        <button 
-          onClick={() => navigate('/candidates')}
-          style={{ background: '#4f46e5', color: 'white', padding: '10px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-        >
-          <FiArrowLeft /> Quay lại Danh sách Ứng viên
-        </button>
       </div>
     );
   }
@@ -98,6 +122,10 @@ const CandidateUnifiedProfile = () => {
 
   // Rating click handler
   const handleRate = async (newRating) => {
+    if (candidate.status === 'REJECTED') {
+      alert('Không thể đánh giá hồ sơ đã bị đánh trượt.');
+      return;
+    }
     try {
       await candidateApi.updateRating(candidate.id, newRating);
       fetchProfile(candidate.id);
@@ -335,13 +363,16 @@ const CandidateUnifiedProfile = () => {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Đánh giá:</span>
-              <div style={{ display: 'flex', gap: '4px', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', gap: '4px', cursor: candidate.status === 'REJECTED' ? 'not-allowed' : 'pointer' }}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <span
                     key={star}
-                    onClick={() => handleRate(star)}
+                    onClick={() => {
+                      if (candidate.status === 'REJECTED') return;
+                      handleRate(star);
+                    }}
                     style={{ fontSize: '1.25rem', color: star <= (candidate.rating || 0) ? '#f59e0b' : '#cbd5e1', transition: 'transform 0.1s' }}
-                    title={`Chấm ${star} sao`}
+                    title={candidate.status === 'REJECTED' ? 'Hồ sơ đã bị đánh trượt - không thể thay đổi đánh giá' : `Chấm ${star} sao`}
                   >
                     ★
                   </span>

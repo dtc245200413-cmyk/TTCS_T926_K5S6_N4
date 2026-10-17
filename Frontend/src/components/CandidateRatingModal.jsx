@@ -11,7 +11,9 @@ function formatUpdatedAt(value) {
   return Number.isNaN(date.getTime()) ? 'Chưa có thời gian cập nhật' : date.toLocaleString('vi-VN');
 }
 
-export default function CandidateRatingModal({ candidate, readOnly = false, onClose, onSaved }) {
+export default function CandidateRatingModal({ candidate, readOnly = false, canRate = true, onClose, onSaved, onRatingSaved }) {
+  const isRejected = candidate?.status === 'REJECTED';
+  const isReadOnly = readOnly || !canRate || isRejected;
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -89,7 +91,7 @@ export default function CandidateRatingModal({ candidate, readOnly = false, onCl
 
   const save = async event => {
     event.preventDefault();
-    if (readOnly || savingRef.current || !loaded) return;
+    if (isReadOnly || savingRef.current || !loaded) return;
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       setError('Vui lòng chọn từ 1 đến 5 sao.');
       return;
@@ -103,8 +105,18 @@ export default function CandidateRatingModal({ candidate, readOnly = false, onCl
     setError('');
     try {
       const response = await candidateApi.saveMyRating(candidate.id, { rating, comment: comment.trim() });
-      onSaved(candidate.id, response.data.data);
+      const savedData = response.data.data;
+      if (typeof onSaved === 'function') {
+        onSaved(candidate.id, savedData);
+      }
+      if (typeof onRatingSaved === 'function') {
+        onRatingSaved(savedData);
+      }
+      if (typeof onClose === 'function') {
+        onClose();
+      }
     } catch (err) {
+      console.error('Failed to save rating:', err);
       setError(err.response?.data?.message || 'Không thể lưu đánh giá. Vui lòng thử lại.');
     } finally {
       savingRef.current = false;
@@ -117,11 +129,16 @@ export default function CandidateRatingModal({ candidate, readOnly = false, onCl
       <section className="candidate-rating-modal" role="dialog" aria-modal="true" aria-labelledby="candidate-rating-title" tabIndex={-1} ref={dialogRef}>
         <h2 id="candidate-rating-title">Đánh giá ứng viên</h2>
         <p className="candidate-rating-name">{candidate.full_name}</p>
+        {isRejected && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', margin: '12px 0', lineHeight: 1.5 }}>
+            ⚠️ <strong>Hồ sơ đã bị đánh trượt:</strong> Không thể đánh giá ứng viên ở trạng thái này. Bạn chỉ có thể xem các đánh giá trước đó.
+          </div>
+        )}
         {loading && <p role="status">Đang tải đánh giá...</p>}
         {error && <p className="candidate-rating-error" role="alert">{error}</p>}
         {!loading && !loaded && <button type="button" className="candidate-rating-button" onClick={() => setLoadAttempt(value => value + 1)}>Thử lại</button>}
         <form onSubmit={save} aria-busy={loading || saving}>
-          {!readOnly && <fieldset disabled={loading || saving || !loaded} className="candidate-rating-fields">
+          {!isReadOnly && <fieldset disabled={loading || saving || !loaded} className="candidate-rating-fields">
             <legend>Đánh giá của bạn</legend>
             <div className="candidate-rating-stars" onMouseLeave={() => setHoverRating(0)}>
               {stars.map(value => (
@@ -140,8 +157,10 @@ export default function CandidateRatingModal({ candidate, readOnly = false, onCl
             </p>
           </fieldset>}
           <div className="candidate-rating-actions">
-            <button type="button" className="candidate-rating-button" disabled={saving} onClick={onClose}>Hủy</button>
-            {!readOnly && <button type="submit" className="candidate-rating-button candidate-rating-primary" disabled={loading || saving || !loaded || tooLong}>{saving ? 'Đang lưu...' : 'Lưu đánh giá'}</button>}
+            <button type="button" className="candidate-rating-button" disabled={saving} onClick={onClose}>
+              {isReadOnly ? 'Đóng' : 'Hủy'}
+            </button>
+            {!isReadOnly && <button type="submit" className="candidate-rating-button candidate-rating-primary" disabled={loading || saving || !loaded || tooLong}>{saving ? 'Đang lưu...' : 'Lưu đánh giá'}</button>}
           </div>
         </form>
         {loaded && (

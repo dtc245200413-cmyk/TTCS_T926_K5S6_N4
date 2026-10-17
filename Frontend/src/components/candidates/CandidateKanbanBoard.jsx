@@ -124,11 +124,14 @@ const CandidateKanbanBoard = ({
     return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
 
+  // Safe candidate array
+  const candidateList = Array.isArray(candidates) ? candidates : (candidates?.items || []);
+
   // Distinct position names for filter
-  const positions = [...new Set(candidates.map(c => c.position_name).filter(Boolean))];
+  const positions = [...new Set(candidateList.map(c => c.position_name).filter(Boolean))];
 
   // Filter candidates
-  const filteredCandidates = candidates.filter(cand => {
+  const filteredCandidates = candidateList.filter(cand => {
     if (selectedPosition && cand.position_name !== selectedPosition) return false;
     if (searchTerm) {
       const q = searchTerm.toLowerCase();

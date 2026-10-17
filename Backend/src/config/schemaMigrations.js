@@ -318,6 +318,9 @@ async function runSchemaMigrations() {
   await ensureColumn('job_postings', 'published_by', 'INT NULL');
   await ensureColumn('job_postings', 'published_at', 'DATETIME NULL');
   await ensureColumn('job_postings', 'closed_at', 'DATETIME NULL');
+  await ensureColumn('job_postings', 'department_id', 'INT NULL');
+  await ensureColumn('job_postings', 'hidden_by', 'INT NULL');
+  await ensureColumn('job_postings', 'hidden_at', 'DATETIME NULL');
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS candidate_applications (
@@ -539,6 +542,48 @@ async function runSchemaMigrations() {
       ('REJECTION_REASON', 'CANNOT_CONTACT', 'Không liên lạc được', 'Không thể liên lạc được với ứng viên qua điện thoại hoặc email.', 7, 1),
       ('REJECTION_REASON', 'OTHER', 'Lý do khác (Tự nhập)', 'Lý do đánh trượt khác do người dùng tự nhập', 8, 1)
     `);
+  }
+
+  // Seed default interview rooms in master_data if empty
+  const [roomsCount] = await pool.query("SELECT COUNT(*) as cnt FROM master_data WHERE category_group = 'INTERVIEW_ROOM'");
+  if (Number(roomsCount[0]?.cnt || 0) === 0) {
+    await pool.query(`
+      INSERT IGNORE INTO master_data (category_group, code, name, description, display_order, is_active) VALUES
+      ('INTERVIEW_ROOM', 'ROOM_101', 'Phòng Phỏng Vấn 1 (Tầng 2)', 'Phòng phỏng vấn trực tiếp số 1', 1, 1),
+      ('INTERVIEW_ROOM', 'ROOM_102', 'Phòng Phỏng Vấn 2 (Tầng 2)', 'Phòng phỏng vấn trực tiếp số 2', 2, 1),
+      ('INTERVIEW_ROOM', 'ROOM_ONLINE', 'Phòng Họp Trực Tuyến (Google Meet)', 'Phòng phỏng vấn online qua Google Meet / Teams', 3, 1),
+      ('INTERVIEW_ROOM', 'ROOM_VIP', 'Phòng Họp Ban Giám Đốc (Tầng 3)', 'Phòng phỏng vấn vòng cuối với Ban Giám Đốc', 4, 1)
+    `);
+  }
+
+  // Ensure candidate_ratings table exists
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS candidate_ratings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      candidate_id INT NOT NULL,
+      reviewer_id INT NOT NULL,
+      rating TINYINT UNSIGNED NOT NULL,
+      comment TEXT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT uq_cr_candidate_reviewer UNIQUE (candidate_id, reviewer_id),
+      CONSTRAINT chk_cr_rating CHECK (rating BETWEEN 1 AND 5),
+      CONSTRAINT fk_cr_candidate FOREIGN KEY (candidate_id)
+          REFERENCES candidates(id) ON DELETE CASCADE,
+      CONSTRAINT fk_cr_reviewer FOREIGN KEY (reviewer_id)
+          REFERENCES users(user_id) ON DELETE RESTRICT,
+      INDEX idx_cr_reviewer (reviewer_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  // Ensure JOB_POSTING_CLOSE permission exists and assigned to ADMIN & RECRUITER
+  await pool.query(`
+    INSERT IGNORE INTO permissions (permission_code, permission_name, description)
+    VALUES ('JOB_POSTING_CLOSE', 'Ẩn / Gỡ tin tuyển dụng', 'Cho phép ẩn và gỡ tin tuyển dụng')
+  `);
+  const [jpPerm] = await pool.query("SELECT permission_id FROM permissions WHERE permission_code = 'JOB_POSTING_CLOSE'");
+  if (jpPerm.length > 0) {
+    await pool.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (1, ?), (3, ?)', [jpPerm[0].permission_id, jpPerm[0].permission_id]);
   }
 }
 

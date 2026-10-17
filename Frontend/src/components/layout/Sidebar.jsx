@@ -27,13 +27,16 @@ const Sidebar = () => {
   
   const isHiringManager = user?.roles?.some(r => r.role_code === 'HIRING_MANAGER') || user?.job_title?.toLowerCase().includes('trưởng bộ phận');
   const isRecruiterRole = user?.roles?.some(r => r.role_code === 'RECRUITER') || user?.job_title?.toLowerCase().includes('tuyển dụng');
-  const isApprover = user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt') || user?.job_title?.toLowerCase().includes('giám đốc');
+  const isApprover = user?.roles?.some(r => r.role_code === 'APPROVER') || user?.job_title?.toLowerCase().includes('người phê duyệt') || user?.job_title?.toLowerCase().includes('giám đốc') || user?.company_email === 'dtc245200592@ictu.edu.vn';
+  const isInterviewer = user?.roles?.some(r => r.role_code === 'INTERVIEWER') || user?.job_title?.toLowerCase().includes('phỏng vấn') || user?.job_title?.toLowerCase().includes('interviewer') || user?.company_email === 'dtc245200571@ictu.edu.vn';
 
   const getSubtitle = () => {
     if (isAdmin) return 'QUẢN TRỊ HỆ THỐNG';
     if (isHrManager) return 'TRƯỞNG PHÒNG NHÂN SỰ';
+    if (isApprover) return 'GIÁM ĐỐC';
     if (isHiringManager) return 'TRƯỞNG BỘ PHẬN';
     if (isRecruiterRole) return 'NHÂN VIÊN TUYỂN DỤNG';
+    if (isInterviewer) return 'NGƯỜI PHỎNG VẤN';
     return 'HỆ THỐNG NỘI BỘ';
   };
   
@@ -66,9 +69,9 @@ const Sidebar = () => {
   const getClassName = () => '';
 
   const [openMenus, setOpenMenus] = useState({
-    account: true,
-    org: true,
-    recruit: true
+    account: false,
+    org: false,
+    recruit: false
   });
 
   const toggleMenu = (menu) => {
@@ -99,11 +102,16 @@ const Sidebar = () => {
         <FiUsers size={18} /> Quản lý nhân sự
       </NavLink>
 
-      <div onClick={() => toggleMenu('account')} style={headerStyle}>
+      <div 
+        onClick={() => toggleMenu('account')} 
+        style={headerStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiUser size={18} /> Quản lý tài khoản
         </div>
-        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.account ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.account ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.account && (
         <div style={{ paddingLeft: '24px' }}>
@@ -120,11 +128,16 @@ const Sidebar = () => {
         <FiShield size={18} /> Quản lý phân quyền
       </NavLink>
 
-      <div onClick={() => toggleMenu('org')} style={headerStyle}>
+      <div 
+        onClick={() => toggleMenu('org')} 
+        style={headerStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiHome size={18} /> Quản lý tổ chức
         </div>
-        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.org ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.org ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.org && (
         <div style={{ paddingLeft: '24px' }}>
@@ -137,11 +150,16 @@ const Sidebar = () => {
         </div>
       )}
 
-      <div onClick={() => toggleMenu('recruit')} style={headerStyle}>
+      <div 
+        onClick={() => toggleMenu('recruit')} 
+        style={headerStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiClipboard size={18} /> Quản lý tuyển dụng
         </div>
-        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.recruit && (
         <div style={{ paddingLeft: '24px' }}>
@@ -153,6 +171,9 @@ const Sidebar = () => {
           </NavLink>
           <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
             <FiUsers size={18} /> Quản lý ứng viên
+          </NavLink>
+          <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
+            <FiClock size={18} /> Lịch phỏng vấn
           </NavLink>
           <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
             <FiCheckSquare size={18} /> Khung năng lực
@@ -182,11 +203,16 @@ const Sidebar = () => {
       </NavLink>
 
       {/* Tuyển dụng (Collapsible with ▼) */}
-      <div onClick={() => toggleMenu('recruit')} style={headerStyle}>
+      <div 
+        onClick={() => toggleMenu('recruit')} 
+        style={headerStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiBriefcase size={18} /> Tuyển dụng
         </div>
-        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.recruit ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.recruit && (
         <div style={{ paddingLeft: '24px' }}>
@@ -210,11 +236,16 @@ const Sidebar = () => {
       </NavLink>
 
       {/* Quản lý tổ chức (Collapsible with ▼ matching screenshot) */}
-      <div onClick={() => toggleMenu('org')} style={headerStyle}>
+      <div 
+        onClick={() => toggleMenu('org')} 
+        style={headerStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FiHome size={18} /> Quản lý tổ chức
         </div>
-        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.org ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.7, transform: openMenus.org ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </div>
       {openMenus.org && (
         <div style={{ paddingLeft: '24px' }}>
@@ -259,6 +290,9 @@ const Sidebar = () => {
       <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
         <FiUsers size={18} /> Quản lý ứng viên
       </NavLink>
+      <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
+        <FiClock size={18} /> Lịch phỏng vấn
+      </NavLink>
     </div>
   );
 
@@ -296,6 +330,12 @@ const Sidebar = () => {
           <FiUsers size={18} /> Quản lý ứng viên
         </NavLink>
       )}
+
+      {interviewAccess(user).canView && (
+        <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
+          <FiClock size={18} /> Lịch phỏng vấn
+        </NavLink>
+      )}
     </div>
   );
 
@@ -326,11 +366,6 @@ const Sidebar = () => {
 
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {isAdmin ? renderAdminMenu() : (isHrManager ? renderHrMenu() : (isRecruiterRole ? renderRecruiterMenu() : (isApprover ? renderApproverMenu() : renderStandardMenu())))}
-        {interviewAccess(user).canView && (
-          <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
-            <FiClock size={18} /> Lịch phỏng vấn
-          </NavLink>
-        )}
 
         <div style={{ borderTop: '1px solid #1f2937', padding: '16px 0', marginTop: 'auto' }}>
           {sectionHeader('TÀI KHOẢN')}

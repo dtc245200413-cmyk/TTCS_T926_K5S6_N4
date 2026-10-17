@@ -79,7 +79,7 @@ async function validateManualCandidate(data, userId = 1) {
 }
 
 async function createCandidate(data, userId, ipAddress, allowDuplicate = false) {
-  const { resume_url } = data;
+  const { resume_url, cv_file_path, cover_letter, tags, parsed_skills } = data;
   const { fullName: full_name, email, phone, sourceCode: source_code, validRequestId: recruitment_request_id } = await validateManualCandidate(data, userId);
 
   const possibleDuplicates = await candidateMergeRepo.findPotentialDuplicates({ email, phone });

@@ -72,7 +72,7 @@ async function sync() {
       { dept: 2, code: 'EMP002', name: 'Hà Đức Minh',           email: 'dtc245200002@ictu.edu.vn', phone: '0988888888', title: 'Trưởng phòng Nhân sự', role: 'HR_MANAGER' },
       { dept: 2, code: 'EMP003', name: 'Nguyễn Anh Sơn',        email: 'dtc245200852@ictu.edu.vn', phone: '0988888888', title: 'Nhân viên Tuyển dụng', role: 'RECRUITER' },
       { dept: 1, code: 'EMP004', name: 'Mã Dương Quốc',         email: 'dtc245200935@ictu.edu.vn', phone: '0988888888', title: 'Trưởng bộ phận Kỹ thuật', role: 'HIRING_MANAGER' },
-      { dept: 1, code: 'EMP005', name: 'Thàng Xuân Lập',        email: 'dtc245200571@ictu.edu.vn', phone: '0988888888', title: 'Lập trình viên Senior (Interviewer)', role: 'INTERVIEWER' },
+      { dept: 1, code: 'EMP005', name: 'Thàng Xuân Lập',        email: 'dtc245200571@ictu.edu.vn', phone: '0988888888', title: 'Người phỏng vấn', role: 'INTERVIEWER' },
       { dept: 5, code: 'EMP006', name: 'Thào A Pông',           email: 'dtc245200592@ictu.edu.vn', phone: '0988888888', title: 'Giám đốc Vận hành (Approver)', role: 'APPROVER' },
       { dept: 4, code: 'EMP007', name: 'Nguyễn Xuân Phú',       email: 'dtc245200480@ictu.edu.vn', phone: '0988888888', title: 'Trưởng bộ phận Marketing', role: 'HIRING_MANAGER' },
       { dept: 3, code: 'EMP008', name: 'Lưu Quang Lực',         email: 'dtc245200349@ictu.edu.vn', phone: '0988888888', title: 'Chuyên viên Phỏng vấn Tài chính', role: 'INTERVIEWER' },

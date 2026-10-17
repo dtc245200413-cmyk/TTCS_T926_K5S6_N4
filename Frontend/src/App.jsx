@@ -83,6 +83,7 @@ function App() {
             <Route path="/questions" element={<QuestionBank />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/interview-schedules" element={<InterviewScheduleList />} />
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}

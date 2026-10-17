@@ -44,7 +44,9 @@ const CandidateList = () => {
       const response = await axios.get('http://localhost:5000/api/candidates', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCandidates(response.data.data);
+      const raw = response.data?.data;
+      const list = Array.isArray(raw) ? raw : (raw?.items || []);
+      setCandidates(list);
     } catch (err) {
       console.error('Failed to fetch candidates', err);
     } finally {
@@ -180,13 +182,33 @@ const CandidateList = () => {
   };
 
   const getStatusBadge = (status) => {
+    const baseStyle = {
+      display: 'inline-block',
+      padding: '4px 10px',
+      borderRadius: '20px',
+      fontSize: '0.75rem',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap',
+      lineHeight: 1.2
+    };
+
     switch (status) {
-      case 'NEW': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#dbeafe', color: '#1d4ed8' }}>Mới</span>;
-      case 'INTERVIEWING': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fef3c7', color: '#d97706' }}>Phỏng vấn</span>;
-      case 'OFFERED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#e0e7ff', color: '#4338ca' }}>Đề nghị (Offer)</span>;
-      case 'HIRED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#dcfce7', color: '#16a34a' }}>Đã tuyển</span>;
-      case 'REJECTED': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: '#fee2e2', color: '#dc2626' }}>Đánh trượt</span>;
-      default: return <span>{status}</span>;
+      case 'NEW':
+        return <span style={{ ...baseStyle, background: '#dbeafe', color: '#1d4ed8' }}>Mới</span>;
+      case 'SCREENING':
+        return <span style={{ ...baseStyle, background: '#f3e8ff', color: '#7e22ce' }}>Sàng lọc</span>;
+      case 'INTERVIEW':
+      case 'INTERVIEWING':
+        return <span style={{ ...baseStyle, background: '#fef3c7', color: '#d97706' }}>Phỏng vấn</span>;
+      case 'OFFER':
+      case 'OFFERED':
+        return <span style={{ ...baseStyle, background: '#e0e7ff', color: '#4338ca' }}>Đề nghị (Offer)</span>;
+      case 'HIRED':
+        return <span style={{ ...baseStyle, background: '#dcfce7', color: '#16a34a' }}>Đã tuyển</span>;
+      case 'REJECTED':
+        return <span style={{ ...baseStyle, background: '#fee2e2', color: '#dc2626' }}>Đánh trượt</span>;
+      default:
+        return <span style={{ ...baseStyle, background: '#f1f5f9', color: '#475569' }}>{status}</span>;
     }
   };
 
@@ -410,37 +432,37 @@ const CandidateList = () => {
               </div>
             )}
 
-            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               {candidates.length === 0 ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Bạn chưa có hồ sơ ứng viên nào.</div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Họ Tên</th>
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Email</th>
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Vị trí ứng tuyển</th>
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nguồn (Master Data)</th>
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>CV</th>
-                      {canViewRatings && <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Đánh giá</th>}
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Trạng thái</th>
-                      <th style={{ padding: '12px 16px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {candidates.map(cand => (
-                      <tr key={cand.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '16px', color: '#1e293b', fontWeight: '600' }}>{cand.full_name}</td>
-                        <td style={{ padding: '16px', color: '#475569' }}>{cand.email}</td>
-                        <td style={{ padding: '16px', color: '#475569' }}>
-                          {cand.position_name ? `${cand.position_name} - ${cand.department_name}` : 'N/A'}
-                        </td>
-                        <td style={{ padding: '16px', color: '#4f46e5', fontWeight: '600' }}>
-                          {candidateSources.find(s => s.code === cand.source_code)?.name || cand.source_code || '-'}
-                        </td>
-                        <td style={{ padding: '16px' }}>
-                          {cand.resume_url ? (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ width: '100%', overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '920px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Họ Tên</th>
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Email</th>
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Vị trí ứng tuyển</th>
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Nguồn</th>
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>CV</th>
+                        {canViewRatings && <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Đánh giá</th>}
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '120px' }}>Trạng thái</th>
+                        <th style={{ padding: '12px 14px', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '220px' }}>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidates.map(cand => (
+                        <tr key={cand.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px 12px', color: '#1e293b', fontWeight: '600' }}>{cand.full_name}</td>
+                          <td style={{ padding: '14px 12px', color: '#475569' }}>{cand.email}</td>
+                          <td style={{ padding: '14px 12px', color: '#475569' }}>
+                            {cand.position_name ? `${cand.position_name} - ${cand.department_name}` : 'N/A'}
+                          </td>
+                          <td style={{ padding: '14px 12px', color: '#4f46e5', fontWeight: '600' }}>
+                            {candidateSources.find(s => s.code === cand.source_code)?.name || cand.source_code || '-'}
+                          </td>
+                          <td style={{ padding: '14px 12px' }}>
+                            {cand.resume_url ? (
                               <button 
                                 type="button" 
                                 onClick={() => openCvModal(cand)} 
@@ -450,83 +472,75 @@ const CandidateList = () => {
                               >
                                 <FiEye /> Xem CV
                               </button>
-                              <button 
-                                type="button" 
-                                onClick={() => downloadResume(cand)} 
-                                className="btn-action-view"
-                                style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1' }}
-                                title="Tải tệp PDF CV"
-                              >
-                                <FiDownload /> Tải CV
-                              </button>
-                            </div>
-                          ) : '-'}
-                        </td>
-                        {canViewRatings && (
-                          <td style={{ padding: '16px' }}>
-                            {renderRatingSummary(cand)}
+                            ) : '-'}
                           </td>
-                        )}
-                        <td style={{ padding: '16px' }}>
-                          {getStatusBadge(cand.status)}
-                          {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>Quá SLA</span>}
-                        </td>
-                        <td style={{ padding: '16px' }}>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            {candidateProfileAccess(user).canView && (
-                              <Link to={`/candidates/${cand.id}`} style={{ color: '#4f46e5', fontWeight: '600' }}>Xem hồ sơ</Link>
-                            )}
-                            {canViewRatings && (
-                              <button
-                                type="button"
-                                onClick={() => setRatingCandidate(cand)}
-                                style={{
-                                  padding: '5px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #fde68a',
-                                  background: '#fefce8',
-                                  color: '#b45309',
-                                  cursor: 'pointer',
-                                  fontWeight: '600',
-                                  fontSize: '0.8rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4
-                                }}
-                                title="Đánh giá ứng viên"
-                              >
-                                <FiStar size={12} /> {canRate ? 'Đánh giá' : 'Xem điểm'}
-                              </button>
-                            )}
-                            {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
-                              <>
-                                {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
-                                  <button 
-                                    onClick={() => handleHire(cand)}
-                                    style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#16a34a', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
-                                  >
-                                    Tuyển dụng
-                                  </button>
-                                )}
-                                <button 
-                                  onClick={() => handleOpenReject(cand)}
-                                  style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                          {canViewRatings && (
+                            <td style={{ padding: '14px 12px' }}>
+                              {renderRatingSummary(cand)}
+                            </td>
+                          )}
+                          <td style={{ padding: '14px 12px', whiteSpace: 'nowrap' }}>
+                            {getStatusBadge(cand.status)}
+                            {cand.sla_overdue === 1 && <span style={{ display: 'inline-block', marginLeft: 6, padding: '4px 8px', borderRadius: 20, background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>Quá SLA</span>}
+                          </td>
+                          <td style={{ padding: '14px 12px', minWidth: '220px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              {candidateProfileAccess(user).canView && (
+                                <Link to={`/candidates/${cand.id}`} style={{ color: '#4f46e5', fontWeight: '600', textDecoration: 'none', whiteSpace: 'nowrap' }}>Xem hồ sơ</Link>
+                              )}
+                              {canViewRatings && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRatingCandidate(cand)}
+                                  style={{
+                                    padding: '5px 10px',
+                                    borderRadius: '6px',
+                                    border: cand.status === 'REJECTED' ? '1px solid #e2e8f0' : '1px solid #fde68a',
+                                    background: cand.status === 'REJECTED' ? '#f8fafc' : '#fefce8',
+                                    color: cand.status === 'REJECTED' ? '#64748b' : '#b45309',
+                                    cursor: 'pointer',
+                                    fontWeight: '600',
+                                    fontSize: '0.8rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title={cand.status === 'REJECTED' ? 'Xem điểm đánh giá (Hồ sơ đã bị đánh trượt)' : 'Đánh giá ứng viên'}
                                 >
-                                  Đánh trượt
+                                  <FiStar size={12} /> {canRate && cand.status !== 'REJECTED' ? 'Đánh giá' : 'Xem điểm'}
                                 </button>
-                              </>
-                            )}
-                            {cand.status === 'REJECTED' && cand.rejection_reason_code && (
-                              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
-                                Lý do: {rejectionReasons.find(r => r.code === cand.rejection_reason_code)?.name || cand.rejection_reason_code}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                              )}
+                              {cand.status !== 'REJECTED' && cand.status !== 'HIRED' && (
+                                <>
+                                  {user?.roles?.some(r => r.role_code === 'HR_MANAGER') && (
+                                    <button 
+                                      onClick={() => handleHire(cand)}
+                                      style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#16a34a', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                                    >
+                                      Tuyển dụng
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => handleOpenReject(cand)}
+                                    style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                                  >
+                                    Đánh trượt
+                                  </button>
+                                </>
+                              )}
+                              {cand.status === 'REJECTED' && cand.rejection_reason_code && (
+                                <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic', display: 'block', width: '100%', marginTop: '2px' }}>
+                                  Lý do: {rejectionReasons.find(r => r.code === cand.rejection_reason_code)?.name || cand.rejection_reason_code}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
@@ -885,7 +899,9 @@ const CandidateList = () => {
         <CandidateRatingModal
           candidate={ratingCandidate}
           canRate={canRate}
+          readOnly={!canRate}
           onClose={() => setRatingCandidate(null)}
+          onSaved={(candidateId, data) => handleRatingSaved(candidateId, data)}
           onRatingSaved={data => handleRatingSaved(ratingCandidate.id, data)}
         />
       )}

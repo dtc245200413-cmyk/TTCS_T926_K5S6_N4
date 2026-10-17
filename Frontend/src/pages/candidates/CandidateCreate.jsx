@@ -20,7 +20,10 @@ import {
   FaBriefcase,
   FaUpload,
   FaTimes,
-  FaPen
+  FaPen,
+  FaRedo,
+  FaListAlt,
+  FaPlusCircle
 } from 'react-icons/fa';
 
 import { AuthContext } from '../../context/AuthContext';
@@ -578,7 +581,7 @@ const CandidateCreate = () => {
         finishSave();
       }
     } catch (err) {
-      if (!created && err.response?.status >= 400 && err.response.status < 500) {
+      if (!created) {
         rememberSave(null);
       }
       if (!created && err.response?.status === 409 && err.response.data.duplicates) {
@@ -804,27 +807,228 @@ const CandidateCreate = () => {
      ========================================================= */
 
   if (pendingSave) {
+    const isMerge = pendingSave.phase === 'merge';
     return (
-      <section style={{ ...cardStyle, margin: 28, padding: 26 }} aria-busy={loading}>
-        <h2>{pendingSave.phase === 'merge' ? 'Hoàn tất gộp hồ sơ' : 'Kiểm tra kết quả lưu hồ sơ'}</h2>
-        {pendingSave.phase === 'merge' ? (
-          <p>Hồ sơ #{pendingSave.secondary_id} đã được tạo. Thử lại sẽ chỉ gộp vào hồ sơ #{pendingSave.primary_id}, không tạo ứng viên mới.</p>
-        ) : (
-          <p>{loading ? 'Đang lưu hồ sơ...' : 'Chưa xác định được kết quả lưu. Hãy kiểm tra danh sách ứng viên trước khi nhập lại để tránh hồ sơ trùng.'}</p>
-        )}
-        {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {pendingSave.phase === 'merge' && (
-            <button type="button" disabled={loading} onClick={retryMerge}>Thử lại gộp hồ sơ</button>
+      <div
+        style={{
+          minHeight: 'calc(100vh - 80px)',
+          padding: '48px 24px',
+          background: '#f4f7fb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <section
+          style={{
+            ...cardStyle,
+            width: '100%',
+            maxWidth: '560px',
+            padding: '40px 32px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            boxShadow: '0 20px 35px -10px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #e2e8f0'
+          }}
+          aria-busy={loading}
+        >
+          {/* Status Badge Icon */}
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '20px',
+              background: isMerge ? '#eff6ff' : '#fffbeb',
+              border: `2px solid ${isMerge ? '#bfdbfe' : '#fde68a'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: isMerge ? '#2563eb' : '#d97706',
+              fontSize: '28px',
+              marginBottom: '20px',
+              boxShadow: isMerge
+                ? '0 8px 16px -4px rgba(37, 99, 235, 0.15)'
+                : '0 8px 16px -4px rgba(217, 119, 6, 0.15)'
+            }}
+          >
+            {isMerge ? <FaCheckCircle /> : <FaExclamationTriangle />}
+          </div>
+
+          {/* Heading */}
+          <h2
+            style={{
+              margin: '0 0 10px 0',
+              fontSize: '1.4rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            {isMerge ? 'Hoàn tất gộp hồ sơ ứng viên' : 'Kiểm tra kết quả lưu hồ sơ'}
+          </h2>
+
+          {/* Description text */}
+          <p
+            style={{
+              margin: '0 0 24px 0',
+              fontSize: '0.94rem',
+              color: '#64748b',
+              lineHeight: 1.65,
+              maxWidth: '460px'
+            }}
+          >
+            {isMerge ? (
+              `Hồ sơ #${pendingSave.secondary_id} đã được tạo thành công. Bạn có thể tiếp tục hoàn tất thao tác gộp vào hồ sơ gốc #${pendingSave.primary_id}.`
+            ) : loading ? (
+              'Hệ thống đang xử lý lưu hồ sơ ứng viên, vui lòng đợi trong giây lát...'
+            ) : (
+              'Chưa xác định được kết quả lưu trước đó. Vui lòng kiểm tra lại danh sách ứng viên trước khi nhập mới để tránh tạo trùng lặp.'
+            )}
+          </p>
+
+          {/* Error Message Box */}
+          {error && (
+            <div
+              role="alert"
+              style={{
+                width: '100%',
+                background: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                color: '#b91c1c',
+                fontSize: '0.88rem',
+                fontWeight: 600
+              }}
+            >
+              <FaExclamationTriangle style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
           )}
-          <button type="button" disabled={loading} onClick={() => navigate('/candidates')}>Kiểm tra danh sách ứng viên</button>
-          {pendingSave.phase === 'merge' ? (
-            <button type="button" disabled={loading} onClick={finishSave}>Kết thúc và kiểm tra kết quả trong danh sách</button>
-          ) : (
-            <button type="button" disabled={loading} onClick={() => { rememberSave(null); setError(''); }}>Đã kiểm tra danh sách, nhập hồ sơ mới</button>
-          )}
-        </div>
-      </section>
+
+          {/* Action Buttons */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              width: '100%',
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}
+          >
+            {isMerge ? (
+              <>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={retryMerge}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 22px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: '0.92rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+                    transition: 'all 0.2s ease',
+                    opacity: loading ? 0.7 : 1
+                  }}
+                >
+                  <FaRedo />
+                  <span>{loading ? 'Đang gộp...' : 'Thử lại gộp hồ sơ'}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={finishSave}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 22px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#334155',
+                    fontWeight: 600,
+                    fontSize: '0.92rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+                    transition: 'all 0.2s ease',
+                    opacity: loading ? 0.7 : 1
+                  }}
+                >
+                  <FaListAlt />
+                  <span>Xem danh sách ứng viên</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => navigate('/candidates')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 22px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#334155',
+                    fontWeight: 600,
+                    fontSize: '0.92rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+                    transition: 'all 0.2s ease',
+                    opacity: loading ? 0.7 : 1
+                  }}
+                >
+                  <FaListAlt />
+                  <span>Kiểm tra danh sách ứng viên</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => { rememberSave(null); setError(''); }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 22px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: '0.92rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+                    transition: 'all 0.2s ease',
+                    opacity: loading ? 0.7 : 1
+                  }}
+                >
+                  <FaPlusCircle />
+                  <span>Đã kiểm tra danh sách, nhập hồ sơ mới</span>
+                </button>
+              </>
+            )}
+          </div>
+        </section>
+      </div>
     );
   }
 
@@ -952,29 +1156,105 @@ const CandidateCreate = () => {
         {/* ================= STEPS ================= */}
 
         {possibleDuplicates.length > 0 && (
-          <section style={{ display: 'grid', gap: 12, padding: 18, background: '#fff', border: '1px solid #fbbf24', borderRadius: 10 }}>
-            <h3 style={{ margin: 0, color: '#92400e' }}>So sánh hồ sơ có thông tin trùng</h3>
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              padding: 22,
+              background: '#fffdfa',
+              border: '1px solid #fde68a',
+              borderRadius: 16,
+              boxShadow: '0 6px 18px rgba(217, 119, 6, 0.06)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: '#fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 15
+                }}
+              >
+                <FaExclamationTriangle />
+              </div>
+              <h3 style={{ margin: 0, color: '#92400e', fontSize: '1.05rem', fontWeight: 700 }}>
+                Phát hiện hồ sơ có thông tin trùng lặp
+              </h3>
+            </div>
             {possibleDuplicates.map(candidate => (
-              <article key={candidate.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{ padding: 14, background: '#f8fafc' }}>
-                  <strong>Hồ sơ hiện có #{candidate.id}</strong>
-                  <p>Họ tên: {candidate.full_name}</p>
-                  <p>Email: {candidate.email}</p>
-                  <p>Điện thoại: {candidate.phone || 'Chưa có'}</p>
-                  <p>Vị trí: {candidate.position_name || 'Chưa gắn yêu cầu'}</p>
+              <article
+                key={candidate.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  background: '#ffffff',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                }}
+              >
+                <div style={{ padding: '16px 18px', background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 6, background: '#e2e8f0', fontSize: '0.78rem', color: '#475569' }}>Hiện có</span>
+                    <span>Hồ sơ #{candidate.id}</span>
+                  </div>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Họ tên:</strong> {candidate.full_name}</p>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Email:</strong> {candidate.email}</p>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Điện thoại:</strong> {candidate.phone || 'Chưa có'}</p>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Vị trí:</strong> {candidate.position_name || 'Chưa gắn yêu cầu'}</p>
                 </div>
-                <div style={{ padding: 14 }}>
-                  <strong>Hồ sơ đang nhập</strong>
-                  <p>Họ tên: {formData.full_name}</p>
-                  <p>Email: {formData.email}</p>
-                  <p>Điện thoại: {formData.phone || 'Chưa có'}</p>
-                  <p>Vị trí: {requests.find(request => String(request.id) === String(formData.recruitment_request_id))?.position_name || 'Chưa gắn yêu cầu'}</p>
+                <div style={{ padding: '16px 18px' }}>
+                  <div style={{ fontWeight: 700, color: '#2563eb', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 6, background: '#dbeafe', fontSize: '0.78rem', color: '#1d4ed8' }}>Đang nhập</span>
+                    <span>Hồ sơ mới</span>
+                  </div>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Họ tên:</strong> {formData.full_name}</p>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Email:</strong> {formData.email}</p>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Điện thoại:</strong> {formData.phone || 'Chưa có'}</p>
+                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#334155' }}><strong>Vị trí:</strong> {requests.find(request => String(request.id) === String(formData.recruitment_request_id))?.position_name || 'Chưa gắn yêu cầu'}</p>
                 </div>
-                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 12, borderTop: '1px solid #e2e8f0' }}>
-                  <button type="button" disabled={loading} onClick={() => saveCandidate(candidate)} style={{ padding: '9px 12px', border: 0, borderRadius: 6, color: '#fff', background: '#4f46e5', fontWeight: 700, cursor: 'pointer' }}>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#fafbfc' }}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => saveCandidate(candidate)}
+                    style={{
+                      padding: '9px 16px',
+                      border: 0,
+                      borderRadius: 8,
+                      color: '#ffffff',
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                      fontWeight: 600,
+                      fontSize: '0.88rem',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                    }}
+                  >
                     {loading ? 'Đang gộp...' : 'Giữ hồ sơ hiện có và gộp thông tin mới'}
                   </button>
-                  <button type="button" disabled={loading} onClick={() => saveCandidate(null, true)} style={{ padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 6, color: '#334155', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => saveCandidate(null, true)}
+                    style={{
+                      padding: '9px 16px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      color: '#334155',
+                      background: '#ffffff',
+                      fontWeight: 600,
+                      fontSize: '0.88rem',
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
                     Lưu riêng, không gộp
                   </button>
                 </div>

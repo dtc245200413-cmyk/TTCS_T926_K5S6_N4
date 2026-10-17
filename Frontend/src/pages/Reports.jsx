@@ -4,6 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 const Reports = () => {
   const { user } = useContext(AuthContext);
   const isAdmin = user?.roles?.some(r => r.role_code === 'ADMIN');
+  const isHrManager = user?.roles?.some(r => r.role_code === 'HR_MANAGER' || r.role_code === 'RECRUITER') || user?.company_email === 'dtc245200002@ictu.edu.vn';
+  const canViewReports = isAdmin || isHrManager;
   const [isEditing, setIsEditing] = useState(false);
 
   // Single source of truth for ALL demo data
@@ -43,7 +45,7 @@ const Reports = () => {
     setIsEditing(false);
   };
 
-  if (!isAdmin) {
+  if (!canViewReports) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h1 className="g-page-title">Truy cập bị từ chối</h1>
