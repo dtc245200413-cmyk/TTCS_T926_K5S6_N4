@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
-import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar } from 'react-icons/fi';
+import { Link, useSearchParams } from 'react-router-dom';
+import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar, FiClock } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import candidateApi from '../../api/candidateApi';
 import CandidateRatingModal from '../../components/CandidateRatingModal';
@@ -11,6 +11,23 @@ import CandidateKanbanBoard from '../../components/candidates/CandidateKanbanBoa
 
 const CandidateList = () => {
   const { user } = useContext(AuthContext);
+  const [searchParams] = useSearchParams();
+  const stageParam = searchParams.get('stage');
+  const viewParam = searchParams.get('view');
+  const isOfferOnboarding = stageParam === 'OFFER';
+  const isEvaluatedView = viewParam === 'evaluated';
+  const isInterviewer = Boolean(
+    user?.roles?.some(r => 
+      r.role_code === 'INTERVIEWER' || 
+      r.role_code === 'NGUOI_PHONG_VAN' || 
+      (r.role_name && r.role_name.toLowerCase().includes('phỏng vấn')) ||
+      (r.role_name && r.role_name.toLowerCase().includes('interviewer'))
+    ) || 
+    user?.job_title?.toLowerCase().includes('phỏng vấn') || 
+    user?.job_title?.toLowerCase().includes('interviewer') || 
+    user?.company_email === 'dtc245200571@ictu.edu.vn'
+  );
+
   const { canManage } = candidateProfileAccess(user);
   const canRate = canManage;
   const canViewRatings = candidateProfileAccess(user).canView;
@@ -273,6 +290,12 @@ const CandidateList = () => {
     }
   };
 
+  const displayedCandidates = isOfferOnboarding
+    ? candidates.filter(c => c.status === 'OFFERED' || c.status === 'HIRED' || c.status === 'OFFER')
+    : (isEvaluatedView
+      ? candidates.filter(c => ['INTERVIEWING', 'OFFERED', 'HIRED', 'REJECTED'].includes(c.status) || (ratingSummaries[c.id]?.rating_count > 0))
+      : candidates);
+
   return (
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -295,48 +318,60 @@ const CandidateList = () => {
               width: 44,
               height: 44,
               borderRadius: 10,
-              background: '#2563eb',
+              background: isOfferOnboarding ? '#4338ca' : (isEvaluatedView ? '#059669' : '#2563eb'),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
               fontSize: 22,
-              boxShadow: '0 4px 10px rgba(37,99,235,0.25)'
+              boxShadow: isOfferOnboarding ? '0 4px 10px rgba(67,56,202,0.25)' : '0 4px 10px rgba(37,99,235,0.25)'
             }}>
-              <FiUsers />
+              {isOfferOnboarding ? <FiFileText /> : (isEvaluatedView ? <FiClock /> : <FiUsers />)}
             </div>
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                Quản lý Hồ sơ Ứng viên
+                {isOfferOnboarding 
+                  ? 'Quản lý Offer & Onboarding' 
+                  : (isEvaluatedView 
+                      ? 'Lịch sử Đánh giá Ứng viên' 
+                      : (isInterviewer ? 'Phiếu đánh giá Ứng viên' : 'Quản lý Hồ sơ Ứng viên'))}
               </h1>
               <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: 13 }}>
-                Theo dõi tiến độ tuyển dụng qua bảng Pipeline Kanban hoặc danh sách chi tiết
+                {isOfferOnboarding 
+                  ? 'Theo dõi quy trình gửi thư mời nhận việc (Offer), phản hồi và tiến độ tiếp nhận nhân viên mới (Onboarding)' 
+                  : (isEvaluatedView
+                      ? 'Danh sách ứng viên đã hoàn tất đánh giá và cho điểm phỏng vấn'
+                      : (isInterviewer 
+                          ? 'Đánh giá năng lực và phản hồi kết quả phỏng vấn ứng viên'
+                          : 'Theo dõi tiến độ tuyển dụng qua bảng Pipeline Kanban hoặc danh sách chi tiết'))}
               </p>
             </div>
           </div>
 
-          <Link
-            to="/candidates/create"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#2563eb',
-              color: '#ffffff',
-              padding: '9px 18px',
-              borderRadius: 8,
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: 13,
-              boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
-              transition: 'background 0.15s ease'
-            }}
-          >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Thêm ứng viên
-          </Link>
+          {!isOfferOnboarding && !isInterviewer && (
+            <Link
+              to="/candidates/create"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#2563eb',
+                color: '#ffffff',
+                padding: '9px 18px',
+                borderRadius: 8,
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: 13,
+                boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                transition: 'background 0.15s ease'
+              }}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Thêm ứng viên
+            </Link>
+          )}
         </div>
 
-        {activeMerges.length > 0 && (
+        {activeMerges.length > 0 && !isOfferOnboarding && (
           <section style={{ padding: 18, background: '#fff', border: '1px solid #dbe2ea', borderRadius: 12 }}>
             <h2 style={{ margin: '0 0 12px', fontSize: 17, color: '#334155' }}>Hồ sơ đã gộp gần đây</h2>
             {mergeError && <div role="alert" style={{ marginBottom: 10, color: '#b91c1c' }}>{mergeError}</div>}
@@ -361,7 +396,7 @@ const CandidateList = () => {
           </div>
         ) : viewMode === 'kanban' ? (
           <CandidateKanbanBoard
-            candidates={candidates}
+            candidates={displayedCandidates}
             rejectionReasons={rejectionReasons}
             candidateSources={candidateSources}
             onUpdateStatus={handleUpdateCandidateStatus}
@@ -370,6 +405,7 @@ const CandidateList = () => {
             user={user}
             viewMode={viewMode}
             setViewMode={setViewMode}
+            visibleStages={isOfferOnboarding ? ['OFFERED', 'HIRED'] : null}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -433,8 +469,10 @@ const CandidateList = () => {
             )}
 
             <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              {candidates.length === 0 ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Bạn chưa có hồ sơ ứng viên nào.</div>
+              {displayedCandidates.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                  {isOfferOnboarding ? 'Chưa có ứng viên nào ở giai đoạn Đề xuất Offer hoặc Nhận việc.' : 'Bạn chưa có hồ sơ ứng viên nào.'}
+                </div>
               ) : (
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '920px' }}>
@@ -451,7 +489,7 @@ const CandidateList = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {candidates.map(cand => (
+                      {displayedCandidates.map(cand => (
                         <tr key={cand.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '14px 12px', color: '#1e293b', fontWeight: '600' }}>{cand.full_name}</td>
                           <td style={{ padding: '14px 12px', color: '#475569' }}>{cand.email}</td>

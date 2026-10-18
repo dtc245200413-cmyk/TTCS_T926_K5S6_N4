@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const RecruitmentRequestApprovalList = () => {
   const { user } = useContext(AuthContext);
+  const [searchParams] = useSearchParams();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('PENDING');
+  const isHistory = searchParams.get('status') === 'HISTORY';
+  const [filter, setFilter] = useState(isHistory ? 'ALL' : (searchParams.get('status') || 'PENDING'));
+
+  useEffect(() => {
+    const s = searchParams.get('status');
+    if (s === 'HISTORY') {
+      setFilter('ALL');
+    } else if (s) {
+      setFilter(s);
+    } else {
+      setFilter('PENDING');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -53,8 +66,8 @@ const RecruitmentRequestApprovalList = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div>
-            <h1 className="g-page-title">Duyệt Yêu cầu Tuyển dụng</h1>
-            <p className="g-page-subtitle">Danh sách các yêu cầu đang chờ bạn phê duyệt</p>
+            <h1 className="g-page-title">{isHistory ? 'Lịch sử Phê duyệt' : 'Duyệt Yêu cầu Tuyển dụng'}</h1>
+            <p className="g-page-subtitle">{isHistory ? 'Danh sách toàn bộ các yêu cầu đã phê duyệt hoặc cần theo dõi' : 'Danh sách các yêu cầu đang chờ bạn phê duyệt'}</p>
           </div>
         </div>
 

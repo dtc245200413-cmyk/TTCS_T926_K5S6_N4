@@ -88,8 +88,13 @@ const CandidateKanbanBoard = ({
   downloadResume,
   user,
   viewMode = 'kanban',
-  setViewMode
+  setViewMode,
+  visibleStages = null
 }) => {
+  const stagesToRender = Array.isArray(visibleStages) && visibleStages.length > 0
+    ? STAGES.filter(s => visibleStages.includes(s.key))
+    : STAGES;
+
   const [selectedPosition, setSelectedPosition] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedCandidate, setDraggedCandidate] = useState(null);
@@ -395,15 +400,15 @@ const CandidateKanbanBoard = ({
         )}
       </div>
 
-      {/* 6 KANBAN COLUMNS */}
+      {/* KANBAN COLUMNS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(6, minmax(245px, 1fr))',
+        gridTemplateColumns: `repeat(${stagesToRender.length}, minmax(${stagesToRender.length <= 2 ? '360px' : '245px'}, 1fr))`,
         gap: 14,
         overflowX: 'auto',
         paddingBottom: 16
       }}>
-        {STAGES.map(stage => {
+        {stagesToRender.map(stage => {
           const stageCandidates = filteredCandidates.filter(c => c.status === stage.key);
           const isOver = dragOverColumn === stage.key;
 
