@@ -15,7 +15,7 @@ async function seedData() {
           'TechCorp là tập đoàn công nghệ tiên phong tại Việt Nam chuyên cung cấp các giải pháp chuyển đổi số, phần mềm quản trị doanh nghiệp và hạ tầng điện toán đám mây cho các doanh nghiệp trong nước và quốc tế.',
           '',
           '',
-          'https://techcorp.vn'
+          '/jobs'
         )
       `);
       console.log('   ✓ Đã tạo hồ sơ công ty');
