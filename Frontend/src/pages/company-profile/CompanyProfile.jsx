@@ -89,7 +89,7 @@ const CompanyProfile = () => {
             style={{ padding: '10px 16px', borderRadius: '10px', border: '2px solid #e2e8f0', fontSize: '1rem', outline: 'none', transition: 'all 0.2s', backgroundColor: '#f8fafc', color: '#0f172a', fontWeight: '500', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}
             onFocus={e => e.target.style.borderColor = '#4f46e5'}
             onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-            placeholder="https://techcorp.com"
+            placeholder="/jobs hoặc https://your-website.com"
           />
         </div>
       </div>
@@ -113,20 +113,36 @@ const CompanyProfile = () => {
           <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ background: '#e0e7ff', padding: '4px', borderRadius: '6px', color: '#4f46e5', fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}><FaPalette /></span> Logo công ty
           </label>
-          <label style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }}
+          <label style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', overflow: 'hidden', minHeight: '140px', justifyContent: 'center' }}
                  onMouseOver={e => e.currentTarget.style.borderColor = '#4f46e5'}
                  onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}>
-            <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-            {profile.logo_url && !logoFile && <img src={`http://localhost:5000${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '10px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
+            <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 5 }} />
             {logoFile ? (
-              <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#10b981' }}><FaCheckCircle /></div>
-                <span style={{ color: '#059669', fontWeight: '700', fontSize: '0.95rem' }}>{logoFile.name}</span>
+              <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 1 }}>
+                <img 
+                  src={URL.createObjectURL(logoFile)} 
+                  alt="Logo Preview" 
+                  style={{ width: '90px', height: '90px', objectFit: 'contain', background: '#ffffff', padding: '6px', borderRadius: '12px', border: '2px solid #10b981', boxShadow: '0 4px 10px rgba(16,185,129,0.2)' }} 
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#10b981' }}><FaCheckCircle /></span>
+                  <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{logoFile.name}</span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: '600' }}>Nhấp để chọn ảnh khác</span>
               </div>
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                {!profile.logo_url && <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}><FaImage /></div>}
-                <div style={{ padding: '6px 16px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '20px', fontWeight: '700', fontSize: '0.9rem' }}>Tải ảnh lên</div>
+              <div style={{ textAlign: 'center', zIndex: 1 }}>
+                {profile.logo_url ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <img src={`http://localhost:5000${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Logo hiện tại · Nhấp để đổi</span>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}><FaImage /></div>
+                    <div style={{ padding: '6px 16px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '20px', fontWeight: '700', fontSize: '0.9rem' }}>Tải ảnh lên</div>
+                  </>
+                )}
               </div>
             )}
           </label>
@@ -136,20 +152,36 @@ const CompanyProfile = () => {
           <label style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ background: '#e0e7ff', padding: '4px', borderRadius: '6px', color: '#4f46e5', fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}><FaImage /></span> Ảnh bìa (Banner)
           </label>
-          <label style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }}
+          <label style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', overflow: 'hidden', minHeight: '140px', justifyContent: 'center' }}
                  onMouseOver={e => e.currentTarget.style.borderColor = '#4f46e5'}
                  onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}>
-            <input type="file" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-            {profile.banner_url && !bannerFile && <img src={`http://localhost:5000${profile.banner_url}`} alt="Banner" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />}
+            <input type="file" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 5 }} />
             {bannerFile ? (
-              <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#10b981' }}><FaCheckCircle /></div>
-                <span style={{ color: '#059669', fontWeight: '700', fontSize: '0.95rem' }}>{bannerFile.name}</span>
+              <div style={{ textAlign: 'center', animation: 'scaleIn 0.3s ease', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 1 }}>
+                <img 
+                  src={URL.createObjectURL(bannerFile)} 
+                  alt="Banner Preview" 
+                  style={{ width: '100%', maxHeight: '110px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #10b981', boxShadow: '0 4px 10px rgba(16,185,129,0.2)' }} 
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#10b981' }}><FaCheckCircle /></span>
+                  <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '0.85rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bannerFile.name}</span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: '600' }}>Nhấp để chọn ảnh khác</span>
               </div>
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                {!profile.banner_url && <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}><FaImage /></div>}
-                <div style={{ padding: '6px 16px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '20px', fontWeight: '700', fontSize: '0.9rem' }}>Tải ảnh bìa</div>
+              <div style={{ textAlign: 'center', width: '100%', zIndex: 1 }}>
+                {profile.banner_url ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
+                    <img src={`http://localhost:5000${profile.banner_url}`} alt="Banner" style={{ width: '100%', maxHeight: '90px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Ảnh bìa hiện tại · Nhấp để đổi</span>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '2rem', marginBottom: '4px', color: '#94a3b8' }}><FaImage /></div>
+                    <div style={{ padding: '6px 16px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '20px', fontWeight: '700', fontSize: '0.9rem' }}>Tải ảnh bìa</div>
+                  </>
+                )}
               </div>
             )}
           </label>
@@ -186,7 +218,12 @@ const CompanyProfile = () => {
             <div style={{ paddingBottom: '10px' }}>
               <h1 className="g-page-title">{profile.name || 'Tên công ty'}</h1>
               {profile.website && (
-                <a href={profile.website} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#3b82f6', textDecoration: 'none', fontWeight: '600', marginTop: '4px' }}>
+                <a 
+                  href={profile.website.startsWith('/') || profile.website.startsWith('http://') || profile.website.startsWith('https://') ? profile.website : `https://${profile.website}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#3b82f6', textDecoration: 'none', fontWeight: '600', marginTop: '4px' }}
+                >
                   <FaGlobe /> {profile.website}
                 </a>
               )}

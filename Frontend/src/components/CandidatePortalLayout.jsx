@@ -10,14 +10,15 @@ const CandidatePortalLayout = () => {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 7,
-    padding: '8px 10px',
+    padding: '8px 12px',
     borderRadius: 6,
-    color: isActive ? '#1d4ed8' : '#475569',
-    background: isActive ? '#eff6ff' : 'transparent',
+    color: isActive ? '#ffffff' : '#cbd5e1',
+    background: isActive ? '#2563eb' : 'transparent',
     textDecoration: 'none',
     fontSize: 13,
-    fontWeight: isActive ? 700 : 500,
-    whiteSpace: 'nowrap'
+    fontWeight: isActive ? 700 : 600,
+    whiteSpace: 'nowrap',
+    transition: 'all 0.15s ease'
   });
 
   const handleLogout = () => {
@@ -30,7 +31,7 @@ const CandidatePortalLayout = () => {
       <header style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '0 clamp(16px, 4vw, 48px)', minHeight: 60, background: '#111827', color: '#fff' }}>
         <NavLink to="/candidate" style={{ color: '#fff', fontWeight: 800, fontSize: 17, textDecoration: 'none' }}>TechCorp <span style={{ color: '#93c5fd', fontWeight: 500 }}>Careers</span></NavLink>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto' }}>
-          <NavLink to="/jobs" style={({ isActive }) => ({ ...navStyle({ isActive: false }), color: '#d1d5db' })}><FiBriefcase /> Việc làm</NavLink>
+          <NavLink to="/jobs" style={({ isActive }) => ({ ...navStyle({ isActive: false }), color: '#93c5fd' })}><FiBriefcase /> Việc làm</NavLink>
           <NavLink to="/candidate" style={navStyle} end><FiHome /> Tổng quan</NavLink>
           <NavLink to="/candidate/applications" style={navStyle}><FiFileText /> Hồ sơ đã ứng tuyển</NavLink>
           <NavLink to="/candidate/interviews" style={navStyle}><FiCalendar /> Lịch phỏng vấn</NavLink>

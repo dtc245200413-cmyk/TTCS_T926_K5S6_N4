@@ -293,7 +293,7 @@ const JobPostingList = () => {
   };
 
   return (
-    <div className="g-page-container" style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto' }}>
+    <div className="g-page-container" style={{ padding: '24px clamp(20px, 3vw, 40px)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {/* Header */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>

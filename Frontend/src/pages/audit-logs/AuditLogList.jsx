@@ -37,6 +37,19 @@ const AuditLogList = () => {
 
   const totalPages = Math.ceil(total / limit);
 
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (page <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+    if (page >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', page - 1, page, page + 1, '...', totalPages];
+  };
+
   const translateAction = (action) => {
     const actionMap = {
       'LOGIN_SUCCESS': 'ĐĂNG NHẬP THÀNH CÔNG',
@@ -173,35 +186,72 @@ const AuditLogList = () => {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0' }}>
+          <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
               Hiển thị {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} trong tổng số {total} bản ghi
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 style={{
-                  padding: '8px 16px',
+                  padding: '7px 14px',
                   borderRadius: '8px',
                   border: '1px solid #e2e8f0',
                   background: page === 1 ? '#f8fafc' : '#ffffff',
                   color: page === 1 ? '#cbd5e1' : '#334155',
-                  cursor: page === 1 ? 'not-allowed' : 'pointer'
+                  cursor: page === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600
                 }}
               >
                 Trước
               </button>
+
+              {getPageNumbers().map((item, idx) => {
+                if (item === '...') {
+                  return (
+                    <span key={`dots-${idx}`} style={{ padding: '0 6px', color: '#94a3b8', fontSize: '14px', userSelect: 'none' }}>
+                      ...
+                    </span>
+                  );
+                }
+                const isCurrent = item === page;
+                return (
+                  <button
+                    key={item}
+                    onClick={() => setPage(item)}
+                    style={{
+                      minWidth: '36px',
+                      height: '36px',
+                      padding: '0 10px',
+                      borderRadius: '8px',
+                      border: isCurrent ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                      background: isCurrent ? '#2563eb' : '#ffffff',
+                      color: isCurrent ? '#ffffff' : '#334155',
+                      fontWeight: isCurrent ? 700 : 500,
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 style={{
-                  padding: '8px 16px',
+                  padding: '7px 14px',
                   borderRadius: '8px',
                   border: '1px solid #e2e8f0',
                   background: page === totalPages ? '#f8fafc' : '#ffffff',
                   color: page === totalPages ? '#cbd5e1' : '#334155',
-                  cursor: page === totalPages ? 'not-allowed' : 'pointer'
+                  cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600
                 }}
               >
                 Sau

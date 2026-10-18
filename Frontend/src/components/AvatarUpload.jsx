@@ -1,12 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { FiUser } from 'react-icons/fi';
 
 const AvatarUpload = ({ onFileSelect }) => {
+  const { user } = useContext(AuthContext);
   // Trạng thái lưu ảnh preview, file đã chọn và thông báo lỗi
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   
   const fileInputRef = useRef(null);
+
+  const currentAvatar = user?.avatar_url
+    ? (user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:5000${user.avatar_url}`)
+    : null;
 
   // Cấu hình ràng buộc file
   const MAX_FILE_SIZE_MB = 2; // Tối đa 2MB
@@ -61,17 +68,25 @@ const AvatarUpload = ({ onFileSelect }) => {
     }
   };
 
+  const activeImage = previewUrl || currentAvatar;
+
   return (
     <div style={styles.container}>
       <h3 style={styles.title}>Ảnh đại diện</h3>
 
       {/* Vùng xem trước ảnh đại diện */}
       <div style={styles.avatarWrapper}>
-        <img
-          src={previewUrl || 'https://via.placeholder.com/150?text=Avatar'}
-          alt="Avatar Preview"
-          style={styles.avatarImage}
-        />
+        {activeImage ? (
+          <img
+            src={activeImage}
+            alt="Avatar Preview"
+            style={styles.avatarImage}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)', color: '#ffffff', fontSize: '2.5rem', fontWeight: '800' }}>
+            {user?.full_name ? user.full_name.split(' ').pop().charAt(0).toUpperCase() : <FiUser />}
+          </div>
+        )}
       </div>
 
       {/* Nút thao tác tải ảnh */}

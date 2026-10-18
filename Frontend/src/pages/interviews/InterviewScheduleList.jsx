@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import interviewScheduleApi from '../../api/interviewScheduleApi';
 import InterviewScheduleForm from '../../components/interviews/InterviewScheduleForm';
-import { displayTime, interviewAccess, interviewError } from '../../utils/interviewSchedules';
+import { displayTime, interviewAccess, interviewError, toLocalInput } from '../../utils/interviewSchedules';
 import '../../styles/interview-schedules.css';
 
 const filterFields = [
@@ -28,7 +28,7 @@ function ScheduleContent({ canManage }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [denied, setDenied] = useState(false);
-  const [filters, setFilters] = useState({ status: '', candidate_id: '', interviewer_id: '', room_id: '' });
+  const [filters, setFilters] = useState({ status: '', candidate_id: '', interviewer_id: '', room_id: '', date: '' });
   const [revision, setRevision] = useState(0);
   const [form, setForm] = useState(null);
   const [cancelling, setCancelling] = useState(null);
@@ -46,7 +46,15 @@ function ScheduleContent({ canManage }) {
     setLoading(true);
     setError('');
     setRows([]);
-    const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+    const params = {};
+    if (filters.status) params.status = filters.status;
+    if (filters.candidate_id) params.candidate_id = filters.candidate_id;
+    if (filters.interviewer_id) params.interviewer_id = filters.interviewer_id;
+    if (filters.room_id) params.room_id = filters.room_id;
+    if (filters.date) {
+      params.from = `${filters.date}T00:00:00+07:00`;
+      params.to = `${filters.date}T23:59:59+07:00`;
+    }
     interviewScheduleApi.getAll(params, controller.signal).then(response => {
       if (controller.signal.aborted) return;
       if (!Array.isArray(response.data.data)) throw new Error('Invalid schedule data');
@@ -102,26 +110,27 @@ function ScheduleContent({ canManage }) {
         <label htmlFor="is-filter-status">Trạng thái<select id="is-filter-status" value={filters.status} disabled={loading || cancelling !== null} onChange={event => setFilters(current => ({ ...current, status: event.target.value }))}>
           <option value="">Tất cả trạng thái</option><option value="SCHEDULED">Đã lên lịch</option><option value="CANCELLED">Đã hủy</option>
         </select></label>
+        <label htmlFor="is-filter-date">Ngày phỏng vấn<input type="date" id="is-filter-date" value={filters.date} disabled={loading || cancelling !== null} onChange={event => setFilters(current => ({ ...current, date: event.target.value }))} /></label>
         {filterFields.map(([field, label, name]) => {
           const choices = [...new Map(known.map(row => [String(row[field]), row[name]])).entries()];
           return <label key={field} htmlFor={`is-filter-${field}`}>{label}<select id={`is-filter-${field}`} value={filters[field]} disabled={loading || cancelling !== null || denied} onChange={event => setFilters(current => ({ ...current, [field]: event.target.value }))}>
             <option value="">Tất cả</option>{choices.map(([id, text]) => <option value={id} key={id}>{text || 'Chưa có tên'}</option>)}
           </select></label>;
         })}
-        <button type="button" className="is-button is-secondary" disabled={loading || cancelling !== null} onClick={() => setFilters({ status: '', candidate_id: '', interviewer_id: '', room_id: '' })}>Xóa bộ lọc</button>
+        <button type="button" className="is-button is-secondary" disabled={loading || cancelling !== null} onClick={() => setFilters({ status: '', candidate_id: '', interviewer_id: '', room_id: '', date: '' })}>Xóa bộ lọc</button>
       </div>
     </section>
     {notice && <p className="is-success" role="status">{notice}</p>}
     {error && <div className="is-error" role="alert">{error} <button type="button" className="is-button is-secondary" disabled={loading || cancelling !== null} onClick={() => setRevision(value => value + 1)}>Tải lại lịch</button></div>}
     <section className="is-card" aria-label="Danh sách lịch phỏng vấn" aria-busy={loading}>
-      {loading ? <p role="status">Đang tải lịch phỏng vấn...</p> : rows.length === 0 ? !error && <p className="is-muted">Chưa có lịch phỏng vấn phù hợp.</p> : <>
+      {loading ? <p role="status">Đang tải lịch phỏng vấn...</p> : (filters.date ? rows.filter(r => toLocalInput(r.start_at).startsWith(filters.date)) : rows).length === 0 ? !error && <p className="is-muted">Chưa có lịch phỏng vấn phù hợp.</p> : <>
         <p className="is-muted">Giờ Việt Nam · Asia/Ho_Chi_Minh (UTC+07:00) · Định dạng 24 giờ.</p>
         <p className="is-scroll-hint" id="is-table-hint">Cuộn ngang để xem đầy đủ lịch và thao tác.</p>
         <div className="is-table-scroll" tabIndex={0} role="region" aria-label="Bảng lịch phỏng vấn" aria-describedby="is-table-hint">
           <table className="is-schedule-table">
             <colgroup>{['candidate', 'position', 'interviewer', 'room', 'start', 'end', 'status', 'actions'].map(column => <col key={column} className={`is-col-${column}`} />)}</colgroup>
             <thead><tr>{['Ứng viên', 'Vị trí', 'Người phỏng vấn', 'Phòng', 'Bắt đầu', 'Kết thúc', 'Trạng thái', 'Thao tác'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
-            <tbody>{rows.map(row => <tr key={row.id} data-schedule-id={row.id}>
+            <tbody>{(filters.date ? rows.filter(r => toLocalInput(r.start_at).startsWith(filters.date)) : rows).map(row => <tr key={row.id} data-schedule-id={row.id}>
               <td><span className="is-cell-text" title={row.candidate_name}>{row.candidate_name}</span></td>
               <td><span className="is-cell-text" title={row.position_name}>{row.position_name}</span></td>
               <td><span className="is-cell-text" title={row.interviewer_name}>{row.interviewer_name}</span></td>

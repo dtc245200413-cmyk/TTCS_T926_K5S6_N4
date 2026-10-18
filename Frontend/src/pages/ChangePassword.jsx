@@ -138,20 +138,28 @@ const ChangePassword = () => {
             </h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p className="g-page-subtitle">Sử dụng mật khẩu dài ít nhất <strong>8 ký tự</strong>.</p>
+                <span style={{ color: '#34d399', fontSize: '1.2rem', fontWeight: 'bold' }}>✓</span>
+                <p style={{ color: '#f1f5f9', margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                  Sử dụng mật khẩu dài ít nhất <strong style={{ color: '#38bdf8', fontWeight: '800' }}>8 ký tự</strong>.
+                </p>
               </li>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p className="g-page-subtitle">Kết hợp <strong>chữ hoa, chữ thường, số</strong> và ký tự đặc biệt (@, #, $).</p>
+                <span style={{ color: '#34d399', fontSize: '1.2rem', fontWeight: 'bold' }}>✓</span>
+                <p style={{ color: '#f1f5f9', margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                  Kết hợp <strong style={{ color: '#38bdf8', fontWeight: '800' }}>chữ hoa, chữ thường, số</strong> và ký tự đặc biệt (@, #, $).
+                </p>
               </li>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p className="g-page-subtitle">Không sử dụng thông tin cá nhân dễ đoán như ngày sinh, số điện thoại.</p>
+                <span style={{ color: '#34d399', fontSize: '1.2rem', fontWeight: 'bold' }}>✓</span>
+                <p style={{ color: '#f1f5f9', margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                  Không sử dụng <strong style={{ color: '#38bdf8', fontWeight: '800' }}>thông tin cá nhân dễ đoán</strong> như ngày sinh, số điện thoại.
+                </p>
               </li>
               <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ color: '#10b981', fontSize: '1.2rem' }}>✓</span>
-                <p className="g-page-subtitle">Tránh dùng lại mật khẩu đã sử dụng cho các tài khoản khác.</p>
+                <span style={{ color: '#34d399', fontSize: '1.2rem', fontWeight: 'bold' }}>✓</span>
+                <p style={{ color: '#f1f5f9', margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                  Tránh dùng lại <strong style={{ color: '#38bdf8', fontWeight: '800' }}>mật khẩu cũ</strong> đã sử dụng cho các tài khoản khác.
+                </p>
               </li>
             </ul>
           </div>

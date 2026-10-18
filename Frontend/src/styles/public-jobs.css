@@ -129,34 +129,39 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: rgba(99, 102, 241, 0.18);
-  border: 1px solid rgba(165, 180, 252, 0.3);
+  padding: 8px 16px;
+  background: rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(199, 210, 254, 0.5);
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #c7d2fe;
+  color: #e0e7ff;
   letter-spacing: 0.04em;
   margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .pj-hero-title {
-  font-size: clamp(32px, 5vw, 46px);
-  font-weight: 800;
-  line-height: 1.15;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 900;
+  line-height: 1.2;
   letter-spacing: -0.03em;
-  margin-bottom: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  margin-bottom: 18px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ffffff 40%, #e0e7ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.6));
 }
 
 .pj-hero-desc {
-  font-size: clamp(15px, 2vw, 17px);
-  color: #94a3b8;
-  max-width: 680px;
+  font-size: clamp(15px, 2vw, 17.5px);
+  color: #f1f5f9;
+  font-weight: 450;
+  max-width: 720px;
   margin: 0 auto 36px;
-  line-height: 1.6;
+  line-height: 1.65;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Search Box Container */
@@ -289,30 +294,30 @@
 }
 
 .pj-filter-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-right: 4px;
+  margin-right: 6px;
 }
 
 .pj-filter-chip {
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 16px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   background: #f8fafc;
-  color: #475569;
+  color: #1e293b;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .pj-filter-chip:hover {
-  background: #ede9fe;
-  color: #4f46e5;
-  border-color: #c7d2fe;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-color: #818cf8;
 }
 
 .pj-filter-chip.active {
@@ -543,9 +548,11 @@
 
 /* Job Detail Page */
 .pj-detail-container {
-  max-width: 1140px;
+  max-width: 980px;
+  width: 100%;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 36px clamp(32px, 6vw, 72px) 80px;
+  box-sizing: border-box;
 }
 
 .pj-breadcrumb {

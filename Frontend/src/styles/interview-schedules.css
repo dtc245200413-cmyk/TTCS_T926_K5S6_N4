@@ -12,7 +12,8 @@
 .interview-schedules .is-success { background: #f0fdf4; color: #166534; }
 .interview-schedules label { display: flex; flex-direction: column; gap: 8px; font-size: .9rem; font-weight: 600; min-width: 0; }
 .interview-schedules :is(select, input) { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font: inherit; color: #1e293b; background: #fff; }
-.interview-schedules .is-filters { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)) auto; align-items: end; gap: 16px; }
+.interview-schedules .is-filters { display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)) auto; align-items: end; gap: 16px; }
+@media (max-width: 1024px) { .interview-schedules .is-filters { grid-template-columns: repeat(2, 1fr) auto; } }
 .interview-schedules .is-scroll-hint { color: #64748b; font-size: .8rem; margin: 0 0 12px; }
 .interview-schedules .is-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; scrollbar-width: auto; }
 .interview-schedules .is-schedule-table { border-collapse: collapse; table-layout: fixed; width: 100%; min-width: 1430px; text-align: left; }

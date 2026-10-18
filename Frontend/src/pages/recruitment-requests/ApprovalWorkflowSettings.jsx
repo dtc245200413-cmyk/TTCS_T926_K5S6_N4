@@ -191,9 +191,9 @@ const ApprovalWorkflowSettings = () => {
   if (loading) return <div style={{ padding: 24 }}>Đang tải cấu hình...</div>;
 
   return (
-    <main className="g-page-container" style={{ display: 'flex', flexDirection: 'column', margin: '-24px -22px -28px', padding: '12px 18px 4px', minHeight: 'calc(100vh - 92px)', width: 'calc(100% + 44px)', background: '#f8fafc' }}>
+    <main className="g-page-container" style={{ display: 'flex', flexDirection: 'column', padding: '24px clamp(20px, 3vw, 36px) 80px', width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#f8fafc', minHeight: '100vh' }}>
       <div style={{ display: 'flex', flex: 1, flexDirection: 'column', width: '100%', minHeight: '100%', maxWidth: 'none', margin: 0 }}>
-        <header className="g-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, marginBottom: 10 }}>
+        <header className="g-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, marginBottom: 14 }}>
           <FiGitBranch size={22} color="#4f46e5" />
           <div>
             <h1 className="g-page-title" style={{ margin: 0, fontSize: 22, lineHeight: 1.15 }}>Cấu hình luồng phê duyệt</h1>
@@ -269,17 +269,17 @@ const ApprovalWorkflowSettings = () => {
           </div>
         </section>
 
-        <section className="g-card" style={{ display: 'grid', flex: '1 0 150px', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', alignContent: 'stretch', gap: 12, margin: '10px 0 0', padding: 10, background: '#fff', border: '1px solid #dbe3ef', borderRadius: 8 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
-            <div><h2 style={{ margin: 0, fontSize: 16, color: '#1e293b' }}>Xem trước luồng phê duyệt</h2><p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>Nhập mức lương để xem các cấp sẽ được áp dụng</p></div>
+        <section className="g-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', alignContent: 'stretch', gap: 16, margin: '24px 0 40px', padding: 24, background: '#fff', border: '1px solid #dbe3ef', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
+            <div><h2 style={{ margin: 0, fontSize: 17, color: '#1e293b', fontWeight: 800 }}>Xem trước luồng phê duyệt</h2><p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>Nhập mức lương để xem các cấp sẽ được áp dụng</p></div>
             <div style={{ display: 'flex', gap: 8 }}>
               <label style={{ flex: 1 }}><span style={{ display: 'block', marginBottom: 5, color: '#475569', fontSize: 12, fontWeight: 700 }}>MỨC LƯƠNG ĐỀ XUẤT (VNĐ)</span><input className="g-form-input" type="number" min="0" value={previewSalary} onChange={event => setPreviewSalary(event.target.value)} placeholder="Ví dụ: 25.000.000" style={{ width: '100%', boxSizing: 'border-box', padding: 10, border: '1px solid #cbd5e1', borderRadius: 6 }} /></label>
-              <button className="g-btn-primary" type="button" disabled={!previewSalary} onClick={previewWorkflow} style={{ alignSelf: 'end', padding: '8px 13px', borderRadius: 6, background: '#4f46e5', whiteSpace: 'nowrap' }}>Xem trước</button>
+              <button className="g-btn-primary" type="button" disabled={!previewSalary} onClick={previewWorkflow} style={{ alignSelf: 'end', padding: '10px 16px', borderRadius: 6, background: '#4f46e5', whiteSpace: 'nowrap', fontWeight: 700 }}>Xem trước</button>
             </div>
             {previewError && <div role="alert" style={{ color: '#b91c1c', fontSize: 13 }}>{previewError}</div>}
           </div>
-          <div style={{ display: 'flex', minWidth: 0, minHeight: 110, flexDirection: 'column', justifyContent: 'center', padding: 10, borderRadius: 7, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <strong style={{ display: 'block', marginBottom: 8, color: '#334155', fontSize: 11 }}>KẾT QUẢ LUỒNG PHÊ DUYỆT</strong>
+          <div style={{ display: 'flex', minWidth: 0, minHeight: 120, flexDirection: 'column', justifyContent: 'center', padding: 16, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <strong style={{ display: 'block', marginBottom: 8, color: '#334155', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>KẾT QUẢ LUỒNG PHÊ DUYỆT</strong>
             {previewSteps.length === 0 ? <div style={{ color: '#64748b', fontSize: 13 }}>Nhập mức lương và chọn “Xem trước” để kiểm tra.</div> : <>
               <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, overflowX: 'auto', paddingBottom: 5 }}>
                 {previewSteps.map((step, index) => (
@@ -301,9 +301,9 @@ const ApprovalWorkflowSettings = () => {
           </div>
         </section>
 
-        <footer style={{ position: 'sticky', bottom: 0, display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'auto', padding: '7px 0', background: 'rgba(248,250,252,.96)', borderTop: '1px solid #e2e8f0' }}>
-          <button className="g-btn-secondary" type="button" onClick={cancelChanges} disabled={saving} style={{ padding: '7px 12px', borderRadius: 5, fontSize: 12 }}>Hủy thay đổi</button>
-          <button className="g-btn-primary" type="button" onClick={save} disabled={saving || levels.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 5, background: '#4f46e5', fontSize: 12 }}><FiSave /> {saving ? 'Đang lưu...' : 'Lưu cấu hình'}</button>
+        <footer style={{ position: 'sticky', bottom: 0, display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 'auto', padding: '18px 0 28px', background: 'rgba(248, 250, 252, 0.98)', borderTop: '1px solid #e2e8f0', zIndex: 10, backdropFilter: 'blur(8px)' }}>
+          <button className="g-btn-secondary" type="button" onClick={cancelChanges} disabled={saving} style={{ padding: '9px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600 }}>Hủy thay đổi</button>
+          <button className="g-btn-primary" type="button" onClick={save} disabled={saving || levels.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 6, background: '#4f46e5', fontSize: 13, fontWeight: 700 }}><FiSave /> {saving ? 'Đang lưu...' : 'Lưu cấu hình'}</button>
         </footer>
       </div>
     </main>

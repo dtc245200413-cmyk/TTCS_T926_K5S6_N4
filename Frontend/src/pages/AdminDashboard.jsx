@@ -46,11 +46,11 @@ const Home = () => {
 
       {/* Welcome Banner (Top Strip) */}
       <div style={{ position: 'relative', zIndex: 1, height: '140px', flexShrink: 0, background: 'linear-gradient(to right, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.5)), url("/login-bg.png")', backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '24px', padding: '0 40px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ color: 'white' }}>
-          <h1 className="g-page-title">
+        <div style={{ color: '#ffffff' }}>
+          <h1 className="g-page-title" style={{ color: '#ffffff', fontSize: '1.75rem', fontWeight: 800, textShadow: '0 2px 8px rgba(0,0,0,0.5)', margin: '0 0 6px' }}>
             Chào mừng trở lại, {user?.full_name ? user.full_name.split(' ').pop() : ''}! 👋
           </h1>
-          <p className="g-page-subtitle">
+          <p className="g-page-subtitle" style={{ color: '#f1f5f9', fontSize: '0.95rem', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.4)', opacity: 0.95 }}>
             Chúc bạn một ngày làm việc hiệu quả. {isAdmin && "Dưới đây là tổng quan hệ thống."}
           </p>
         </div>

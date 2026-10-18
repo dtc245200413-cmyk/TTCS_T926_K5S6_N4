@@ -220,25 +220,29 @@ body {
 .auth-banner-content {
   position: relative;
   z-index: 1;
-  color: white;
-  max-width: 500px;
-  text-align: center;
+  color: #ffffff;
+  max-width: 600px;
   animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.auth-banner-content h1 {
-  font-size: 3rem;
+.auth-banner-content h1,
+.auth-banner-content .g-page-title {
+  color: #ffffff !important;
+  font-size: clamp(2rem, 4vw, 2.75rem);
   font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 24px;
+  line-height: 1.25;
+  margin-bottom: 20px;
   letter-spacing: -0.025em;
-  text-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
-.auth-banner-content p {
-  font-size: 1.25rem;
-  line-height: 1.6;
-  opacity: 0.9;
+.auth-banner-content p,
+.auth-banner-content .g-page-subtitle {
+  color: #f1f5f9 !important;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  opacity: 0.95;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .auth-form-wrapper {

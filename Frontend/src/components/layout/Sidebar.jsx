@@ -107,9 +107,9 @@ const Sidebar = () => {
         display: 'flex', alignItems: 'center', gap: '12px',
         padding: '12px 16px', margin: '4px 12px',
         borderRadius: '8px', textDecoration: 'none',
-        color: active ? '#fff' : '#94a3b8',
+        color: active ? '#fff' : '#cbd5e1',
         background: active ? '#2563eb' : 'transparent',
-        fontWeight: active ? '600' : '500',
+        fontWeight: active ? '700' : '500',
         fontSize: '0.9rem',
         transition: 'all 0.2s',
         border: 'none',
@@ -122,9 +122,9 @@ const Sidebar = () => {
     display: 'flex', alignItems: 'center', gap: '12px',
     padding: '12px 16px', margin: '4px 12px',
     borderRadius: '8px', textDecoration: 'none',
-    color: isActive ? '#fff' : '#94a3b8',
+    color: isActive ? '#fff' : '#cbd5e1',
     background: isActive ? '#2563eb' : 'transparent',
-    fontWeight: isActive ? '600' : '500',
+    fontWeight: isActive ? '700' : '500',
     fontSize: '0.9rem',
     transition: 'all 0.2s',
     border: 'none',
@@ -148,12 +148,12 @@ const Sidebar = () => {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '12px 16px', margin: '4px 12px',
     borderRadius: '8px', cursor: 'pointer',
-    color: '#f8fafc', fontWeight: '600', fontSize: '0.9rem',
+    color: '#ffffff', fontWeight: '700', fontSize: '0.9rem',
     background: 'transparent', transition: 'all 0.2s', userSelect: 'none'
   };
 
   const sectionHeader = (text) => (
-    <div style={{ padding: '0 24px', marginTop: '16px', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>
+    <div style={{ padding: '0 24px', marginTop: '16px', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
       {text}
     </div>
   );
