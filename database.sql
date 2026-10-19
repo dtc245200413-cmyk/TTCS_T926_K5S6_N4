@@ -978,7 +978,7 @@ INSERT INTO users (user_id, department_id, employee_code, full_name, company_ema
 (2, 2, 'EMP002', 'Hà Đức Minh',           'dtc245200002@ictu.edu.vn', '0988888882', 'Trưởng phòng Nhân sự',              '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (3, 2, 'EMP003', 'Nguyễn Anh Sơn',        'dtc245200852@ictu.edu.vn', '0988888883', 'Chuyên viên Tuyển dụng',            '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (4, 1, 'EMP004', 'Mã Dương Quốc',         'dtc245200935@ictu.edu.vn', '0988888884', 'Trưởng bộ phận Kỹ thuật (Hiring Mgr)', '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
-(5, 1, 'EMP005', 'Thàng Xuân Lập',        'dtc245200571@ictu.edu.vn', '0988888885', 'Kỹ sư Cấp cao (Interviewer)',      '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
+(5, 1, 'EMP005', 'Thàng Xuân Lập',        'dtc245200571@ictu.edu.vn', '0988888885', 'Người phỏng vấn',                  '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (6, 5, 'EMP006', 'Thảo A Pồng',           'dtc245200592@ictu.edu.vn', '0988888886', 'Giám đốc Vận hành (Approver)',      '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (7, 4, 'EMP007', 'Nguyễn Xuân Phú',       'dtc245200480@ictu.edu.vn', '0988888887', 'Trưởng bộ phận Marketing (Hiring)',  '$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
 (8, 3, 'EMP008', 'Lưu Quang Lực',         'dtc245200349@ictu.edu.vn', '0988888888', 'Chuyên viên Tài chính (Interviewer)','$2b$10$YyuS5788uO.e/J0y081V5O6k9Jwu3PhCLmCuXRnsKOzfirRteds52', 'ACTIVE'),
