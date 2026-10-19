@@ -339,14 +339,8 @@ const Sidebar = () => {
       <NavLink to="/" className={getClassName} style={getNavLinkStyle('/')} end>
         <FiHome size={18} /> Tổng quan
       </NavLink>
-      <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')}>
+      <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')} end>
         <FiCalendar size={18} /> Lịch phỏng vấn
-      </NavLink>
-      <NavLink to="/competency-frameworks" className={getClassName} style={getNavLinkStyle('/competency-frameworks')}>
-        <FiAward size={18} /> Khung năng lực
-      </NavLink>
-      <NavLink to="/questions" className={getClassName} style={getNavLinkStyle('/questions')}>
-        <FiBookOpen size={18} /> Ngân hàng câu hỏi
       </NavLink>
     </div>
   );
