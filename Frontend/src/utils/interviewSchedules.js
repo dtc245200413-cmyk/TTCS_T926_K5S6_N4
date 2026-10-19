@@ -71,3 +71,19 @@ export function resolveScheduleTime(form) {
   if (new Date(end) <= new Date(start)) return { error: 'Thời gian kết thúc phải sau thời gian bắt đầu.' };
   return { start, end };
 }
+
+export function getScheduleStatusInfo(status) {
+  switch (status) {
+    case 'SCHEDULED':
+      return { label: 'Đã lên lịch', className: 'is-badge' };
+    case 'IN_PROGRESS':
+      return { label: 'Đang diễn ra', className: 'is-badge', style: { background: '#fef3c7', color: '#b45309' } };
+    case 'COMPLETED':
+      return { label: 'Đã hoàn thành', className: 'is-badge', style: { background: '#dcfce7', color: '#15803d' } };
+    case 'CANCELLED':
+      return { label: 'Đã hủy', className: 'is-badge is-cancelled', style: { background: '#f1f5f9', color: '#64748b' } };
+    default:
+      return { label: status || 'Chưa xác định', className: 'is-badge' };
+  }
+}
+

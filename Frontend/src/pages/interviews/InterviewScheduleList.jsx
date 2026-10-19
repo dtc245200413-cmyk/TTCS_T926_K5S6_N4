@@ -3,7 +3,7 @@ import { AuthContext } from '../../context/AuthContext';
 import interviewScheduleApi from '../../api/interviewScheduleApi';
 import InterviewScheduleForm from '../../components/interviews/InterviewScheduleForm';
 import InterviewEvaluationModal from '../../components/interviews/InterviewEvaluationModal';
-import { displayTime, interviewAccess, interviewError, toLocalInput } from '../../utils/interviewSchedules';
+import { displayTime, interviewAccess, interviewError, toLocalInput, getScheduleStatusInfo } from '../../utils/interviewSchedules';
 import '../../styles/interview-schedules.css';
 
 const filterFields = [
@@ -117,7 +117,11 @@ function ScheduleContent({ canManage }) {
     <section className="is-card" aria-label="Bộ lọc lịch phỏng vấn">
       <div className="is-filters">
         <label htmlFor="is-filter-status">Trạng thái<select id="is-filter-status" value={filters.status} disabled={loading || cancelling !== null} onChange={event => setFilters(current => ({ ...current, status: event.target.value }))}>
-          <option value="">Tất cả trạng thái</option><option value="SCHEDULED">Đã lên lịch</option><option value="CANCELLED">Đã hủy</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="SCHEDULED">Đã lên lịch</option>
+          <option value="IN_PROGRESS">Đang diễn ra</option>
+          <option value="COMPLETED">Đã hoàn thành</option>
+          <option value="CANCELLED">Đã hủy</option>
         </select></label>
         <label htmlFor="is-filter-date">Ngày phỏng vấn<input type="date" id="is-filter-date" value={filters.date} disabled={loading || cancelling !== null} onChange={event => setFilters(current => ({ ...current, date: event.target.value }))} /></label>
         {filterFields.map(([field, label, name]) => {
@@ -155,13 +159,16 @@ function ScheduleContent({ canManage }) {
                       {row.recommendation === 'RECOMMENDED' ? 'Nên tuyển' : row.recommendation === 'CONSIDER' ? 'Cân nhắc' : 'Không nên tuyển'}
                     </div>
                   </div>
-                ) : isInterviewerRole ? (
-                  <span className={`is-badge ${row.status === 'CANCELLED' ? 'is-cancelled' : ''}`}>
-                    {row.status === 'SCHEDULED' ? 'Chờ chấm điểm' : row.status === 'CANCELLED' ? 'Đã hủy' : row.status}
+                ) : isInterviewerRole && row.status === 'SCHEDULED' ? (
+                  <span className="is-badge" style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa' }}>
+                    Chờ chấm điểm
                   </span>
                 ) : (
-                  <span className={`is-badge ${row.status === 'CANCELLED' ? 'is-cancelled' : ''}`}>
-                    {row.status === 'SCHEDULED' ? 'Đã lên lịch' : row.status === 'CANCELLED' ? 'Đã hủy' : row.status}
+                  <span 
+                    className={getScheduleStatusInfo(row.status).className}
+                    style={getScheduleStatusInfo(row.status).style}
+                  >
+                    {getScheduleStatusInfo(row.status).label}
                   </span>
                 )}
               </td>
