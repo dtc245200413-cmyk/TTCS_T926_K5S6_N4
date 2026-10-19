@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Outlet } from 'react-router-dom';
@@ -16,6 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Reports from './pages/Reports';
 import QuestionBank from './pages/questions/QuestionBank';
 import Notifications from './pages/Notifications';
+import OfferList from './pages/offers/OfferList';
 
 // User Pages
 import UserList from './pages/users/UserList';
@@ -84,6 +85,11 @@ function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/interview-schedules" element={<InterviewScheduleList />} />
+            <Route path="/interviews" element={<Navigate to="/interview-schedules" replace />} />
+            <Route path="/offers" element={<OfferList />} />
+            <Route path="/offers/:id" element={<OfferList />} />
+            <Route path="/offers/approval" element={<OfferList />} />
+            <Route path="/onboarding" element={<Navigate to="/candidates" replace />} />
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}

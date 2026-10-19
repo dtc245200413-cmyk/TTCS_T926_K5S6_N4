@@ -209,6 +209,12 @@ const Sidebar = () => {
       <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
         <FiBriefcase size={18} /> Hồ sơ công ty
       </NavLink>
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiFileText size={18} /> Quản lý Offer
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={navLinkStyle}>
+        <FiBell size={18} /> Thông báo
+      </NavLink>
     </div>
   );
 
@@ -234,8 +240,16 @@ const Sidebar = () => {
         <FiCalendar size={18} /> Lịch phỏng vấn
       </NavLink>
 
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiFileText size={18} /> Quản lý Offer
+      </NavLink>
+
       <NavLink to="/reports" className={getClassName} style={navLinkStyle}>
         <FiBarChart2 size={18} /> Báo cáo
+      </NavLink>
+
+      <NavLink to="/notifications" className={getClassName} style={navLinkStyle}>
+        <FiBell size={18} /> Thông báo
       </NavLink>
 
       {/* Quản lý tổ chức (Collapsible with ▼ matching screenshot) */}
@@ -320,6 +334,12 @@ const Sidebar = () => {
       <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')}>
         <FiCalendar size={18} /> Lịch phỏng vấn
       </NavLink>
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+        <FiFileText size={18} /> Quản lý Offer
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
+      </NavLink>
     </div>
   );
 
@@ -331,6 +351,12 @@ const Sidebar = () => {
       <NavLink to="/recruitment-requests/approvals" className={getClassName} style={getNavLinkStyle('/recruitment-requests/approvals')} end>
         <FiCalendar size={18} /> Duyệt yêu cầu
       </NavLink>
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+        <FiCheckSquare size={18} /> Duyệt Offer
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
+      </NavLink>
     </div>
   );
 
@@ -341,6 +367,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')} end>
         <FiCalendar size={18} /> Lịch phỏng vấn
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
       </NavLink>
     </div>
   );
@@ -374,6 +403,10 @@ const Sidebar = () => {
           <FiCalendar size={18} /> Lịch phỏng vấn
         </NavLink>
       )}
+
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
+      </NavLink>
     </div>
   );
 
