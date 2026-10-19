@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import interviewScheduleApi from '../../api/interviewScheduleApi';
 import InterviewScheduleForm from '../../components/interviews/InterviewScheduleForm';
+import InterviewEvaluationModal from '../../components/interviews/InterviewEvaluationModal';
 import { displayTime, interviewAccess, interviewError, toLocalInput } from '../../utils/interviewSchedules';
 import '../../styles/interview-schedules.css';
 
@@ -22,6 +23,7 @@ function ScheduleTime({ value }) {
 }
 
 function ScheduleContent({ canManage }) {
+  const { user } = useContext(AuthContext);
   const [rows, setRows] = useState([]);
   const [known, setKnown] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,7 @@ function ScheduleContent({ canManage }) {
   const [filters, setFilters] = useState({ status: '', candidate_id: '', interviewer_id: '', room_id: '', date: '' });
   const [revision, setRevision] = useState(0);
   const [form, setForm] = useState(null);
+  const [evaluatingScheduleId, setEvaluatingScheduleId] = useState(null);
   const [cancelling, setCancelling] = useState(null);
   const writeController = useRef(null);
   const writing = useRef(false);
@@ -136,17 +139,76 @@ function ScheduleContent({ canManage }) {
               <td><span className="is-cell-text" title={row.interviewer_name}>{row.interviewer_name}</span></td>
               <td><span className="is-cell-text" title={row.room_name}>{row.room_name}</span>{Number(row.room_is_active) === 0 && <small className="is-muted"> (ngừng sử dụng)</small>}</td>
               <td><ScheduleTime value={row.start_at} /></td><td><ScheduleTime value={row.end_at} /></td>
-              <td><span className={`is-badge ${row.status === 'CANCELLED' ? 'is-cancelled' : ''}`}>{row.status === 'SCHEDULED' ? 'Đã lên lịch' : row.status === 'CANCELLED' ? 'Đã hủy' : row.status}</span></td>
-              <td>{canManage && !denied && row.status === 'SCHEDULED' ? <div className="is-row-actions">
-                <button type="button" className="is-button is-secondary is-edit" disabled={cancelling !== null} onClick={() => { setNotice(''); setForm({ id: row.id }); }}>Sửa lịch</button>
-                <button type="button" className="is-button is-danger is-cancel" disabled={cancelling !== null} onClick={() => cancel(row)}>{cancelling === row.id ? 'Đang hủy...' : 'Hủy lịch'}</button>
-              </div> : <span className="is-muted">—</span>}</td>
+              <td>
+                {row.evaluation_id ? (
+                  <div>
+                    <span className="eval-badge-done" title="Đã có phiếu đánh giá năng lực">
+                      ✓ Đã chấm ({Number(row.total_score).toFixed(1)}⭐)
+                    </span>
+                    <div style={{ fontSize: '0.75rem', marginTop: 3, fontWeight: 600, color: row.recommendation === 'RECOMMENDED' ? '#059669' : row.recommendation === 'CONSIDER' ? '#d97706' : '#dc2626' }}>
+                      {row.recommendation === 'RECOMMENDED' ? 'Nên tuyển' : row.recommendation === 'CONSIDER' ? 'Cân nhắc' : 'Không nên tuyển'}
+                    </div>
+                  </div>
+                ) : (
+                  <span className={`is-badge ${row.status === 'CANCELLED' ? 'is-cancelled' : ''}`}>
+                    {row.status === 'SCHEDULED' ? 'Chưa chấm' : row.status === 'CANCELLED' ? 'Đã hủy' : row.status}
+                  </span>
+                )}
+              </td>
+              <td>
+                <div className="is-row-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {row.status !== 'CANCELLED' && (
+                    row.evaluation_id ? (
+                      <button
+                        type="button"
+                        className="is-button is-secondary"
+                        style={{ fontSize: '0.8rem', padding: '4px 8px', color: '#0369a1', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                        onClick={() => setEvaluatingScheduleId(row.id)}
+                      >
+                        👁 Xem phiếu
+                      </button>
+                    ) : (
+                      (Number(user?.user_id) === Number(row.interviewer_id) || user?.roles?.some(r => r.role_code === 'ADMIN')) && (
+                        <button
+                          type="button"
+                          className="is-button"
+                          style={{ fontSize: '0.8rem', padding: '4px 10px', background: '#2563eb', color: '#ffffff', fontWeight: 600, border: 'none' }}
+                          onClick={() => setEvaluatingScheduleId(row.id)}
+                        >
+                          ⭐ Chấm điểm
+                        </button>
+                      )
+                    )
+                  )}
+
+                  {canManage && !denied && row.status === 'SCHEDULED' && (
+                    <>
+                      <button type="button" className="is-button is-secondary is-edit" disabled={cancelling !== null} onClick={() => { setNotice(''); setForm({ id: row.id }); }}>Sửa lịch</button>
+                      <button type="button" className="is-button is-danger is-cancel" disabled={cancelling !== null} onClick={() => cancel(row)}>{cancelling === row.id ? 'Đang hủy...' : 'Hủy lịch'}</button>
+                    </>
+                  )}
+
+                  {!row.evaluation_id && Number(user?.user_id) !== Number(row.interviewer_id) && (!canManage || row.status !== 'SCHEDULED') && (
+                    <span className="is-muted" style={{ fontSize: '0.8rem' }}>Chờ người PV chấm</span>
+                  )}
+                </div>
+              </td>
             </tr>)}</tbody>
           </table>
         </div>
       </>}
     </section>
     {form && canManage && !denied && <InterviewScheduleForm key={form.id ?? 'new'} scheduleId={form.id} onClose={() => setForm(null)} onSaved={saved} />}
+    {evaluatingScheduleId && (
+      <InterviewEvaluationModal
+        scheduleId={evaluatingScheduleId}
+        onClose={() => setEvaluatingScheduleId(null)}
+        onEvaluated={(msg) => {
+          setNotice(msg);
+          setRevision(v => v + 1);
+        }}
+      />
+    )}
   </div>;
 }
 
