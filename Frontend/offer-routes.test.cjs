@@ -36,6 +36,16 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus)
       if (url.pathname === '/api/auth/me') data = { user_id: 3, full_name: 'Smoke User', company_email: 'smoke@example.test', roles: [{role_code: role}], permissions: [] };
       else if (url.pathname === '/api/notifications') data = { notifications: [{notification_id: 1, title: 'OFFER SMOKE NOTICE', message: 'Offer notice', is_read: state.notificationRead, link: '/offers/approval'}], unreadCount: state.notificationRead ? 0 : 1 };
       else if (url.pathname === '/api/notifications/1/read') { state.notificationRead = true; data = null; }
+      else if (url.pathname === '/api/candidate-evaluations') data = [{
+        id: 201, full_name: 'Candidate Smoke', email: 'candidate@example.test',
+        position_name: 'Developer', department_name: 'Engineering', status: 'INTERVIEWING',
+        interview_decision: null, total_rounds: 0, total_evaluations: 0,
+      }];
+      else if (url.pathname === '/api/candidate-evaluations/201') data = {
+        id: 201, full_name: 'Candidate Smoke', email: 'candidate@example.test',
+        position_name: 'Developer', department_name: 'Engineering', status: 'INTERVIEWING',
+        interview_decision: null, rounds: [], aggregate_score: null, offer: null,
+      };
       else if (url.pathname === '/api/offers') data = [{...offer, status: state.status}];
       else if (url.pathname === '/api/offers/101') data = {...offer, status: state.status};
       else if (url.pathname === '/api/offers/101/submit') { state.status = 'PENDING_APPROVAL'; data = {...offer,status:state.status}; }
@@ -80,17 +90,25 @@ function readRoutes(node, parent = '', out = []) {
 }
 (async()=>{
   try {
-    await check('all previous routes retained, 61 -> 63, no duplicate resolved paths', async () => {
+    await check('all previous routes retained, 63 -> 66, no duplicate resolved paths', async () => {
       const before = JSON.parse(fs.readFileSync(path.join(__dirname, 'tests/offerRoutes.before.json'), 'utf8'));
+      // Phase 3.1 added these routes after the original snapshot.
+      before.push(
+        { path: '/offers/new', index: false, parent: '', element: 'OfferForm' },
+        { path: '/offers/:id/edit', index: false, parent: '', element: 'OfferForm' },
+      );
       const after = readRoutes(parse(fs.readFileSync(path.join(__dirname, 'src/App.jsx'), 'utf8'), { sourceType: 'module', plugins: ['jsx'] }));
-      assert.equal(before.length, 61);
-      assert.equal(after.length, 63);
+      assert.equal(before.length, 63);
+      assert.equal(after.length, 66);
       const keys = after.map(item => JSON.stringify(item));
       for (const item of before) assert.ok(keys.includes(JSON.stringify(item)), `Lost route ${JSON.stringify(item)}`);
       const paths = after.filter(item => item.path !== null).map(item => item.path.startsWith('/') ? item.path : `${item.parent}/${item.path}`);
       assert.equal(paths.length, new Set(paths).size);
       assert.ok(after.findIndex(item => item.path === '/offers/new') < after.findIndex(item => item.path === '/offers/:id'));
       assert.ok(after.findIndex(item => item.path === '/offers/approval') < after.findIndex(item => item.path === '/offers/:id'));
+      assert.ok(after.some(item => item.path === '/candidate-evaluations' && item.element === 'ProtectedRoute'));
+      assert.ok(after.some(item => item.parent === '/candidate-evaluations' && item.index && item.element === 'CandidateEvaluationList'));
+      assert.ok(after.some(item => item.parent === '/candidate-evaluations' && item.path === ':id' && item.element === 'CandidateEvaluationDetail'));
     });
     server=http.createServer((req,res)=>{
       let file=path.resolve(dist,'.'+new URL(req.url,'http://local').pathname);
@@ -112,6 +130,14 @@ function readRoutes(node, parent = '', out = []) {
       const {page,state}=await fixture(role);
       assert.equal(await page.$$eval('aside a[href="/offers"], .sidebar a[href="/offers"]',nodes=>nodes.length),1);
       assert.deepEqual(state.errors,[]); await page.close();
+    });
+    for (const route of ['/candidate-evaluations', '/candidate-evaluations/201']) await check('Evaluation route and both navigation entries ' + route, async () => {
+      const { page, state } = await fixture('HR_MANAGER', 'DRAFT', route);
+      assert.ok(state.calls.some(call => call.method === 'GET' && call.path === '/api' + route));
+      for (const link of ['/offers', '/candidate-evaluations']) {
+        assert.equal(await page.$$eval(`aside a[href="${link}"], .sidebar a[href="${link}"]`, nodes => nodes.length), 1);
+      }
+      assert.deepEqual(state.errors, []); await page.close();
     });
     await check('detail and existing submit API',async()=>{
       const {page,state}=await fixture('RECRUITER');

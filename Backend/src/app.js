@@ -35,7 +35,7 @@ app.use(cors({
     'http://localhost:5174'
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
   exposedHeaders: ['Content-Disposition']
 }));
 
@@ -89,6 +89,8 @@ app.use('/api/interview-questions', interviewQuestionRoutes);
 app.use('/api/interview-schedules', interviewScheduleRoutes);
 const interviewEvaluationRoutes = require('./routes/interviewEvaluationRoutes');
 app.use('/api/interview-evaluations', interviewEvaluationRoutes);
+const candidateEvaluationRoutes = require('./routes/candidateEvaluationRoutes');
+app.use('/api/candidate-evaluations', candidateEvaluationRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
 const offerRoutes = require('./routes/offerRoutes');

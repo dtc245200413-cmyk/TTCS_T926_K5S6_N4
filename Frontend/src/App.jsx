@@ -47,6 +47,8 @@ import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
 import CandidateUnifiedProfile from './pages/candidates/CandidateUnifiedProfile';
 import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
+import CandidateEvaluationList from './pages/evaluations/CandidateEvaluationList';
+import CandidateEvaluationDetail from './pages/evaluations/CandidateEvaluationDetail';
 
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
@@ -91,6 +93,10 @@ function App() {
             <Route path="/offers/approval" element={<OfferList />} />
             <Route path="/offers/:id/edit" element={<OfferForm />} />
             <Route path="/offers/:id" element={<OfferList />} />
+            <Route path="/candidate-evaluations" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+              <Route index element={<CandidateEvaluationList />} />
+              <Route path=":id" element={<CandidateEvaluationDetail />} />
+            </Route>
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}
