@@ -89,6 +89,8 @@ app.use('/api/interview-questions', interviewQuestionRoutes);
 app.use('/api/interview-schedules', interviewScheduleRoutes);
 const interviewEvaluationRoutes = require('./routes/interviewEvaluationRoutes');
 app.use('/api/interview-evaluations', interviewEvaluationRoutes);
+const candidateEvaluationRoutes = require('./routes/candidateEvaluationRoutes');
+app.use('/api/candidate-evaluations', candidateEvaluationRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
 
