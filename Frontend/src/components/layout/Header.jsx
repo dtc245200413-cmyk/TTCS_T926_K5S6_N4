@@ -161,7 +161,13 @@ const Header = () => {
                   notifications.map(notif => (
                     <div 
                       key={notif.notification_id} 
-                      onClick={() => {
+                      onClick={async () => {
+                        if (notif.link === '/offers' || notif.link?.startsWith('/offers/')) {
+                          setShowDropdown(false);
+                          if (!notif.is_read) await markAsRead(notif.notification_id);
+                          navigate(notif.link === '/offers/approval' ? '/offers' : notif.link);
+                          return;
+                        }
                         if (!notif.is_read) markAsRead(notif.notification_id);
                       }}
                       style={{ 

@@ -176,13 +176,16 @@ async function respondToInterview(candidateId, interviewId, { status, response }
 
 async function getOffers(candidateId) {
   const [rows] = await pool.execute(`
-    SELECT o.*, jp.title AS job_title, d.department_name
+    SELECT o.id, o.application_id, o.salary_amount, o.currency, o.start_date,
+           o.response_deadline, o.message, o.status, o.candidate_response,
+           o.responded_at, o.created_at, jp.title AS job_title, d.department_name
     FROM candidate_offers o
     JOIN candidate_applications a ON a.id = o.application_id
     JOIN job_postings jp ON jp.id = a.job_posting_id
     LEFT JOIN recruitment_requests rr ON rr.id = a.recruitment_request_id
     LEFT JOIN departments d ON d.department_id = rr.department_id
     WHERE a.candidate_id = ?
+      AND o.status IN ('PENDING_RESPONSE', 'ACCEPTED', 'DECLINED')
     ORDER BY o.created_at DESC
   `, [candidateId]);
   return rows;

@@ -1,0 +1,84 @@
+-- SCRUM-382 REVIEW DRAFT ONLY — NOT AN EXECUTABLE MIGRATION.
+-- Not registered with runSchemaMigrations or any startup hook.
+-- All DDL below is commented out deliberately.
+--
+-- Blocking decisions:
+-- 1. One stable profile key (prefer application_id), including manual recruitment.
+-- 2. Authoritative decision source, reference/version and assignment of authority.
+-- 3. Effective Offer statuses and historical re-offer policy.
+-- 4. Existing column/index inventory and deterministic legacy mappings.
+-- 5. SCRUM-390/391 assignment, per-submission identity and notification contract.
+--
+-- Do not import database.sql. Do not manufacture applications, job postings,
+-- PASSED decisions, department managers or approver assignments.
+-- Keep legacy PENDING_RESPONSE/ACCEPTED/DECLINED rows and their identities intact.
+--
+-- PRE-FLIGHT (review only): inventory INFORMATION_SCHEMA columns/indexes,
+-- duplicate profile mappings, orphaned IDs, existing application_id UNIQUE,
+-- old salary_amount/start_date versus basic_salary/expected_start_date.
+-- The service must remain closed if any required mapping is ambiguous.
+--
+-- PROPOSED ADDITIVE COLUMNS, only if missing, each reviewed independently:
+-- ALTER TABLE candidate_offers ADD COLUMN offer_code VARCHAR(50) NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN candidate_id INT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN recruitment_request_id INT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN department_id INT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN position_id INT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN job_title VARCHAR(150) NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN basic_salary DECIMAL(15,2) NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN expected_start_date DATE NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN work_location VARCHAR(255) NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN benefits TEXT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN special_terms TEXT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN created_by INT NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN submitted_at DATETIME NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN approved_at DATETIME NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN row_version BIGINT NOT NULL DEFAULT 1;
+-- ALTER TABLE candidate_offers ADD COLUMN decision_source VARCHAR(100) NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN decision_reference VARCHAR(128) NULL;
+-- ALTER TABLE candidate_offers ADD COLUMN decision_version VARCHAR(128) NULL;
+--
+-- If the full schema already exists, review nullable draft content:
+-- job_title, position_id, basic_salary, expected_start_date, response_deadline.
+-- New drafts require verified application/candidate/request/department anchors
+-- and created_by even if legacy columns remain nullable during transition.
+-- Keep currency's existing default. Always write DRAFT explicitly in the writer.
+-- Do not alter existing rows' statuses to DRAFT.
+--
+-- CONTENT COMPATIBILITY:
+-- Choose one monetary/date source and reviewed mapping to the legacy Portal DTO.
+-- Do not use blind COALESCE when both old/new columns have different values.
+-- Keep Portal ownership via verified application mapping and its closed status
+-- list; never expose drafts through a candidate_id fallback.
+--
+-- SUBMISSION HISTORY (table/columns subject to SCRUM-390/391 agreement):
+-- CREATE TABLE offer_submissions (
+--   id BIGINT AUTO_INCREMENT PRIMARY KEY,
+--   offer_id INT NOT NULL,
+--   submission_number INT NOT NULL,
+--   submitted_by INT NOT NULL,
+--   submitted_at DATETIME NOT NULL,
+--   decision_source VARCHAR(100) NOT NULL,
+--   decision_reference VARCHAR(128) NOT NULL,
+--   decision_version VARCHAR(128) NOT NULL,
+--   UNIQUE KEY uq_offer_submission (offer_id, submission_number)
+-- );
+-- Review FK targets and compatible integer types against the actual database.
+--
+-- UNIQUENESS: do not finalize a generated active-profile key/index until the
+-- canonical application mapping AND active-status set are approved.
+-- A candidate_id index alone does not prevent duplicate effective Offers.
+-- Existing UNIQUE(application_id) also prevents historical re-offers.
+-- Resolve conflicts without deleting historical data before adding constraints.
+--
+-- WRITER ACTIVATION CHECKLIST:
+-- - Implement loadApplicationForUpdate/loadDecision/loadCatalog using agreed
+--   sources; never fall back to candidate.status, OFFERED, rating or recommendation.
+-- - Implement insertDraft and updateDraftIfEditable, with DB uniqueness and
+--   WHERE scope + editable status + expected row_version; increment row_version.
+-- - Use one documented lock order across create/edit/submit to avoid deadlocks.
+-- - A stale version or failed conditional update must fail and roll back.
+-- - Persist submission identity and state transition in the same transaction.
+-- - Integrate assigned recipients before enabling submission notifications.
+-- - Real MySQL tests must verify uniqueness, locking, rollback and legacy Portal.
+-- - Only then replace the closed gate in offerRepository in a reviewed change.

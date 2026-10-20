@@ -16,6 +16,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import Reports from './pages/Reports';
 import QuestionBank from './pages/questions/QuestionBank';
 import Notifications from './pages/Notifications';
+import OfferList from './pages/offers/OfferList';
+import OfferForm from './pages/offers/OfferForm';
 
 // User Pages
 import UserList from './pages/users/UserList';
@@ -84,6 +86,11 @@ function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/interview-schedules" element={<InterviewScheduleList />} />
+            <Route path="/offers" element={<OfferList />} />
+            <Route path="/offers/new" element={<OfferForm />} />
+            <Route path="/offers/approval" element={<OfferList />} />
+            <Route path="/offers/:id/edit" element={<OfferForm />} />
+            <Route path="/offers/:id" element={<OfferList />} />
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}
