@@ -108,7 +108,7 @@ export default function OfferForm({ api = offerApi }) {
       setOffer(saved);
       setForm(formFromOffer(saved));
       if (submit) {
-        const submitted = responseOffer(await api.submit(saved.id));
+        const submitted = responseOffer(await api.submit(saved.id, saved.row_version));
         if (String(submitted.id) !== String(saved.id) || submitted.status !== 'PENDING_APPROVAL') {
           throw new Error('Unexpected submit response');
         }

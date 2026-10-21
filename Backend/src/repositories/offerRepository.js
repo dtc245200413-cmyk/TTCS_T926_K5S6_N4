@@ -47,7 +47,7 @@ async function findScopedOfferForUpdate(offerId, scope, conn) {
 
 // Preserve the atomic permission/state predicate from 2A.1. This method is also
 // guarded: directly importing the repository cannot bypass the closed feature.
-async function submitIfEditable(offerId, scope, conn) {
+async function submitIfEditable(offerId, scope, conn, version) {
   assertDraftWritesReady();
   const [result] = await conn.query(
     `UPDATE candidate_offers o
@@ -55,8 +55,8 @@ async function submitIfEditable(offerId, scope, conn) {
      SET o.status = 'PENDING_APPROVAL', o.submitted_at = NOW(),
          o.row_version = o.row_version + 1, o.updated_at = CURRENT_TIMESTAMP
      WHERE o.id = ?${scope.sql}
-       AND o.status IN ('DRAFT', 'CHANGE_REQUESTED')`,
-    [offerId, ...scope.params]
+       AND o.status IN ('DRAFT', 'CHANGE_REQUESTED') AND o.row_version = ?`,
+    [offerId, ...scope.params, validation.positiveId(version, 'row_version')]
   );
   return result.affectedRows;
 }

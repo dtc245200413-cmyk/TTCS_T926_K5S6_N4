@@ -162,20 +162,21 @@ async function updateDraft(offerId, body, user, ifMatch) {
 /**
  * Gửi Offer đi phê duyệt (chuyển sang PENDING_APPROVAL và gửi thông báo tới Người duyệt)
  */
-async function submitOffer(offerId, user) {
+async function submitOffer(offerId, user, ifMatch) {
   const scope = offerAuthorization.getSubmitScope(user);
   validation.positiveId(offerId, 'offerId');
   offerRepository.assertDraftWritesReady();
+  const version = validation.expectedVersion(ifMatch);
   const { offer, response, submission } = await offerRepository.withTransaction(async conn => {
     const offer = await offerRepository.findScopedOfferForUpdate(offerId, scope, conn);
-    validation.assertEditable(offer);
+    validation.assertEditable(offer, version);
     const application = await offerRepository.loadApplicationForUpdate(offer.application_id, user, conn, { offerId });
     validation.assertApplication(application, offer.application_id);
     const decision = await offerRepository.loadDecision(application, conn);
     const catalog = await offerRepository.loadCatalog(offer, application, conn);
     const duplicates = await offerRepository.findEffectiveOffers(application, offer.id, conn);
     validation.validateSubmission(offer, { application, decision, catalog, duplicates });
-    const changed = await offerRepository.submitIfEditable(offerId, scope, conn);
+    const changed = await offerRepository.submitIfEditable(offerId, scope, conn, version);
     if (changed !== 1) fail(409, 'Không thể gửi duyệt Offer. Vui lòng tải lại và kiểm tra quyền truy cập.');
     const submission = await offerRepository.recordSubmission(offer, user, decision, conn);
     return { offer, response: await loadOfferById(offerId, scope, conn), submission };

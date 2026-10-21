@@ -49,8 +49,10 @@ async function query(sql, params) {
   if (/^\s*UPDATE candidate_offers o/.test(sql)) {
     if (race) Object.assign(offer, race);
     if (!inScope(sql, params) || !['DRAFT', 'CHANGE_REQUESTED'].includes(offer.status)) return [{ affectedRows: 0 }];
+    if (offer.row_version !== params[params.length - 1]) return [{ affectedRows: 0 }];
     if (!sql.includes("AND o.status IN ('DRAFT', 'CHANGE_REQUESTED')")) throw new Error('Missing atomic state guard');
     offer.status = 'PENDING_APPROVAL';
+    offer.row_version += 1;
     return [{ affectedRows: 1 }];
   }
   if (sql.includes('FROM candidate_offers o')) return [inScope(sql, params) ? [{ ...offer }] : []];
@@ -76,7 +78,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   jest.resetAllMocks();
-  offer = { id: 1, created_by: 3, manager_user_id: 8, status: 'DRAFT',
+  offer = { id: 1, created_by: 3, manager_user_id: 8, status: 'DRAFT', row_version: 1,
     basic_salary: 987654321, candidate_name: 'CONFIDENTIAL_CANDIDATE', special_terms: 'CONFIDENTIAL_TERMS',
     application_id: 11, candidate_id: 17, recruitment_request_id: 21, department_id: 31,
     position_id: 41, job_title: 'Developer', currency: 'VND',
@@ -106,9 +108,9 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 
-async function post(endpoint, token, { id = 1, body = { action: 'APPROVED', reason: 'Reason' } } = {}) {
+async function post(endpoint, token, { id = 1, version = '"1"', body = { action: 'APPROVED', reason: 'Reason' } } = {}) {
   const response = await fetch(`${baseUrl}/${id}/${endpoint}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(version ? { 'If-Match': version } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(body)
   });
   return { status: response.status, body: await response.json() };
@@ -187,7 +189,7 @@ it.each(['DRAFT', 'CHANGE_REQUESTED'])('the creator can submit %s with the exist
     id: 1, status: 'PENDING_APPROVAL', basic_salary: 987654321, approvals: [{ action: 'REQUEST_CHANGE' }]
   } } });
   expect(pool.query.mock.calls[1]).toEqual([
-    expect.stringContaining("WHERE o.id = ? AND (o.created_by = ?)\n       AND o.status IN ('DRAFT', 'CHANGE_REQUESTED')"), ['1', 3]
+    expect.stringContaining("WHERE o.id = ? AND (o.created_by = ?)\n       AND o.status IN ('DRAFT', 'CHANGE_REQUESTED')"), ['1', 3, 1]
   ]);
   expect(pool.query.mock.calls[2]).toEqual([expect.stringContaining('WHERE o.id = ? AND (o.created_by = ?)'), ['1', 3]]);
   expect(notifications.createForUsers).toHaveBeenCalledTimes(1);

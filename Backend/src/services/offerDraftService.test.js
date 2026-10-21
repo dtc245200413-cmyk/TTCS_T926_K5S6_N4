@@ -53,7 +53,9 @@ function connection() {
         if (/^\s*UPDATE/.test(sql)) {
           expect(sql).toContain("AND o.status IN ('DRAFT', 'CHANGE_REQUESTED')");
           if (!visible || !['DRAFT', 'CHANGE_REQUESTED'].includes(row.status)) return [{ affectedRows: 0 }];
+          if (row.row_version !== params[params.length - 1]) return [{ affectedRows: 0 }];
           row.status = 'PENDING_APPROVAL';
+          row.row_version += 1;
           return [{ affectedRows: 1 }];
         }
         return [visible ? [structuredClone(row)] : []];
@@ -270,7 +272,7 @@ it('validates and records a submission in the transaction before notification', 
     expect(connections[0].commit).toHaveBeenCalled();
     expect(store.submissions).toHaveLength(1);
   });
-  await expect(service.submitOffer(1, actor())).resolves.toMatchObject({ status: 'PENDING_APPROVAL' });
+  await expect(service.submitOffer(1, actor(), '"1"')).resolves.toMatchObject({ status: 'PENDING_APPROVAL' });
   expect(notifications.createForUsers).toHaveBeenCalledTimes(1);
   expect(notifications.createForUsers).toHaveBeenCalledWith(
     [8, 12],
@@ -291,7 +293,7 @@ it.each(['decision', 'mapping', 'salary', 'title', 'position', 'department', 'da
     if (invalid === 'dates') row.response_deadline = '2026-02-30';
     if (invalid === 'duplicate') seed({ id: 2 });
     if (invalid === 'unknown-duplicate-policy') repo.findEffectiveOffers.mockResolvedValue(undefined);
-    await expect(service.submitOffer(1, actor())).rejects.toBeDefined();
+    await expect(service.submitOffer(1, actor(), '"1"')).rejects.toBeDefined();
     expect(store.offers[0].status).toBe('DRAFT');
     expect(repo.recordSubmission).not.toHaveBeenCalled();
     noNotification();
@@ -301,7 +303,32 @@ it.each(['decision', 'mapping', 'salary', 'title', 'position', 'department', 'da
 it('rolls back the state transition if submission history fails', async () => {
   seed();
   repo.recordSubmission.mockRejectedValue(new Error('history failed'));
-  await expect(service.submitOffer(1, actor())).rejects.toThrow('history failed');
+  await expect(service.submitOffer(1, actor(), '"1"')).rejects.toThrow('history failed');
   expect(store.offers[0].status).toBe('DRAFT');
   noNotification();
+});
+
+it('requires a submit version before acquiring a transaction when dependencies are ready', async () => {
+  seed();
+  await expect(service.submitOffer(1, actor())).rejects.toMatchObject({ statusCode: 428 });
+  expect(pool.getConnection).not.toHaveBeenCalled();
+  noNotification();
+});
+
+it.each(['DRAFT', 'CHANGE_REQUESTED'])('rejects stale submit for %s before state/history changes', async status => {
+  seed({ status, row_version: 3 });
+  await expect(service.submitOffer(1, actor(), '"2"')).rejects.toMatchObject({ statusCode: 409 });
+  expect(store.offers[0]).toMatchObject({ status, row_version: 3 });
+  expect(repo.recordSubmission).not.toHaveBeenCalled();
+  expect(connections[0].rollback).toHaveBeenCalled();
+  noNotification();
+});
+
+it('resubmits CHANGE_REQUESTED once at the confirmed version and then locks editing', async () => {
+  seed({ status: 'CHANGE_REQUESTED', row_version: 4 });
+  await expect(service.submitOffer(1, actor(), '"4"')).resolves.toMatchObject({ status: 'PENDING_APPROVAL', row_version: 5 });
+  await expect(service.submitOffer(1, actor(), '"4"')).rejects.toMatchObject({ statusCode: 400 });
+  await expect(service.updateDraft(1, { message: 'late edit' }, actor(), '"5"')).rejects.toMatchObject({ statusCode: 400 });
+  expect(store.submissions).toHaveLength(1);
+  expect(notifications.createForUsers).toHaveBeenCalledTimes(1);
 });

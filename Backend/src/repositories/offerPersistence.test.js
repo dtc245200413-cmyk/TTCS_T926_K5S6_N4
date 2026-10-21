@@ -154,8 +154,8 @@ it('leaves legacy salary/date untouched when PATCH only changes a message', asyn
 
 it('increments persisted version on submit while preserving the editable-status predicate', async () => {
   allowEntry(); conn.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
-  await expect(repo.submitIfEditable(41, scope, conn)).resolves.toBe(1);
-  expect(conn.query).toHaveBeenCalledWith(expect.stringContaining('o.row_version = o.row_version + 1'), [41, 3]);
+  await expect(repo.submitIfEditable(41, scope, conn, 1)).resolves.toBe(1);
+  expect(conn.query).toHaveBeenCalledWith(expect.stringContaining('o.row_version = o.row_version + 1'), [41, 3, 1]);
 });
 
 const offer = { ...draft, id: 41, row_version: 1 };

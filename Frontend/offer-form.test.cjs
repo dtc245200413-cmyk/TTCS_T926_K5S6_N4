@@ -100,6 +100,7 @@ async function fixture(t, config = {}) {
         state.offer = { ...state.offer, ...call.body, row_version: state.offer.row_version + 1 };
         data = state.offer;
       } else if (call.method === 'POST' && call.path === '/api/offers/101/submit') {
+        assert.equal(call.headers['if-match'], `"${state.offer.row_version}"`);
         state.offer = { ...state.offer, status: 'PENDING_APPROVAL', row_version: state.offer.row_version + 1 };
         data = state.offer;
       } else throw new Error(`Unexpected API ${call.method} ${call.path}`);
@@ -217,7 +218,7 @@ test('create then submit uses returned ID and does not set status in draft paylo
 
 for (const [status, text] of [
   [400, 'Dữ liệu Offer chưa hợp lệ'], [403, 'Bạn không đủ quyền'],
-  [404, 'Không tìm thấy Offer'], [409, 'Offer đã thay đổi'], [428, 'Thiếu phiên bản'],
+  [404, 'Không tìm thấy Offer'], [409, 'Offer đã thay đổi'], [422, 'Offer chưa đủ điều kiện gửi duyệt'], [428, 'Thiếu phiên bản'],
   [503, 'Chức năng lưu/gửi Offer đang chờ hoàn thiện Backend hoặc cơ sở dữ liệu'],
 ]) {
   test(`PATCH ${status}: clear failure, no submit or false success`, async t => {

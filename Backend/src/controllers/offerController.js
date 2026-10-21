@@ -48,7 +48,7 @@ const getOfferById = async (req, res, next) => {
 
 const submitOffer = async (req, res, next) => {
   try {
-    const data = await offerService.submitOffer(req.params.id, req.user);
+    const data = await offerService.submitOffer(req.params.id, req.user, req.get('If-Match'));
     return sendSuccess(res, 'Gửi duyệt Offer thành công', data);
   } catch (error) {
     return handleDraftError(error, res, next);

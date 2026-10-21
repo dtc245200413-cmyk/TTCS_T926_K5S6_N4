@@ -11,6 +11,7 @@ export function offerErrorMessage(error) {
     403: 'Bạn không đủ quyền truy cập hoặc thao tác Offer này.',
     404: 'Không tìm thấy Offer.',
     409: 'Offer đã thay đổi hoặc đã có Offer hiệu lực cho hồ sơ này. Vui lòng tải lại.',
+    422: 'Offer chưa đủ điều kiện gửi duyệt. Vui lòng kiểm tra các trường bắt buộc và quyết định tuyển dụng của hồ sơ.',
     428: 'Thiếu phiên bản cập nhật hợp lệ. Vui lòng tải lại Offer.',
     503: OFFER_UNAVAILABLE,
   };
@@ -35,7 +36,12 @@ const offerApi = {
       headers: { 'If-Match': `"${version}"` },
     });
   },
-  submit: (id) => axiosClient.post(`/offers/${encodeURIComponent(id)}/submit`),
+  submit: (id, version) => {
+    if (!validOfferVersion(version)) return Promise.reject({ response: { status: 428 } });
+    return axiosClient.post(`/offers/${encodeURIComponent(id)}/submit`, {}, {
+      headers: { 'If-Match': `"${version}"` },
+    });
+  },
   getCreationOptions: async (params = {}) => {
     const response = await axiosClient.get('/offers/eligibility', { params });
     const data = response.data?.data;

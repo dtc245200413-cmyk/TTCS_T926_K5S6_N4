@@ -105,14 +105,14 @@ const OfferList = () => {
     }
   };
 
-  const handleSubmitForApproval = async (offerId) => {
+  const handleSubmitForApproval = async (offerId, version) => {
     if (submitLock.current) return;
     if (!window.confirm('Bạn có chắc chắn muốn gửi Offer này cho Người duyệt?')) return;
     submitLock.current = true;
     setMessage({ text: '', type: '' });
     try {
       setSubmitting(true);
-      const res = await offerApi.submit(offerId);
+      const res = await offerApi.submit(offerId, version);
       if (res.data?.success) {
         setMessage({ text: 'Gửi duyệt Offer thành công! Người duyệt đã nhận được thông báo.', type: 'success' });
         fetchOffers();
@@ -419,7 +419,7 @@ const OfferList = () => {
                         {/* Quyền Recruiter: Gửi duyệt khi ở trạng thái DRAFT hoặc CHANGE_REQUESTED */}
                         {canEditOffer(user, offer) && (
                           <button
-                            onClick={() => handleSubmitForApproval(offer.id)}
+                            onClick={() => handleSubmitForApproval(offer.id, offer.row_version)}
                             disabled={submitting}
                             style={{
                               padding: '5px 10px',
