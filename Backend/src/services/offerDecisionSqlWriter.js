@@ -98,7 +98,7 @@ function createOfferDecisionSqlWriter({ verifyLifecycle, verifyEvaluation } = {}
     if (!Array.isArray(existing)) throw unavailable();
     if (existing.length !== 0) throw conflict();
 
-    const authorityReference = `app:${appId};lifecycle:${lifecycle.reference};eval:${evaluation.reference}`;
+    const authorityReference = `app:${appId};lifecycle:${lifecycle.reference};version:${lifecycle.status_version};eval:${evaluation.reference}`;
     if (authorityReference.length > 255) throw unavailable();
 
     let result;

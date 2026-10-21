@@ -1,6 +1,8 @@
 'use strict';
 
 const { loadVerifiedDecisionWriteScope } = require('./offerDecisionScopeReader');
+const { createOfferDecisionSqlWriter } = require('./offerDecisionSqlWriter');
+const { writeOfferDecisionAudit } = require('./offerDecisionAuditWriter');
 
 function positiveId(value) {
   if (typeof value !== 'number' && (typeof value !== 'string' || !/^[1-9]\d*$/.test(value))) return null;
@@ -16,6 +18,16 @@ const unavailable = () => failure(503, 'DECISION_WRITER_NOT_CONNECTED',
   'Nguon ghi quyet dinh va audit chua duoc tich hop an toan.');
 const invalid = () => failure(400, 'INVALID_DECISION_REQUEST', 'Du lieu quyet dinh khong hop le.');
 
+function databaseFailure(error) {
+  if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT', 'ER_DUP_ENTRY'].includes(error?.code) ||
+      [1213, 1205, 1062].includes(error?.errno)) {
+    return failure(409, 'DECISION_WRITE_CONFLICT', 'Du lieu da thay doi. Vui long tai lai ho so.');
+  }
+  if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(error?.code) ||
+      [1146, 1054].includes(error?.errno)) return unavailable();
+  return error;
+}
+
 // This is a transaction COORDINATOR, not an active HTTP handler or a DB writer.
 // The provided writeDecision and writeAudit adapters MUST use only the passed
 // transaction connection and must reject if their schema/lifecycle is unverified.
@@ -28,7 +40,7 @@ function createOfferDecisionTransaction({ pool, loadScope = loadVerifiedDecision
 
     if (!actorId || !appId || !candId || !['PASSED', 'FAILED'].includes(decision) ||
         commentText.length < 3 || commentText.length > 4000 ||
-        (ipAddress != null && typeof ipAddress !== 'string')) throw invalid();
+        (ipAddress != null && (typeof ipAddress !== 'string' || ipAddress.length > 45))) throw invalid();
 
     // Fail closed before any connection is acquired if real writers are missing.
     if (typeof pool?.getConnection !== 'function' || typeof loadScope !== 'function' ||
@@ -73,7 +85,7 @@ function createOfferDecisionTransaction({ pool, loadScope = loadVerifiedDecision
       if (transactionStarted) {
         try { await conn.rollback(); } catch (_) { /* preserve the original error */ }
       }
-      throw error;
+      throw databaseFailure(error);
     } finally {
       conn.release();
     }
@@ -81,4 +93,17 @@ function createOfferDecisionTransaction({ pool, loadScope = loadVerifiedDecision
   return { record };
 }
 
-module.exports = { createOfferDecisionTransaction };
+// Composition entry point for a future server-side caller. No pool import,
+// HTTP route or environment switch: importing this file cannot connect/write.
+// Callbacks are trusted code dependencies, NEVER fields taken from HTTP input.
+// Until both DB-backed verifiers exist, even connection acquisition is blocked.
+function createVerifiedOfferDecisionTransaction({ pool, verifyLifecycle, verifyEvaluation } = {}) {
+  const ready = typeof verifyLifecycle === 'function' && typeof verifyEvaluation === 'function';
+  return createOfferDecisionTransaction({
+    pool,
+    writeDecision: ready ? createOfferDecisionSqlWriter({ verifyLifecycle, verifyEvaluation }) : undefined,
+    writeAudit: writeOfferDecisionAudit
+  });
+}
+
+module.exports = { createOfferDecisionTransaction, createVerifiedOfferDecisionTransaction };
