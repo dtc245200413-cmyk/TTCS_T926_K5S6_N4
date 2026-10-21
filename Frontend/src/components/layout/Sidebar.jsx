@@ -194,9 +194,11 @@ const Sidebar = () => {
       <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
         <FiUsers size={18} /> Quản lý ứng viên
       </NavLink>
-
       <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
         <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+      </NavLink>
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiAward size={18} /> Quản lý Offer
       </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
         <FiCalendar size={18} /> Lịch phỏng vấn
@@ -232,6 +234,10 @@ const Sidebar = () => {
 
       <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
         <FiUser size={18} /> Ứng viên
+      </NavLink>
+
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiAward size={18} /> Quản lý & Duyệt Offer
       </NavLink>
 
       <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
@@ -328,6 +334,9 @@ const Sidebar = () => {
       <NavLink to="/candidate-evaluations" className={getClassName} style={getNavLinkStyle('/candidate-evaluations')}>
         <FiCheckCircle size={18} /> Đánh giá ứng viên
       </NavLink>
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')} end>
+        <FiAward size={18} /> Quản lý Offer
+      </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')}>
         <FiCalendar size={18} /> Lịch phỏng vấn
       </NavLink>
@@ -341,6 +350,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/recruitment-requests/approvals" className={getClassName} style={getNavLinkStyle('/recruitment-requests/approvals')} end>
         <FiCalendar size={18} /> Duyệt yêu cầu
+      </NavLink>
+      <NavLink to="/offers/approvals" className={getClassName} style={getNavLinkStyle('/offers/approvals')} end>
+        <FiAward size={18} /> Duyệt Offer
       </NavLink>
     </div>
   );
@@ -377,6 +389,12 @@ const Sidebar = () => {
       {(isRecruiterRole || isHrManager) && (
         <NavLink to="/candidates" className={getClassName} style={getNavLinkStyle('/candidates')}>
           <FiUsers size={18} /> Quản lý ứng viên
+        </NavLink>
+      )}
+
+      {(isRecruiterRole || isHrManager || isApprover) && (
+        <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+          <FiAward size={18} /> Quản lý Offer
         </NavLink>
       )}
 

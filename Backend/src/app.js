@@ -93,6 +93,8 @@ const candidateEvaluationRoutes = require('./routes/candidateEvaluationRoutes');
 app.use('/api/candidate-evaluations', candidateEvaluationRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
+const offerRoutes = require('./routes/offerRoutes');
+app.use('/api/offers', offerRoutes);
 
 // ── 404 Handler ─────────────────────────────────────────────
 
