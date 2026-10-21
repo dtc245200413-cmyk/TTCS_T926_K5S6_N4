@@ -129,3 +129,26 @@ it('does not unlock the existing write gate', () => {
   expect(repo.assertDraftWritesReady).toThrow();
   expect(pool.query).not.toHaveBeenCalled();
 });
+
+it('reads eligibility only from the application-bound decision, without requiring candidate summaries', async () => {
+  const result = await service.getEligibility({}, admin);
+  const sql = pool.query.mock.calls[0][0];
+  expect(sql).toContain('LEFT JOIN candidate_hiring_decisions hd ON hd.application_id = a.id');
+  expect(sql).toContain('hd.candidate_id = a.candidate_id');
+  expect(sql).toContain('hd.recruitment_request_id = a.recruitment_request_id');
+  expect(sql).toContain('hd.department_id = r.department_id');
+  expect(sql).toContain('hd.decision_maker_id AS interview_decision_by');
+  expect(sql).toContain('hd.decided_at AS interview_decision_at');
+  expect(sql).not.toMatch(/c\.interview_decision|c\.status|rating|recommendation/);
+  expect(sql).toContain("hd.validity_status = 'CURRENT'");
+  expect(sql).toContain('hd.revoked_at IS NULL');
+  expect(sql).toContain('hd.superseded_at IS NULL');
+  expect(sql).toContain('THEN hd.decision ELSE NULL END AS interview_decision');
+  expect(result).toMatchObject({ eligible: false, permissions: { can_create: false } });
+});
+
+it('keeps a missing dedicated decision table unavailable rather than falling back to candidate summaries', async () => {
+  pool.query.mockRejectedValue(Object.assign(new Error('candidate_hiring_decisions unavailable'), { code: 'ER_NO_SUCH_TABLE' }));
+  await expect(service.getEligibility({}, admin)).rejects.toMatchObject({ statusCode: 503 });
+  expect(pool.query).toHaveBeenCalledTimes(1);
+});

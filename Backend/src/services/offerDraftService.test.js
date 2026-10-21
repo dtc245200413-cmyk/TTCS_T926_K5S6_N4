@@ -102,7 +102,7 @@ beforeEach(() => {
     return 1;
   });
   jest.spyOn(repo, 'recordSubmission').mockImplementation(async offer => {
-    const entry = { id: store.submissions.length + 1, offer_id: offer.id };
+    const entry = { id: store.submissions.length + 1, offer_id: offer.id, approver_ids: [8, 12] };
     store.submissions.push(entry);
     return entry;
   });
@@ -272,6 +272,11 @@ it('validates and records a submission in the transaction before notification', 
   });
   await expect(service.submitOffer(1, actor())).resolves.toMatchObject({ status: 'PENDING_APPROVAL' });
   expect(notifications.createForUsers).toHaveBeenCalledTimes(1);
+  expect(notifications.createForUsers).toHaveBeenCalledWith(
+    [8, 12],
+    expect.objectContaining({ type: 'OFFER_PENDING_APPROVAL' })
+  );
+  expect(notifications.findActiveUserIdsByRoles).not.toHaveBeenCalled();
 });
 
 it.each(['decision', 'mapping', 'salary', 'title', 'position', 'department', 'dates', 'duplicate', 'unknown-duplicate-policy'])(

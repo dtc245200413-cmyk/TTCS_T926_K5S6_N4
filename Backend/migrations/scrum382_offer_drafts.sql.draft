@@ -1,84 +1,257 @@
--- SCRUM-382 REVIEW DRAFT ONLY — NOT AN EXECUTABLE MIGRATION.
--- Not registered with runSchemaMigrations or any startup hook.
--- All DDL below is commented out deliberately.
---
--- Blocking decisions:
--- 1. One stable profile key (prefer application_id), including manual recruitment.
--- 2. Authoritative decision source, reference/version and assignment of authority.
--- 3. Effective Offer statuses and historical re-offer policy.
--- 4. Existing column/index inventory and deterministic legacy mappings.
--- 5. SCRUM-390/391 assignment, per-submission identity and notification contract.
---
--- Do not import database.sql. Do not manufacture applications, job postings,
--- PASSED decisions, department managers or approver assignments.
--- Keep legacy PENDING_RESPONSE/ACCEPTED/DECLINED rows and their identities intact.
---
--- PRE-FLIGHT (review only): inventory INFORMATION_SCHEMA columns/indexes,
--- duplicate profile mappings, orphaned IDs, existing application_id UNIQUE,
--- old salary_amount/start_date versus basic_salary/expected_start_date.
--- The service must remain closed if any required mapping is ambiguous.
---
--- PROPOSED ADDITIVE COLUMNS, only if missing, each reviewed independently:
--- ALTER TABLE candidate_offers ADD COLUMN offer_code VARCHAR(50) NULL;
--- ALTER TABLE candidate_offers ADD COLUMN candidate_id INT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN recruitment_request_id INT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN department_id INT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN position_id INT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN job_title VARCHAR(150) NULL;
--- ALTER TABLE candidate_offers ADD COLUMN basic_salary DECIMAL(15,2) NULL;
--- ALTER TABLE candidate_offers ADD COLUMN expected_start_date DATE NULL;
--- ALTER TABLE candidate_offers ADD COLUMN work_location VARCHAR(255) NULL;
--- ALTER TABLE candidate_offers ADD COLUMN benefits TEXT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN special_terms TEXT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN created_by INT NULL;
--- ALTER TABLE candidate_offers ADD COLUMN submitted_at DATETIME NULL;
--- ALTER TABLE candidate_offers ADD COLUMN approved_at DATETIME NULL;
--- ALTER TABLE candidate_offers ADD COLUMN row_version BIGINT NOT NULL DEFAULT 1;
--- ALTER TABLE candidate_offers ADD COLUMN decision_source VARCHAR(100) NULL;
--- ALTER TABLE candidate_offers ADD COLUMN decision_reference VARCHAR(128) NULL;
--- ALTER TABLE candidate_offers ADD COLUMN decision_version VARCHAR(128) NULL;
---
--- If the full schema already exists, review nullable draft content:
--- job_title, position_id, basic_salary, expected_start_date, response_deadline.
--- New drafts require verified application/candidate/request/department anchors
--- and created_by even if legacy columns remain nullable during transition.
--- Keep currency's existing default. Always write DRAFT explicitly in the writer.
--- Do not alter existing rows' statuses to DRAFT.
---
--- CONTENT COMPATIBILITY:
--- Choose one monetary/date source and reviewed mapping to the legacy Portal DTO.
--- Do not use blind COALESCE when both old/new columns have different values.
--- Keep Portal ownership via verified application mapping and its closed status
--- list; never expose drafts through a candidate_id fallback.
---
--- SUBMISSION HISTORY (table/columns subject to SCRUM-390/391 agreement):
--- CREATE TABLE offer_submissions (
---   id BIGINT AUTO_INCREMENT PRIMARY KEY,
---   offer_id INT NOT NULL,
---   submission_number INT NOT NULL,
---   submitted_by INT NOT NULL,
---   submitted_at DATETIME NOT NULL,
---   decision_source VARCHAR(100) NOT NULL,
---   decision_reference VARCHAR(128) NOT NULL,
---   decision_version VARCHAR(128) NOT NULL,
---   UNIQUE KEY uq_offer_submission (offer_id, submission_number)
--- );
--- Review FK targets and compatible integer types against the actual database.
---
--- UNIQUENESS: do not finalize a generated active-profile key/index until the
--- canonical application mapping AND active-status set are approved.
--- A candidate_id index alone does not prevent duplicate effective Offers.
--- Existing UNIQUE(application_id) also prevents historical re-offers.
--- Resolve conflicts without deleting historical data before adding constraints.
---
--- WRITER ACTIVATION CHECKLIST:
--- - Implement loadApplicationForUpdate/loadDecision/loadCatalog using agreed
---   sources; never fall back to candidate.status, OFFERED, rating or recommendation.
--- - Implement insertDraft and updateDraftIfEditable, with DB uniqueness and
---   WHERE scope + editable status + expected row_version; increment row_version.
--- - Use one documented lock order across create/edit/submit to avoid deadlocks.
--- - A stale version or failed conditional update must fail and roll back.
--- - Persist submission identity and state transition in the same transaction.
--- - Integrate assigned recipients before enabling submission notifications.
--- - Real MySQL tests must verify uniqueness, locking, rollback and legacy Portal.
--- - Only then replace the closed gate in offerRepository in a reviewed change.
+-- HISTORICAL 5.2A CATALOGUE: preserved for review, superseded for TEST deployment
+-- by scrum382_test_review/README.md and its ordered *.sql.review files (5.2C).
+-- Do not apply this catalogue to the inspected TEST schema or combine the sets.
+-- SCRUM-382 REVIEW DRAFT: conditional DDL catalogue, NOT a runnable migration.
+-- NOT registered in schemaMigrations.js or any startup hook.
+-- Never run this whole file: missing-table and existing-table branches are
+-- mutually exclusive. A reviewer must assemble a schema-specific migration
+-- from the inventory below. MySQL DDL implicitly commits; use a backup, not
+-- an assumed transaction rollback. See scrum382_offer_persistence_review.md.
+-- No UPDATE/DELETE/backfill, seed or status conversion is included.
+-- All INT FKs below assume existing signed INT keys; STOP on type mismatch.
+-- Require InnoDB, a reviewed MySQL version with JSON support, and strict mode.
+
+-- 0. READ-ONLY PREFLIGHT (only in the separately approved deployment session).
+SELECT DATABASE(), VERSION(), @@sql_mode;
+SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES
+ WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN
+ ('candidate_offers','candidate_hiring_decisions','candidate_applications',
+  'offer_submissions','offer_submission_assignments','offer_approvals');
+SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA
+ FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+ AND TABLE_NAME IN ('candidate_offers','candidate_hiring_decisions','candidate_applications',
+ 'candidates','recruitment_requests','departments','job_positions','users',
+ 'offer_submissions','offer_submission_assignments') ORDER BY TABLE_NAME, ORDINAL_POSITION;
+SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE, SEQ_IN_INDEX, COLUMN_NAME, SUB_PART
+ FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE()
+ AND TABLE_NAME IN ('candidate_offers','candidate_hiring_decisions','offer_submissions',
+ 'offer_submission_assignments') ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;
+SELECT TABLE_NAME, CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+ FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE()
+ AND REFERENCED_TABLE_NAME IS NOT NULL;
+SELECT TABLE_NAME, CONSTRAINT_NAME, DELETE_RULE, UPDATE_RULE
+ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE();
+
+-- Execute data checks only for columns/tables confirmed present by inventory.
+SELECT application_id, COUNT(*) FROM candidate_offers WHERE application_id IS NOT NULL
+ GROUP BY application_id HAVING COUNT(*) > 1;
+SELECT o.id FROM candidate_offers o LEFT JOIN candidate_applications a ON a.id = o.application_id
+ WHERE o.application_id IS NOT NULL AND a.id IS NULL;
+SELECT o.id FROM candidate_offers o JOIN candidate_applications a ON a.id = o.application_id
+ WHERE o.candidate_id IS NOT NULL AND o.candidate_id <> a.candidate_id
+    OR o.recruitment_request_id IS NOT NULL AND o.recruitment_request_id <> a.recruitment_request_id;
+SELECT o.id FROM candidate_offers o
+ WHERE o.basic_salary IS NOT NULL AND o.salary_amount IS NOT NULL AND o.basic_salary <> o.salary_amount
+    OR o.expected_start_date IS NOT NULL AND o.start_date IS NOT NULL AND o.expected_start_date <> o.start_date;
+SELECT a.id FROM candidate_applications a LEFT JOIN job_postings jp ON jp.id = a.job_posting_id
+ WHERE a.recruitment_request_id IS NULL OR jp.id IS NULL
+    OR a.recruitment_request_id <> jp.recruitment_request_id;
+-- Also count NULL application/candidate/request/department/creator anchors and
+-- every orphan for each proposed FK. Any mismatch blocks activation, not a
+-- reason to delete rows, infer a PASSED decision, or fabricate applications.
+
+-- 1A. ONLY IF candidate_hiring_decisions IS ABSENT.
+-- Retain the legacy candidate/request UNIQUE as well as the application UNIQUE.
+CREATE TABLE candidate_hiring_decisions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  candidate_id INT NOT NULL,
+  recruitment_request_id INT NULL,
+  department_id INT NOT NULL,
+  decision_maker_id INT NOT NULL,
+  decision ENUM('PASSED','FAILED') NOT NULL,
+  comments TEXT NOT NULL,
+  total_rounds_evaluated INT NOT NULL DEFAULT 1,
+  average_score DECIMAL(4,2) NULL,
+  decided_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  application_id INT NULL,
+  row_version BIGINT UNSIGNED NOT NULL DEFAULT 1,
+  validity_status ENUM('UNVERIFIED','CURRENT','REVOKED','SUPERSEDED') NOT NULL DEFAULT 'UNVERIFIED',
+  authority_policy VARCHAR(100) NULL,
+  authority_reference VARCHAR(255) NULL,
+  revoked_at DATETIME NULL,
+  superseded_at DATETIME NULL,
+  UNIQUE KEY uq_cand_decision (candidate_id, recruitment_request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 1B. EXISTING decision table: apply each ADD only when that column is ABSENT.
+-- Existing rows remain UNVERIFIED with NULL application/authority; never infer
+-- those from candidates.interview_decision or the only application of a candidate.
+ALTER TABLE candidate_hiring_decisions ADD COLUMN application_id INT NULL;
+ALTER TABLE candidate_hiring_decisions ADD COLUMN row_version BIGINT UNSIGNED NOT NULL DEFAULT 1;
+ALTER TABLE candidate_hiring_decisions ADD COLUMN validity_status ENUM('UNVERIFIED','CURRENT','REVOKED','SUPERSEDED') NOT NULL DEFAULT 'UNVERIFIED';
+ALTER TABLE candidate_hiring_decisions ADD COLUMN authority_policy VARCHAR(100) NULL;
+ALTER TABLE candidate_hiring_decisions ADD COLUMN authority_reference VARCHAR(255) NULL;
+ALTER TABLE candidate_hiring_decisions ADD COLUMN revoked_at DATETIME NULL;
+ALTER TABLE candidate_hiring_decisions ADD COLUMN superseded_at DATETIME NULL;
+-- Before adding uniqueness: check duplicates (including multi-application cases).
+-- Existing uq_cand_decision is NOT removed. A second application for the same
+-- candidate/request remains blocked pending a separately reviewed decision model.
+SELECT application_id, COUNT(*) FROM candidate_hiring_decisions WHERE application_id IS NOT NULL
+ GROUP BY application_id HAVING COUNT(*) > 1;
+-- Add only if an equivalent exact non-prefix UNIQUE(application_id) is absent.
+ALTER TABLE candidate_hiring_decisions ADD UNIQUE KEY uq_chd_application (application_id);
+-- Add each FK only if an equivalent FK is absent and all non-NULL rows resolve.
+ALTER TABLE candidate_hiring_decisions ADD CONSTRAINT fk_chd_application
+ FOREIGN KEY (application_id) REFERENCES candidate_applications(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_hiring_decisions ADD CONSTRAINT fk_chd_candidate
+ FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_hiring_decisions ADD CONSTRAINT fk_chd_req
+ FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_hiring_decisions ADD CONSTRAINT fk_chd_dept
+ FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE RESTRICT;
+ALTER TABLE candidate_hiring_decisions ADD CONSTRAINT fk_chd_maker
+ FOREIGN KEY (decision_maker_id) REFERENCES users(user_id) ON DELETE RESTRICT;
+
+-- 2A. ONLY IF candidate_offers IS ABSENT.
+CREATE TABLE candidate_offers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  offer_code VARCHAR(50) NULL,
+  candidate_id INT NULL,
+  application_id INT NULL,
+  recruitment_request_id INT NULL,
+  hiring_decision_id INT NULL,
+  department_id INT NULL,
+  position_id INT NULL,
+  job_title VARCHAR(150) NULL,
+  basic_salary DECIMAL(15,2) NULL,
+  salary_amount DECIMAL(15,2) NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'VND',
+  expected_start_date DATE NULL,
+  start_date DATE NULL,
+  response_deadline DATE NULL,
+  work_location VARCHAR(255) NULL,
+  benefits TEXT NULL,
+  message TEXT NULL,
+  special_terms TEXT NULL,
+  created_by INT NULL,
+  submitted_at DATETIME NULL,
+  approved_at DATETIME NULL,
+  sent_to_candidate_at DATETIME NULL,
+  responded_at DATETIME NULL,
+  candidate_response TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  row_version BIGINT UNSIGNED NOT NULL DEFAULT 1,
+  decision_source VARCHAR(100) NULL,
+  decision_reference VARCHAR(128) NULL,
+  decision_version VARCHAR(128) NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'DRAFT'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2B. EXISTING Offer table: each ADD only for a MISSING column.
+-- Keep an existing application_id NOT NULL; do not weaken it to allow manual
+-- Evaluation Offers without applications. Nullable additions preserve old rows.
+ALTER TABLE candidate_offers ADD COLUMN offer_code VARCHAR(50) NULL;
+ALTER TABLE candidate_offers ADD COLUMN candidate_id INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN application_id INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN recruitment_request_id INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN hiring_decision_id INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN department_id INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN position_id INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN job_title VARCHAR(150) NULL;
+ALTER TABLE candidate_offers ADD COLUMN basic_salary DECIMAL(15,2) NULL;
+ALTER TABLE candidate_offers ADD COLUMN salary_amount DECIMAL(15,2) NULL;
+ALTER TABLE candidate_offers ADD COLUMN currency VARCHAR(10) NOT NULL DEFAULT 'VND';
+ALTER TABLE candidate_offers ADD COLUMN expected_start_date DATE NULL;
+ALTER TABLE candidate_offers ADD COLUMN start_date DATE NULL;
+ALTER TABLE candidate_offers ADD COLUMN response_deadline DATE NULL;
+ALTER TABLE candidate_offers ADD COLUMN work_location VARCHAR(255) NULL;
+ALTER TABLE candidate_offers ADD COLUMN benefits TEXT NULL;
+ALTER TABLE candidate_offers ADD COLUMN message TEXT NULL;
+ALTER TABLE candidate_offers ADD COLUMN special_terms TEXT NULL;
+ALTER TABLE candidate_offers ADD COLUMN created_by INT NULL;
+ALTER TABLE candidate_offers ADD COLUMN submitted_at DATETIME NULL;
+ALTER TABLE candidate_offers ADD COLUMN approved_at DATETIME NULL;
+ALTER TABLE candidate_offers ADD COLUMN sent_to_candidate_at DATETIME NULL;
+ALTER TABLE candidate_offers ADD COLUMN responded_at DATETIME NULL;
+ALTER TABLE candidate_offers ADD COLUMN candidate_response TEXT NULL;
+ALTER TABLE candidate_offers ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE candidate_offers ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER TABLE candidate_offers ADD COLUMN row_version BIGINT UNSIGNED NOT NULL DEFAULT 1;
+ALTER TABLE candidate_offers ADD COLUMN decision_source VARCHAR(100) NULL;
+ALTER TABLE candidate_offers ADD COLUMN decision_reference VARCHAR(128) NULL;
+ALTER TABLE candidate_offers ADD COLUMN decision_version VARCHAR(128) NULL;
+-- status: if absent ONLY; preserve the existing status default if present.
+ALTER TABLE candidate_offers ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'DRAFT';
+-- DRAFT content relaxation only, if currently NOT NULL, with exact compatible
+-- type verified first. Preserve existing defaults/comments in the actual change.
+-- Currency/identity/creator constraints already present are NOT relaxed.
+ALTER TABLE candidate_offers MODIFY COLUMN position_id INT NULL;
+ALTER TABLE candidate_offers MODIFY COLUMN job_title VARCHAR(150) NULL;
+ALTER TABLE candidate_offers MODIFY COLUMN basic_salary DECIMAL(15,2) NULL;
+ALTER TABLE candidate_offers MODIFY COLUMN expected_start_date DATE NULL;
+ALTER TABLE candidate_offers MODIFY COLUMN response_deadline DATE NULL;
+-- Legacy payload columns must accept incomplete drafts as well, if NOT NULL.
+ALTER TABLE candidate_offers MODIFY COLUMN salary_amount DECIMAL(15,2) NULL;
+ALTER TABLE candidate_offers MODIFY COLUMN start_date DATE NULL;
+
+-- 3. CONSTRAINTS: exact column/type/index inventory, duplicates and orphans MUST
+-- pass before applying. Skip equivalent existing constraints regardless of name.
+-- Do not use IF NOT EXISTS to silently accept a different schema.
+-- Preserve ALL existing UNIQUE keys, including application_id from active startup.
+ALTER TABLE candidate_offers ADD UNIQUE KEY uq_co_application (application_id);
+ALTER TABLE candidate_offers ADD UNIQUE KEY uq_co_offer_code (offer_code);
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_candidate
+ FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_app
+ FOREIGN KEY (application_id) REFERENCES candidate_applications(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_req
+ FOREIGN KEY (recruitment_request_id) REFERENCES recruitment_requests(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_decision
+ FOREIGN KEY (hiring_decision_id) REFERENCES candidate_hiring_decisions(id) ON DELETE RESTRICT;
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_dept
+ FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE RESTRICT;
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_pos
+ FOREIGN KEY (position_id) REFERENCES job_positions(position_id) ON DELETE RESTRICT;
+ALTER TABLE candidate_offers ADD CONSTRAINT fk_co_creator
+ FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE RESTRICT;
+-- Existing CASCADE/SET NULL actions in database.sql are NOT silently replaced.
+-- Record their history-loss risk and block deletion endpoints operationally until
+-- the team reviews a separate retention change. No DROP FOREIGN KEY here.
+
+-- 4. New submission history; immutable snapshots, one independent row per send.
+-- If the table exists, compare its COMPLETE definition and STOP on any mismatch.
+-- Never drop/recreate history; do not reinterpret offer_approvals as assignments.
+CREATE TABLE offer_submissions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  offer_id INT NOT NULL,
+  submission_number INT UNSIGNED NOT NULL,
+  offer_row_version BIGINT UNSIGNED NOT NULL,
+  submitted_by INT NOT NULL,
+  submitted_at DATETIME NOT NULL,
+  decision_source VARCHAR(100) NOT NULL,
+  decision_reference VARCHAR(128) NOT NULL,
+  decision_version VARCHAR(128) NOT NULL,
+  decision_snapshot JSON NOT NULL,
+  content_snapshot JSON NOT NULL,
+  UNIQUE KEY uq_offer_submission (offer_id, submission_number),
+  UNIQUE KEY uq_offer_submission_version (offer_id, offer_row_version),
+  CONSTRAINT fk_os_offer FOREIGN KEY (offer_id) REFERENCES candidate_offers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_os_submitter FOREIGN KEY (submitted_by) REFERENCES users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Concrete assignments for THIS submission, not blanket role permission.
+-- No rows are seeded. The workflow owner must supply verified assignment proof.
+CREATE TABLE offer_submission_assignments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  submission_id BIGINT UNSIGNED NOT NULL,
+  approver_id INT NOT NULL,
+  assigned_by INT NOT NULL,
+  assignment_source VARCHAR(100) NOT NULL,
+  assignment_reference VARCHAR(128) NOT NULL,
+  assignment_version VARCHAR(128) NOT NULL,
+  assigned_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  UNIQUE KEY uq_submission_approver (submission_id, approver_id),
+  INDEX idx_osa_approver (approver_id, revoked_at),
+  CONSTRAINT fk_osa_submission FOREIGN KEY (submission_id) REFERENCES offer_submissions(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_osa_approver FOREIGN KEY (approver_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_osa_assigner FOREIGN KEY (assigned_by) REFERENCES users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. POSTFLIGHT: compare SHOW CREATE TABLE / column and constraint inventories
+-- against the assembled plan, verify exact old-row counts/values/statuses, and
+-- test UNIQUE + rollback + If-Match + public-state filtering in isolation.
+-- An applied DDL is NOT authorization to enable the write gate or approval gate.

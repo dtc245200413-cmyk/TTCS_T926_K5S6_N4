@@ -1,0 +1,73 @@
+-- REVIEW ONLY. Read-only postflight, after individually verified steps 005-040.
+SELECT DATABASE() AS selected_database,CURRENT_USER() AS account,VERSION() AS version;
+-- STOP unless database is internal_recruitment_test.
+SHOW CREATE TABLE internal_recruitment_test.candidate_applications;
+SHOW CREATE TABLE internal_recruitment_test.candidate_hiring_decisions;
+SHOW CREATE TABLE internal_recruitment_test.candidate_offers;
+SHOW CREATE TABLE internal_recruitment_test.offer_approvals;
+SHOW CREATE TABLE internal_recruitment_test.offer_submissions;
+SHOW CREATE TABLE internal_recruitment_test.offer_submission_assignments;
+SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLUMN_DEFAULT,EXTRA
+ FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='internal_recruitment_test'
+ AND TABLE_NAME IN ('candidate_applications','candidate_hiring_decisions','candidate_offers',
+ 'offer_approvals','offer_submissions','offer_submission_assignments')
+ ORDER BY TABLE_NAME,ORDINAL_POSITION;
+SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,SUB_PART
+ FROM information_schema.STATISTICS WHERE TABLE_SCHEMA='internal_recruitment_test'
+ AND TABLE_NAME IN ('candidate_applications','candidate_hiring_decisions','candidate_offers',
+ 'offer_approvals','offer_submissions','offer_submission_assignments')
+ ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX;
+SELECT k.TABLE_NAME,k.CONSTRAINT_NAME,k.COLUMN_NAME,k.REFERENCED_TABLE_NAME,k.REFERENCED_COLUMN_NAME,
+ r.DELETE_RULE,r.UPDATE_RULE
+ FROM information_schema.KEY_COLUMN_USAGE k
+ JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+ ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.TABLE_NAME=k.TABLE_NAME AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME
+ WHERE k.TABLE_SCHEMA='internal_recruitment_test'
+ AND k.TABLE_NAME IN ('candidate_hiring_decisions','candidate_offers',
+ 'offer_approvals','offer_submissions','offer_submission_assignments')
+ ORDER BY k.TABLE_NAME,k.CONSTRAINT_NAME;
+-- Expect respectively 5/7/2/2/3 FKs = 19. Compare definitions, not just counts.
+-- Offer: 32 columns; old 11 unchanged; exactly one UNIQUE(application_id).
+-- Optional Evaluation summary columns need not exist.
+
+SELECT COUNT(*) AS offers,COALESCE(SUM(application_id IS NULL),0) AS missing_application,
+ COALESCE(SUM(row_version <> 1 OR row_version IS NULL),0) AS unexpected_initial_version
+ FROM internal_recruitment_test.candidate_offers;
+SELECT COUNT(*) AS duplicate_application_groups FROM
+ (SELECT application_id FROM internal_recruitment_test.candidate_offers
+ GROUP BY application_id HAVING COUNT(*)>1) duplicate_groups;
+SELECT COUNT(*) AS orphan_offer_application
+ FROM internal_recruitment_test.candidate_offers o
+ LEFT JOIN internal_recruitment_test.candidate_applications a ON a.id=o.application_id WHERE a.id IS NULL;
+SELECT COUNT(*) AS mismatched_offer_mapping
+ FROM internal_recruitment_test.candidate_offers o
+ JOIN internal_recruitment_test.candidate_applications a ON a.id=o.application_id
+ WHERE (o.candidate_id IS NOT NULL AND NOT(o.candidate_id <=> a.candidate_id))
+ OR (o.recruitment_request_id IS NOT NULL AND NOT(o.recruitment_request_id <=> a.recruitment_request_id));
+SELECT COUNT(*) AS divergent_legacy_pairs FROM internal_recruitment_test.candidate_offers
+ WHERE (basic_salary IS NOT NULL AND salary_amount IS NOT NULL AND basic_salary<>salary_amount)
+ OR (expected_start_date IS NOT NULL AND start_date IS NOT NULL AND expected_start_date<>start_date);
+SELECT 'candidate_hiring_decisions' AS table_name,COUNT(*) AS total FROM internal_recruitment_test.candidate_hiring_decisions
+ UNION ALL SELECT 'offer_approvals',COUNT(*) FROM internal_recruitment_test.offer_approvals
+ UNION ALL SELECT 'offer_submissions',COUNT(*) FROM internal_recruitment_test.offer_submissions
+ UNION ALL SELECT 'offer_submission_assignments',COUNT(*) FROM internal_recruitment_test.offer_submission_assignments;
+-- Newly created tables must remain empty: no backfill/seed is part of the pack.
+SELECT 'candidate_applications' AS table_name,COUNT(*) AS total FROM internal_recruitment_test.candidate_applications
+ UNION ALL SELECT 'candidates',COUNT(*) FROM internal_recruitment_test.candidates
+ UNION ALL SELECT 'recruitment_requests',COUNT(*) FROM internal_recruitment_test.recruitment_requests
+ UNION ALL SELECT 'job_postings',COUNT(*) FROM internal_recruitment_test.job_postings
+ UNION ALL SELECT 'departments',COUNT(*) FROM internal_recruitment_test.departments
+ UNION ALL SELECT 'job_positions',COUNT(*) FROM internal_recruitment_test.job_positions
+ UNION ALL SELECT 'users',COUNT(*) FROM internal_recruitment_test.users
+ UNION ALL SELECT 'audit_logs',COUNT(*) FROM internal_recruitment_test.audit_logs;
+-- Counts alone do not prove content preservation: compare restored backup and
+-- protected before/after snapshots of legacy values as described in README.
+
+-- Compile the public projection without exposing any actual candidate row.
+SELECT o.id,o.application_id,o.salary_amount,o.currency,o.start_date,o.response_deadline,
+ o.message,o.status,o.candidate_response,o.responded_at,o.created_at
+ FROM internal_recruitment_test.candidate_offers o
+ JOIN internal_recruitment_test.candidate_applications a ON a.id=o.application_id
+ JOIN internal_recruitment_test.job_postings p ON p.id=a.job_posting_id
+ WHERE 1=0 AND o.status IN ('PENDING_RESPONSE','ACCEPTED','DECLINED');
+-- No test writes or runtime gate changes in this file.

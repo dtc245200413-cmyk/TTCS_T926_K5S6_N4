@@ -101,7 +101,7 @@ beforeEach(() => {
     department: { id: 31, active: true }, position: { id: 41, active: true }
   });
   jest.spyOn(offerRepository, 'findEffectiveOffers').mockResolvedValue([]);
-  jest.spyOn(offerRepository, 'recordSubmission').mockResolvedValue({ id: 1 });
+  jest.spyOn(offerRepository, 'recordSubmission').mockResolvedValue({ id: 1, approver_ids: [6] });
   errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterEach(() => jest.restoreAllMocks());
