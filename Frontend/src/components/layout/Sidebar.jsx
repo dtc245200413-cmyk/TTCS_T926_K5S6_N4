@@ -194,6 +194,9 @@ const Sidebar = () => {
       <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
         <FiUsers size={18} /> Quản lý ứng viên
       </NavLink>
+      <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+      </NavLink>
       <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
         <FiAward size={18} /> Quản lý Offer
       </NavLink>
@@ -272,6 +275,10 @@ const Sidebar = () => {
         <FiCheckCircle size={18} /> Luồng phê duyệt
       </NavLink>
 
+      <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+      </NavLink>
+
       <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
         <FiShield size={18} /> Khung năng lực
       </NavLink>
@@ -323,6 +330,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/candidates" className={getClassName} style={getNavLinkStyle('/candidates')} end>
         <FiUsers size={18} /> Quản lý ứng viên
+      </NavLink>
+      <NavLink to="/candidate-evaluations" className={getClassName} style={getNavLinkStyle('/candidate-evaluations')}>
+        <FiCheckCircle size={18} /> Đánh giá ứng viên
       </NavLink>
       <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')} end>
         <FiAward size={18} /> Quản lý Offer

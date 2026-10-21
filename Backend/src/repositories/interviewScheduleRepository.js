@@ -54,12 +54,14 @@ const selectSchedule = `
          s.room_id, room.name AS room_name, room.is_active AS room_is_active,
          DATE_FORMAT(s.start_at, '%Y-%m-%dT%H:%i:%sZ') AS start_at,
          DATE_FORMAT(s.end_at, '%Y-%m-%dT%H:%i:%sZ') AS end_at,
-         s.status, s.created_by, s.updated_by, s.created_at, s.updated_at
+         s.status, s.created_by, s.updated_by, s.created_at, s.updated_at,
+         e.id AS evaluation_id, e.total_score, e.recommendation, e.status AS evaluation_status
   FROM interview_schedules s
   JOIN candidates c ON c.id = s.candidate_id
   JOIN job_positions p ON p.position_id = s.position_id
   JOIN users u ON u.user_id = s.interviewer_id
   JOIN master_data room ON room.id = s.room_id
+  LEFT JOIN interview_evaluations e ON e.interview_schedule_id = s.id AND e.interviewer_id = s.interviewer_id
 `;
 
 async function getAll(filters, scope) {
