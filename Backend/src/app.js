@@ -89,6 +89,8 @@ app.use('/api/interview-questions', interviewQuestionRoutes);
 app.use('/api/interview-schedules', interviewScheduleRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
+const offerRoutes = require('./routes/offerRoutes');
+app.use('/api/offers', offerRoutes);
 
 // ── 404 Handler ─────────────────────────────────────────────
 

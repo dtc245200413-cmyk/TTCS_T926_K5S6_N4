@@ -176,25 +176,79 @@ async function respondToInterview(candidateId, interviewId, { status, response }
 
 async function getOffers(candidateId) {
   const [rows] = await pool.execute(`
-    SELECT o.*, jp.title AS job_title, d.department_name
+    SELECT 
+      o.id,
+      o.offer_code,
+      o.candidate_id,
+      o.application_id,
+      o.department_id,
+      o.position_id,
+      COALESCE(o.job_title, jp.title, 'Vị trí chuyên môn') AS job_title,
+      COALESCE(o.salary_amount, o.basic_salary) AS salary_amount,
+      o.basic_salary,
+      o.probation_salary,
+      o.currency,
+      COALESCE(o.start_date, o.expected_start_date) AS start_date,
+      o.expected_start_date,
+      o.response_deadline,
+      o.work_location,
+      o.benefits,
+      o.message,
+      o.status,
+      o.candidate_response,
+      o.responded_at,
+      o.created_at,
+      COALESCE(d.department_name, d2.department_name) AS department_name
     FROM candidate_offers o
-    JOIN candidate_applications a ON a.id = o.application_id
-    JOIN job_postings jp ON jp.id = a.job_posting_id
+    LEFT JOIN candidate_applications a ON a.id = o.application_id
+    LEFT JOIN job_postings jp ON jp.id = a.job_posting_id
+    LEFT JOIN departments d ON d.department_id = o.department_id
     LEFT JOIN recruitment_requests rr ON rr.id = a.recruitment_request_id
-    LEFT JOIN departments d ON d.department_id = rr.department_id
-    WHERE a.candidate_id = ?
+    LEFT JOIN departments d2 ON d2.department_id = rr.department_id
+    WHERE (o.candidate_id = ? OR a.candidate_id = ?)
+      AND o.status IN ('SENT', 'ACCEPTED', 'DECLINED', 'EXPIRED')
     ORDER BY o.created_at DESC
-  `, [candidateId]);
-  return rows;
+  `, [candidateId, candidateId]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return rows.map(o => {
+    let currentStatus = o.status;
+    const isExpired = o.response_deadline && new Date(o.response_deadline) < today && o.status === 'SENT';
+    if (isExpired) {
+      currentStatus = 'EXPIRED';
+    }
+    return {
+      ...o,
+      status: currentStatus,
+      is_expired: isExpired
+    };
+  });
 }
 
-async function respondToOffer(candidateId, offerId, { status, response }) {
+async function getOfferByIdForCandidate(candidateId, offerId) {
+  const [rows] = await pool.execute(`
+    SELECT 
+      o.*,
+      COALESCE(o.salary_amount, o.basic_salary) AS salary_amount,
+      COALESCE(o.start_date, o.expected_start_date) AS start_date,
+      c.full_name AS candidate_name
+    FROM candidate_offers o
+    LEFT JOIN candidates c ON c.id = o.candidate_id
+    LEFT JOIN candidate_applications a ON a.id = o.application_id
+    WHERE o.id = ? AND (o.candidate_id = ? OR a.candidate_id = ?)
+    LIMIT 1
+  `, [offerId, candidateId, candidateId]);
+  return rows[0] || null;
+}
+
+async function updateOfferResponse({ offerId, status, response }) {
   const [result] = await pool.execute(`
-    UPDATE candidate_offers o
-    JOIN candidate_applications a ON a.id = o.application_id
-    SET o.status = ?, o.candidate_response = ?, o.responded_at = NOW()
-    WHERE o.id = ? AND a.candidate_id = ? AND o.status = 'PENDING_RESPONSE'
-  `, [status, response || null, offerId, candidateId]);
+    UPDATE candidate_offers
+    SET status = ?, candidate_response = ?, responded_at = NOW(), updated_at = NOW()
+    WHERE id = ?
+  `, [status, response || null, offerId]);
   return result.affectedRows > 0;
 }
 
@@ -230,7 +284,8 @@ module.exports = {
   getInterviews,
   respondToInterview,
   getOffers,
-  respondToOffer,
+  getOfferByIdForCandidate,
+  updateOfferResponse,
   getNotifications,
   markNotificationRead,
   changePassword
