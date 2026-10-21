@@ -8,7 +8,7 @@ const dist = path.join(__dirname, 'dist');
 const results = [];
 let server, browser, origin;
 const offer = { id: 101, created_by: 3, row_version: 7, position_id: 12, offer_code: 'OFF-SMOKE-101', candidate_name: 'Candidate Smoke', candidate_email: 'candidate@example.test', job_title: 'Developer', department_name: 'Engineering', basic_salary: 25000000, currency: 'VND', expected_start_date: '2026-12-01', response_deadline: '2026-11-25', creator_name: 'Recruiter Smoke', created_at: '2026-10-20', approvals: [] };
-async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus, eligible = false) {
+async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus, eligible = false, submitResponse) {
   const page = await browser.newPage();
   const state = { status, calls: [], errors: [], notificationRead: false };
   page.setDefaultTimeout(10000);
@@ -28,6 +28,9 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus,
       if (method === 'OPTIONS') return request.respond({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type, If-Match','Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS'}});
       const body = request.postData() ? JSON.parse(request.postData()) : null;
       state.calls.push({ method, path: url.pathname, body });
+      if (submitResponse && url.pathname === '/api/offers/101/submit') {
+        return request.respond({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(submitResponse)});
+      }
       if (failureStatus && url.pathname.startsWith('/api/offers') &&
           (failureStatus !== 503 || method === 'POST')) {
         return request.respond({status:failureStatus,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({success:false,message:'PRIVATE_SALARY_DATA'})});
@@ -208,6 +211,18 @@ function readRoutes(node, parent = '', out = []) {
       await clickText(page, 'Gửi duyệt');
       await page.waitForFunction(() => document.body.textContent.includes('Chức năng lưu/gửi Offer đang chờ hoàn thiện Backend hoặc cơ sở dữ liệu'));
       assert.ok(!(await page.$eval('body', node => node.textContent)).includes('Gửi duyệt Offer thành công'));
+      assert.deepEqual(state.errors, []); await page.close();
+    });
+    for (const [name, response] of [
+      ['rejected envelope', {success:false}],
+      ['wrong Offer', {success:true,data:{id:999,status:'PENDING_APPROVAL'}}],
+      ['unchanged state', {success:true,data:{id:101,status:'DRAFT'}}]
+    ]) await check('list submit rejects ' + name, async () => {
+      const {page,state} = await fixture('RECRUITER', 'DRAFT', '/offers', undefined, false, response);
+      await clickText(page, 'Gửi duyệt');
+      await page.waitForFunction(() => document.body.textContent.includes('Không thể hoàn tất thao tác Offer'));
+      const text = await page.$eval('body', node => node.textContent);
+      assert.ok(!text.includes('Đã gửi Offer chờ phê duyệt.'));
       assert.deepEqual(state.errors, []); await page.close();
     });
   } catch(error) {console.error(error); process.exitCode=1;}

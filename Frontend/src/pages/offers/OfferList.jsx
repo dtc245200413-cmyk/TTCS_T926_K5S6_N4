@@ -113,11 +113,12 @@ const OfferList = () => {
     try {
       setSubmitting(true);
       const res = await offerApi.submit(offerId, version);
-      if (res.data?.success) {
-        setMessage({ text: 'Gửi duyệt Offer thành công! Người duyệt đã nhận được thông báo.', type: 'success' });
+      if (res.data?.success === true && String(res.data?.data?.id) === String(offerId) &&
+          res.data?.data?.status === 'PENDING_APPROVAL') {
+        setMessage({ text: 'Đã gửi Offer chờ phê duyệt.', type: 'success' });
         fetchOffers();
         if (selectedOffer?.id === offerId) handleViewDetail(offerId);
-      }
+      } else throw new Error('Invalid submit response');
     } catch (err) {
       setMessage({ text: offerErrorMessage(err), type: 'error' });
     } finally {
