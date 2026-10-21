@@ -1,5 +1,5 @@
 // Browser tests use the real axios adapter with intercepted HTTP requests.
-// Only the missing eligibility view adapter is injected by the isolated harness.
+// Eligibility also uses the actual axios HTTP contract; no view adapter override.
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -17,10 +17,11 @@ const draft = {
   expected_start_date: '2027-01-15', response_deadline: '2027-01-10',
   offer_code: 'OFF-TEST', status: 'DRAFT', approvals: [],
 };
-const creationOptions = { available: true, applications: [{
-  application_id: 41, eligible: true, candidate_name: draft.candidate_name,
-  position_id: 12, position_name: draft.position_name, department_name: draft.department_name,
-}] };
+const eligibilityItem = {
+  eligible: true, permissions: { can_create: true }, reason_code: null, reason: null,
+  candidate: { id: 7, name: draft.candidate_name }, application: { id: 41, code: 'APP-41', recruitment_request_id: 20 },
+  position: { id: 12, name: draft.position_name }, department: { id: 3, name: draft.department_name }, prefill: {},
+};
 
 before(async () => {
   const bundle = await esbuild.build({
@@ -55,7 +56,6 @@ async function fixture(t, config = {}) {
     if (location.pathname !== '/login') localStorage.setItem('token', 'mock-test-token');
   }, {
     user: { user_id: 3, roles: (config.roles || ['RECRUITER']).map(role_code => ({ role_code })) },
-    creationOptions: config.eligible ? creationOptions : undefined,
   });
   page.on('pageerror', error => state.errors.push(error.message));
   await page.setRequestInterception(true);
@@ -83,7 +83,13 @@ async function fixture(t, config = {}) {
         return send(config.failure.status, { success: false, message: config.failure.message || 'SERVER_PRIVATE_DETAIL' });
       }
       let data;
-      if (call.method === 'GET' && call.path === '/api/offers/101') data = state.offer;
+      if (call.method === 'GET' && call.path === '/api/offers/eligibility') data = config.eligibilityResponse || {
+        eligible: !!config.eligible, permissions: { can_create: !!config.eligible }, next_cursor: null,
+        reason_code: config.eligible ? null : 'DECISION_APPLICATION_UNVERIFIED',
+        reason: config.eligible ? null : 'Chưa chứng minh quyết định Đạt còn hiệu lực cho đúng hồ sơ ứng tuyển.',
+        applications: config.eligible ? [eligibilityItem] : [],
+      };
+      else if (call.method === 'GET' && call.path === '/api/offers/101') data = state.offer;
       else if (call.method === 'POST' && call.path === '/api/offers') {
         await new Promise(resolve => setTimeout(resolve, 80));
         state.offer = { ...state.offer, ...call.body, row_version: 1 };
@@ -131,12 +137,12 @@ async function fillRequired(page) {
   }
 }
 
-test('new form renders fields but does not invent eligibility or call a guessed endpoint', async t => {
+test('new form calls real eligibility and stays blocked when Backend denies eligibility', async t => {
   const { page, state } = await fixture(t, { route: '/offers/new' });
   assert.equal(await page.$$eval('form input, form textarea, form select', fields => fields.length), 13);
-  await textVisible(page, 'Đang chờ Backend xác nhận');
+  await textVisible(page, 'Chưa chứng minh quyết định Đạt');
   assert.equal(await page.$$eval('form button', buttons => buttons.every(button => button.disabled)), true);
-  assert.deepEqual(state.calls, []);
+  assert.deepEqual(state.calls.map(call => call.method + ' ' + call.path), ['GET /api/offers/eligibility']);
 });
 
 test('verified application selection uses labels and draft payload contains no protected fields', async t => {
@@ -326,4 +332,40 @@ test('legacy UTC date serialization preserves Vietnam calendar date when saving'
   await click(page, 'Lưu nháp');
   await textVisible(page, 'Đã lưu nháp Offer.');
   assert.equal(writes(state)[0].body.expected_start_date, '2027-01-15');
+});
+
+for (const [name, response] of [
+  ['summary denied', { eligible: false, permissions: { can_create: true }, applications: [eligibilityItem] }],
+  ['creation permission denied', { eligible: true, permissions: { can_create: false }, applications: [eligibilityItem] }],
+  ['application denied', { eligible: true, permissions: { can_create: true }, applications: [{ ...eligibilityItem, eligible: false }] }],
+  ['application permission denied', { eligible: true, permissions: { can_create: true }, applications: [{ ...eligibilityItem, permissions: { can_create: false } }] }],
+]) {
+  test(`eligibility ${name} never enables writes`, async t => {
+    const { page, state } = await fixture(t, { route: '/offers/new', eligibilityResponse: response });
+    assert.equal(await page.$$eval('form button', nodes => nodes.every(node => node.disabled)), true);
+    assert.equal(writes(state).length, 0);
+  });
+}
+test('ineligible application displays Backend reason without offering selection', async t => {
+  const { page, state } = await fixture(t, { route: '/offers/new', eligibilityResponse: {
+    eligible: false, permissions: { can_create: false }, reason: 'Hồ sơ đã có Offer còn hiệu lực.', reason_code: 'OFFER_ALREADY_EXISTS',
+    applications: [{ ...eligibilityItem, eligible: false, permissions: { can_create: false }, reason: 'Hồ sơ đã có Offer còn hiệu lực.' }],
+  } });
+  await textVisible(page, 'Hồ sơ đã có Offer còn hiệu lực.');
+  assert.equal(await page.$eval('[name="application_id"]', node => node.disabled), true);
+  assert.equal(writes(state).length, 0);
+});
+test('eligibility 503 reports dependency and never enables the form', async t => {
+  const { page, state } = await fixture(t, { route: '/offers/new', failure: { method: 'GET', path: '/api/offers/eligibility', status: 503 } });
+  await textVisible(page, 'Chức năng lưu/gửi Offer đang chờ hoàn thiện Backend hoặc cơ sở dữ liệu');
+  assert.equal(await page.$$eval('form button', nodes => nodes.every(node => node.disabled)), true);
+  assert.equal(writes(state).length, 0);
+});
+test('eligible application uses only verified display fields and prefill', async t => {
+  const { page } = await fixture(t, { route: '/offers/new', eligibilityResponse: {
+    eligible: true, permissions: { can_create: true }, applications: [{ ...eligibilityItem, prefill: { job_title: 'Verified Developer', basic_salary: '999999' } }],
+  } });
+  await page.select('[name="application_id"]', '41');
+  assert.equal(await page.$eval('[name="job_title"]', node => node.value), 'Verified Developer');
+  assert.equal(await page.$eval('[name="basic_salary"]', node => node.value), '');
 });

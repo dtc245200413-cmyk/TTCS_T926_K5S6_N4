@@ -4,6 +4,7 @@ const offerController = require('../controllers/offerController');
 const { authenticate } = require('../middleware/authMiddleware');
 
 router.get('/', authenticate, offerController.getAllOffers);
+router.get('/eligibility', authenticate, offerController.getEligibility);
 router.get('/:id', authenticate, offerController.getOfferById);
 router.post('/', authenticate, offerController.createDraft);
 router.patch('/:id', authenticate, offerController.updateDraft);

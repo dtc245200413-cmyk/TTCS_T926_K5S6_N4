@@ -8,7 +8,7 @@ const dist = path.join(__dirname, 'dist');
 const results = [];
 let server, browser, origin;
 const offer = { id: 101, created_by: 3, row_version: 7, position_id: 12, offer_code: 'OFF-SMOKE-101', candidate_name: 'Candidate Smoke', candidate_email: 'candidate@example.test', job_title: 'Developer', department_name: 'Engineering', basic_salary: 25000000, currency: 'VND', expected_start_date: '2026-12-01', response_deadline: '2026-11-25', creator_name: 'Recruiter Smoke', created_at: '2026-10-20', approvals: [] };
-async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus) {
+async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus, eligible = false) {
   const page = await browser.newPage();
   const state = { status, calls: [], errors: [], notificationRead: false };
   page.setDefaultTimeout(10000);
@@ -46,6 +46,15 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus)
         position_name: 'Developer', department_name: 'Engineering', status: 'INTERVIEWING',
         interview_decision: null, rounds: [], aggregate_score: null, offer: null,
       };
+      else if (url.pathname === '/api/offers/eligibility') data = {
+        eligible, permissions: { can_create: eligible }, next_cursor: null,
+        reason_code: eligible ? null : 'DECISION_APPLICATION_UNVERIFIED',
+        reason: eligible ? null : 'Chưa chứng minh quyết định Đạt còn hiệu lực cho đúng hồ sơ ứng tuyển.',
+        applications: eligible ? [{ eligible: true, permissions: { can_create: true },
+          candidate: { id: 7, name: 'Candidate Smoke' }, application: { id: 41, code: 'APP-41' },
+          position: { id: 12, name: 'Developer' }, department: { id: 3, name: 'Engineering' }, prefill: {},
+        }] : [],
+      };
       else if (url.pathname === '/api/offers') data = [{...offer, status: state.status}];
       else if (url.pathname === '/api/offers/101') data = {...offer, status: state.status};
       else if (url.pathname === '/api/offers/101/submit') { state.status = 'PENDING_APPROVAL'; data = {...offer,status:state.status}; }
@@ -55,7 +64,7 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus)
     })().catch(error => {state.errors.push(error.message); request.abort().catch(()=>{});});
   });
   await page.goto(origin+route);
-  if (route === '/offers/new') await page.waitForFunction(() => document.body.innerText.includes('Đang chờ Backend xác nhận'));
+  if (route === '/offers/new') await page.waitForFunction(() => document.body.innerText.includes('Chưa chứng minh quyết định Đạt'));
   else if (failureStatus && failureStatus !== 503) await page.waitForFunction(() => document.body.innerText.includes('Bạn không đủ quyền'));
   else await page.waitForFunction(() => document.body.innerText.includes('Candidate Smoke') ||
     document.querySelector('input[value="Candidate Smoke"]'));
@@ -168,13 +177,22 @@ function readRoutes(node, parent = '', out = []) {
     await check('new draft action is not enabled without Backend eligibility', async () => {
       const { page, state } = await fixture('RECRUITER');
       assert.equal(await page.$('a[href="/offers/new"]'), null);
-      assert.ok(!state.calls.some(call => call.path.includes('eligibility')));
+      await page.waitForFunction(() => document.body.innerText.includes('Chưa chứng minh quyết định Đạt'));
+      assert.ok(state.calls.some(call => call.method === 'GET' && call.path === '/api/offers/eligibility'));
       assert.deepEqual(state.errors, []); await page.close();
     });
     await check('draft edit navigation enters shared form', async () => {
       const { page, state } = await fixture('RECRUITER');
       await page.click('a[href="/offers/101/edit"]');
       await page.waitForSelector('input[name="job_title"]');
+      assert.deepEqual(state.errors, []); await page.close();
+    });
+    await check('create navigation requires affirmative Backend eligibility', async () => {
+      const { page, state } = await fixture('RECRUITER', 'DRAFT', '/offers', undefined, true);
+      await page.waitForSelector('a[href="/offers/new"]');
+      await page.click('a[href="/offers/new"]');
+      await page.waitForSelector('select[name="application_id"]:not(:disabled)');
+      assert.ok(state.calls.filter(call => call.path === '/api/offers/eligibility').length >= 2);
       assert.deepEqual(state.errors, []); await page.close();
     });
     await check('list 403 hides salary and reports denial without private server text', async () => {

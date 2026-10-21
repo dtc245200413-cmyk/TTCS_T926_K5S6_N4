@@ -64,7 +64,23 @@ const processApproval = async (req, res, next) => {
   }
 };
 
+const getEligibility = async (req, res) => {
+  try {
+    const data = await offerService.getEligibility(req.query, req.user);
+    return sendSuccess(res, 'Kết quả kiểm tra điều kiện soạn Offer', data);
+  } catch (error) {
+    const status = [400, 401, 403, 503].includes(error.statusCode) ? error.statusCode : 500;
+    const codes = { 400: 'INVALID_ELIGIBILITY_QUERY', 401: 'AUTHENTICATION_REQUIRED', 403: 'ELIGIBILITY_ACCESS_DENIED', 500: 'ELIGIBILITY_CHECK_FAILED' };
+    const known = error.code === 'OFFER_ELIGIBILITY_DEPENDENCY_UNAVAILABLE';
+    return res.status(status).json({ success: false,
+      message: status === 503 ? 'Chức năng kiểm tra điều kiện Offer đang chờ hoàn thiện dependency Backend hoặc cơ sở dữ liệu.' : 'Không thể xác minh điều kiện soạn Offer cho yêu cầu này.',
+      data: { eligible: false, reason_code: known ? error.code : codes[status], permissions: { can_create: false }, applications: [], next_cursor: null },
+    });
+  }
+};
+
 module.exports = {
+  getEligibility,
   createDraft,
   updateDraft,
   getAllOffers,

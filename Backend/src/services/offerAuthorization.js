@@ -76,4 +76,16 @@ async function getApprovalScope(offerId, user) {
   fail(403, 'Chưa xác minh được phân công phê duyệt Offer cho tài khoản này.');
 }
 
-module.exports = { getReadScope, getSubmitScope, getApprovalScope, assertCreateAccess };
+function getEligibilityScope(user) {
+  getSubmitScope(user);
+  if (hasAnyRole(user, ['ADMIN'])) return { sql: '', params: [] };
+  const predicates = [];
+  const params = [];
+  // Confirmed policy for eligibility before an Offer exists: primary assigned
+  // Recruiter only. This does not change created_by scope for existing Offers.
+  if (hasAnyRole(user, ['RECRUITER'])) { predicates.push('r.recruiter_id = ?'); params.push(user.user_id); }
+  if (hasAnyRole(user, ['HR_MANAGER'])) { predicates.push('d.manager_user_id = ?'); params.push(user.user_id); }
+  return { sql: ` AND (${predicates.join(' OR ')})`, params };
+}
+
+module.exports = { getReadScope, getSubmitScope, getApprovalScope, assertCreateAccess, getEligibilityScope };

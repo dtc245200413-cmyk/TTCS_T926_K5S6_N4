@@ -36,11 +36,27 @@ const offerApi = {
     });
   },
   submit: (id) => axiosClient.post(`/offers/${encodeURIComponent(id)}/submit`),
-  // No eligibility endpoint exists yet. Do not call /offers/eligibility:
-  // the current router would interpret "eligibility" as an Offer ID.
-  // This is a view adapter, NOT an agreed HTTP contract. A future adapter must
-  // map an authenticated Backend eligibility response to verified applications.
-  getCreationOptions: async () => ({ available: false, applications: [], message: ELIGIBILITY_PENDING }),
+  getCreationOptions: async (params = {}) => {
+    const response = await axiosClient.get('/offers/eligibility', { params });
+    const data = response.data?.data;
+    if (response.data?.success !== true || typeof data?.eligible !== 'boolean' || !Array.isArray(data.applications)) {
+      throw new Error('Invalid eligibility response');
+    }
+    const allowed = data.eligible === true && data.permissions?.can_create === true;
+    return {
+      available: true, eligible: allowed, reason_code: data.reason_code, reason: data.reason,
+      next_cursor: data.next_cursor,
+      applications: data.applications.map(item => ({
+        eligible: allowed && item.eligible === true && item.permissions?.can_create === true &&
+          validOfferVersion(item.candidate?.id) && validOfferVersion(item.application?.id),
+        application_id: item.application?.id, application_name: item.application?.code,
+        candidate_name: item.candidate?.name, position_id: item.position?.id,
+        position_name: item.position?.name, department_name: item.department?.name,
+        reason_code: item.reason_code, reason: item.reason,
+        prefill: { job_title: typeof item.prefill?.job_title === 'string' ? item.prefill.job_title : '' },
+      })),
+    };
+  },
 };
 
 export default offerApi;

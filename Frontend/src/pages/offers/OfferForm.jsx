@@ -13,8 +13,8 @@ function responseOffer(response) {
   return offer;
 }
 
-// API injection is used by isolated browser tests; application routes always use
-// the real adapter. No runtime mock, storage fallback or write-enabling flag.
+// Application routes use the real adapter, including eligibility. Browser tests
+// intercept HTTP; there is no runtime mock, storage fallback or write flag.
 export default function OfferForm({ api = offerApi }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -156,7 +156,12 @@ export default function OfferForm({ api = offerApi }) {
       <h1>{id ? 'Chi tiết và chỉnh sửa Offer' : 'Soạn Offer mới'}</h1>
       {loading ? <p role="status">Đang tải thông tin Offer…</p> : <>
         {notice && <p role={notice.type === 'error' ? 'alert' : 'status'} className={`offer-notice ${notice.type}`}>{notice.text}</p>}
-        {!id && !options.available && <p role="status" className="offer-notice">{ELIGIBILITY_PENDING}</p>}
+        {!id && !options.eligible && <p role="status" className="offer-notice">{options.reason || ELIGIBILITY_PENDING}</p>}
+        {!id && options.applications?.some(item => !item.eligible) && <ul className="offer-notice" aria-label="Hồ sơ chưa đủ điều kiện">
+          {options.applications.filter(item => !item.eligible).map(item => <li key={item.application_id}>
+            {item.candidate_name} — {item.application_name || item.position_name}: {item.reason || ELIGIBILITY_PENDING}
+          </li>)}
+        </ul>}
         {offer && <p>Trạng thái: <strong>{offer.status}</strong></p>}
         {id && offer && !editable && <p className="offer-notice">Chế độ chỉ đọc. Offer này không được phép chỉnh sửa.</p>}
         {missingVersion && <p role="alert" className="offer-notice">Backend chưa cung cấp phiên bản cập nhật hợp lệ. Chưa thể lưu hoặc gửi duyệt.</p>}
@@ -168,8 +173,13 @@ export default function OfferForm({ api = offerApi }) {
             <label className="offer-form-field"><span>Hồ sơ / vị trí tuyển dụng</span>
               {id
                 ? <input readOnly value={identity.application_name || identity.position_name || ''} placeholder="Chưa có thông tin hồ sơ" />
-                : <select name="application_id" disabled={!options.available || busy} value={applicationId}
-                    onChange={e => setApplicationId(e.target.value)}>
+                : <select name="application_id" disabled={!options.available || !applications.length || busy} value={applicationId}
+                    onChange={e => {
+                      setApplicationId(e.target.value);
+                      const selected = applications.find(item => String(item.application_id) === e.target.value);
+                      setForm(formFromOffer(selected?.prefill));
+                      setErrors({});
+                    }}>
                     <option value="">Chọn hồ sơ đủ điều kiện</option>
                     {applications.map(item => <option key={item.application_id} value={item.application_id}>
                       {item.candidate_name} — {item.application_name || item.position_name}
@@ -196,6 +206,21 @@ export default function OfferForm({ api = offerApi }) {
             <button type="button" disabled={!editable || busy || missingVersion} onClick={() => save(true)}>Gửi duyệt</button>
             {busy && <span role="status">Đang xử lý…</span>}
           </div>
+          {!id && options.next_cursor && <button type="button" disabled={busy} onClick={async () => {
+            if (lock.current) return;
+            lock.current = true;
+            setBusy(true);
+            const currentGeneration = generation.current;
+            try {
+              const next = await api.getCreationOptions({ after_id: options.next_cursor });
+              if (currentGeneration === generation.current) setOptions(previous => ({ ...next,
+                eligible: previous.eligible || next.eligible,
+                applications: [...previous.applications, ...next.applications],
+              }));
+            } catch (error) {
+              if (currentGeneration === generation.current) setNotice({ type: 'error', text: offerErrorMessage(error) });
+            } finally { lock.current = false; setBusy(false); }
+          }}>Xem thêm hồ sơ</button>}
         </form>}
       </>}
     </main>

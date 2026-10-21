@@ -289,7 +289,78 @@ async function processApproval(offerId, { action, reason }, user) {
   return loadOfferById(offerId, scope);
 }
 
+const eligibilityReasons = {
+  NO_APPLICATIONS_IN_SCOPE: 'Không có hồ sơ trong phạm vi được phép.',
+  NO_ELIGIBLE_APPLICATIONS: 'Chưa có hồ sơ đủ điều kiện soạn Offer.',
+  APPLICATION_MAPPING_UNVERIFIED: 'Chưa xác minh đầy đủ liên kết hồ sơ với yêu cầu tuyển dụng.',
+  CATALOG_UNAVAILABLE: 'Vị trí hoặc phòng ban của hồ sơ chưa hợp lệ.',
+  OFFER_ALREADY_EXISTS: 'Hồ sơ đã có Offer còn hiệu lực.',
+  OFFER_HISTORY_REVIEW_REQUIRED: 'Cần xác minh lịch sử Offer trước khi tạo lại.',
+  LEGACY_OFFER_MAPPING_UNVERIFIED: 'Cần xác minh Offer cũ chưa liên kết hồ sơ.',
+  DECISION_NOT_PASSED: 'Chưa có quyết định Đạt được xác nhận cho hồ sơ.',
+  DECISION_SCOPE_MISMATCH: 'Quyết định của ứng viên không khớp yêu cầu tuyển dụng của hồ sơ.',
+  DECISION_AUTHORITY_UNVERIFIED: 'Chưa có đủ thông tin xác minh thẩm quyền ra quyết định.',
+  DECISION_APPLICATION_UNVERIFIED: 'Chưa chứng minh quyết định Đạt còn hiệu lực cho đúng hồ sơ ứng tuyển.',
+};
+
+function eligibilityReason(row) {
+  if (!row.request_id || Number(row.request_id) !== Number(row.posting_request_id) ||
+      Number(row.request_id) !== Number(row.recruitment_request_id)) return 'APPLICATION_MAPPING_UNVERIFIED';
+  if (!row.position_id || !row.department_id || row.department_status !== 'ACTIVE' || row.position_status !== 'ACTIVE') return 'CATALOG_UNAVAILABLE';
+  if (Number(row.has_effective_offer)) return 'OFFER_ALREADY_EXISTS';
+  // Until terminal-status reuse rules are confirmed, history is not proof that
+  // recreation is safe. Null application IDs cannot be silently ignored either.
+  if (Number(row.has_offer_history)) return 'OFFER_HISTORY_REVIEW_REQUIRED';
+  if (Number(row.has_unmapped_offer)) return 'LEGACY_OFFER_MAPPING_UNVERIFIED';
+  if (row.interview_decision !== 'PASSED') return 'DECISION_NOT_PASSED';
+  if (Number(row.candidate_request_id) !== Number(row.request_id)) return 'DECISION_SCOPE_MISMATCH';
+  if (!Number.isSafeInteger(Number(row.interview_decision_by)) || Number(row.interview_decision_by) <= 0 || !row.interview_decision_at) {
+    return 'DECISION_AUTHORITY_UNVERIFIED';
+  }
+  // Neither candidates.interview_decision nor candidate_hiring_decisions has
+  // an agreed application binding/current-authority contract. Even a sole
+  // application, matching request and decision metadata cannot prove it.
+  return 'DECISION_APPLICATION_UNVERIFIED';
+}
+
+async function getEligibility(query, user) {
+  const scope = offerAuthorization.getEligibilityScope(user);
+  const filters = {};
+  for (const key of Object.keys(query)) {
+    if (!['candidate_id', 'application_id', 'after_id'].includes(key)) fail(400, 'Tham số eligibility không hợp lệ.');
+    filters[key] = validation.positiveId(query[key], key);
+  }
+  let rows;
+  try {
+    rows = await offerRepository.readEligibilityApplications(filters, scope);
+  } catch (error) {
+    if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR', 'ECONNREFUSED', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(error.code)) {
+      const unavailable = new Error('Chức năng kiểm tra điều kiện Offer đang chờ hoàn thiện dependency Backend hoặc cơ sở dữ liệu.');
+      Object.assign(unavailable, { statusCode: 503, code: 'OFFER_ELIGIBILITY_DEPENDENCY_UNAVAILABLE' });
+      throw unavailable;
+    }
+    throw error;
+  }
+  if (filters.application_id && !rows.length) fail(403, 'Hồ sơ không tồn tại, không khớp ứng viên hoặc nằm ngoài phạm vi được phép.');
+  const applications = rows.slice(0, 50).map(row => {
+    const reason_code = eligibilityReason(row);
+    const mappingValid = reason_code !== 'APPLICATION_MAPPING_UNVERIFIED';
+    return {
+      eligible: false, reason_code, reason: eligibilityReasons[reason_code], permissions: { can_create: false },
+      candidate: { id: row.candidate_id, name: row.candidate_name },
+      application: { id: row.application_id, code: row.application_code, recruitment_request_id: row.recruitment_request_id },
+      position: mappingValid && row.position_id ? { id: row.position_id, name: row.position_name } : null,
+      department: mappingValid && row.department_id ? { id: row.department_id, name: row.department_name } : null,
+      prefill: mappingValid && row.position_status === 'ACTIVE' ? { position_id: row.position_id, job_title: row.position_name } : {},
+    };
+  });
+  const reason_code = applications.length === 1 ? applications[0].reason_code : applications.length ? 'NO_ELIGIBLE_APPLICATIONS' : 'NO_APPLICATIONS_IN_SCOPE';
+  return { eligible: false, reason_code, reason: eligibilityReasons[reason_code], permissions: { can_create: false },
+    applications, next_cursor: rows.length > 50 ? applications[49].application.id : null };
+}
+
 module.exports = {
+  getEligibility,
   createDraft,
   updateDraft,
   getAllOffers,

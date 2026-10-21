@@ -27,6 +27,7 @@ const OfferList = () => {
   const detailRequest = useRef(0);
   const submitLock = useRef(false);
   const [creationAvailable, setCreationAvailable] = useState(false);
+  const [creationReason, setCreationReason] = useState(ELIGIBILITY_PENDING);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -43,11 +44,15 @@ const OfferList = () => {
   useEffect(() => {
     let active = true;
     setCreationAvailable(false);
+    setCreationReason(ELIGIBILITY_PENDING);
     if (canUseOfferDrafts(user)) {
       offerApi.getCreationOptions().then(options => {
-        if (active) setCreationAvailable(options.available === true &&
-          options.applications?.some(application => application.eligible === true));
-      }).catch(() => {});
+        if (active) {
+          setCreationAvailable(options.eligible === true &&
+            options.applications?.some(application => application.eligible === true));
+          setCreationReason(options.reason || ELIGIBILITY_PENDING);
+        }
+      }).catch(error => { if (active) setCreationReason(offerErrorMessage(error)); });
     }
     return () => { active = false; };
   }, [user]);
@@ -187,7 +192,7 @@ const OfferList = () => {
         </div>
         {canUseOfferDrafts(user) && (creationAvailable
           ? <Link to="/offers/new">Soạn Offer</Link>
-          : <p role="status" style={{ color: '#64748b', fontSize: '0.85rem' }}>{ELIGIBILITY_PENDING}</p>)}
+          : <p role="status" style={{ color: '#64748b', fontSize: '0.85rem' }}>{creationReason}</p>)}
       </div>
 
       {/* Thông báo thao tác */}
