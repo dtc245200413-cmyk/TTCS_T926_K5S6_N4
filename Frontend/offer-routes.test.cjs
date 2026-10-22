@@ -58,7 +58,7 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus,
           position: { id: 12, name: 'Developer' }, department: { id: 3, name: 'Engineering' }, prefill: {},
         }] : [],
       };
-      else if (url.pathname === '/api/offers') data = [{...offer, status: state.status}];
+      else if (url.pathname === '/api/offers' || url.pathname === '/api/offers/approval-inbox') data = [{...offer, status: state.status}];
       else if (url.pathname === '/api/offers/101') data = {...offer, status: state.status};
       else if (url.pathname === '/api/offers/101/submit') { state.status = 'PENDING_APPROVAL'; data = {...offer,status:state.status}; }
       else if (url.pathname === '/api/offers/101/process-approval') { state.status = body.action === 'REQUEST_CHANGE' ? 'CHANGE_REQUESTED' : body.action; data = {...offer,status:state.status}; }
@@ -69,8 +69,30 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus,
   await page.goto(origin+route);
   if (route === '/offers/new') await page.waitForFunction(() => document.body.innerText.includes('Chưa chứng minh quyết định Đạt'));
   else if (failureStatus && failureStatus !== 503) await page.waitForFunction(() => document.body.innerText.includes('Bạn không đủ quyền'));
-  else await page.waitForFunction(() => document.body.innerText.includes('Candidate Smoke') ||
-    document.querySelector('input[value="Candidate Smoke"]'));
+  else {
+    try {
+      await page.waitForFunction(() =>
+        document.body.innerText.includes('Candidate Smoke') ||
+        document.querySelector('input[value="Candidate Smoke"]')
+      );
+    } catch (error) {
+      const visibleText = await page.evaluate(() => document.body?.innerText || '');
+
+      console.error('\n=== OFFER ROUTES DIAGNOSTIC ===');
+      console.error(JSON.stringify({
+        route,
+        role,
+        status,
+        currentUrl: page.url(),
+        apiCalls: state.calls,
+        browserErrors: state.errors,
+        visibleText: visibleText.slice(0, 2500)
+      }, null, 2));
+      console.error('=== END DIAGNOSTIC ===\n');
+
+      throw error;
+    }
+  }
   return {page,state};
 }
 async function clickText(page, text, selector = 'button') {
@@ -102,7 +124,7 @@ function readRoutes(node, parent = '', out = []) {
 }
 (async()=>{
   try {
-    await check('all previous routes retained, 63 -> 66, no duplicate resolved paths', async () => {
+    await check('all previous routes retained, 75 merged routes, no duplicate resolved paths', async () => {
       const before = JSON.parse(fs.readFileSync(path.join(__dirname, 'tests/offerRoutes.before.json'), 'utf8'));
       // Phase 3.1 added these routes after the original snapshot.
       before.push(
@@ -111,7 +133,8 @@ function readRoutes(node, parent = '', out = []) {
       );
       const after = readRoutes(parse(fs.readFileSync(path.join(__dirname, 'src/App.jsx'), 'utf8'), { sourceType: 'module', plugins: ['jsx'] }));
       assert.equal(before.length, 63);
-      assert.equal(after.length, 66);
+      assert.equal(after.length, 75);
+      assert.ok(after.some(item => item.path === '/offers/approvals' && item.element === 'OfferApprovalList'));
       const keys = after.map(item => JSON.stringify(item));
       for (const item of before) assert.ok(keys.includes(JSON.stringify(item)), `Lost route ${JSON.stringify(item)}`);
       const paths = after.filter(item => item.path !== null).map(item => item.path.startsWith('/') ? item.path : `${item.parent}/${item.path}`);
@@ -137,6 +160,12 @@ function readRoutes(node, parent = '', out = []) {
       if (route === '/offers/101') await page.waitForFunction(() => document.body.innerText.includes('Chi tiết Offer: OFF-SMOKE-101'));
       if (route === '/offers/101/edit') await page.waitForSelector('input[name="job_title"]');
       assert.deepEqual(state.errors,[]); await page.close();
+    });
+    await check('PR35 approval view uses shared API and does not infer assignment from ADMIN role', async () => {
+      const {page,state} = await fixture('ADMIN', 'PENDING_APPROVAL', '/offers/approvals');
+      assert.ok(state.calls.some(call => call.path === '/api/offers/approval-inbox'));
+      assert.equal(await page.$$eval('tbody button', nodes => nodes.filter(node => /^(Duyệt|Từ chối|Sửa|Phát hành)$/.test(node.textContent.trim())).length), 0);
+      assert.deepEqual(state.errors, []); await page.close();
     });
     for(const role of ['ADMIN','HR_MANAGER','RECRUITER','APPROVER']) await check('sidebar Offer '+role,async()=>{
       const {page,state}=await fixture(role);

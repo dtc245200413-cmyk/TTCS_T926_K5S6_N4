@@ -76,6 +76,21 @@ async function getApprovalScope(offerId, user) {
   fail(403, 'Chưa xác minh được phân công phê duyệt Offer cho tài khoản này.');
 }
 
+// This is the verified, transaction-bound approval scope. It is deliberately
+// separate from getApprovalScope, which still protects the legacy non-atomic
+// approval handler. Wire this only to the atomic approval coordinator.
+async function loadVerifiedApprovalAssignment({conn,offerId,rowVersion,user}={}) {
+  requireInternalUser(user);
+  if (!hasAnyRole(user,['APPROVER','DIRECTOR','HR_MANAGER','ADMIN'])) {
+    fail(403,'Ban khong co quyen duyet Offer.');
+  }
+  const {createOfferApprovalAssignmentReader}=require('./offerApprovalAssignmentReader');
+  const {verifyProvenance}=require('./offerApprovalMandate');
+  return createOfferApprovalAssignmentReader({verifyProvenance}).loadAssignedApprover({
+    conn,offerId,actorUserId:user.user_id,rowVersion
+  });
+}
+
 function getEligibilityScope(user) {
   getSubmitScope(user);
   if (hasAnyRole(user, ['ADMIN'])) return { sql: '', params: [] };
@@ -88,4 +103,4 @@ function getEligibilityScope(user) {
   return { sql: ` AND (${predicates.join(' OR ')})`, params };
 }
 
-module.exports = { getReadScope, getSubmitScope, getApprovalScope, assertCreateAccess, getEligibilityScope };
+module.exports = { getReadScope, getSubmitScope, getApprovalScope, loadVerifiedApprovalAssignment, assertCreateAccess, getEligibilityScope };

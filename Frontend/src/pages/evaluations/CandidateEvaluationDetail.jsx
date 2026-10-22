@@ -96,10 +96,14 @@ const CandidateEvaluationDetail = () => {
       if (!proceed) return;
     }
 
+    if (!candidate?.verified_decision_application_id) {
+      alert('Không xác minh được application duy nhất. Vui lòng kiểm tra liên kết hồ sơ.');
+      return;
+    }
     setSubmittingDecision(true);
     setDecisionSuccess('');
     try {
-      await candidateEvaluationApi.recordDecision(id, { decision, comment });
+      await candidateEvaluationApi.recordDecision(id, { decision, comment, application_id: candidate.verified_decision_application_id });
       setDecisionSuccess('Đã xác nhận và lưu quyết định tuyển chọn thành công!');
       setIsEditingDecision(false);
       await fetchDetail();

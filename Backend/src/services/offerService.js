@@ -8,7 +8,9 @@ const notificationRepository = require('../repositories/notificationRepository')
 const offerAuthorization = require('./offerAuthorization');
 const offerRepository = require('../repositories/offerRepository');
 const validation = require('./offerValidation');
+const { withOfferSchemaGuard } = require('./offerSchemaCompatibility');
 const { randomUUID } = require('crypto');
+const decisionDependencies = require('../repositories/offerPersistenceDependencies');
 
 function fail(statusCode, message) {
   const error = new Error(message);
@@ -41,7 +43,7 @@ async function getAllOffers(query, user) {
   sql += scope.sql;
   const params = [...scope.params];
 
-  if (status) {
+  if (status && status !== 'ALL') {
     sql += ` AND o.status = ?`;
     params.push(status);
   }
@@ -54,7 +56,7 @@ async function getAllOffers(query, user) {
 
   sql += ` ORDER BY o.created_at DESC`;
 
-  const [rows] = await pool.query(sql, params);
+  const [rows] = await withOfferSchemaGuard(() => pool.query(sql, params));
   return rows;
 }
 
@@ -68,7 +70,7 @@ async function getOfferById(offerId, user) {
 
 // Every caller must supply an authorized scope, including mutation responses.
 async function loadOfferById(offerId, scope, conn = pool) {
-  const [rows] = await conn.query(
+  const [rows] = await withOfferSchemaGuard(() => conn.query(
     `SELECT o.*,
             c.full_name AS candidate_name,
             c.email AS candidate_email,
@@ -83,7 +85,7 @@ async function loadOfferById(offerId, scope, conn = pool) {
      LEFT JOIN users u_creator ON u_creator.user_id = o.created_by
      WHERE o.id = ?${scope.sql}`,
     [offerId, ...scope.params]
-  );
+  ));
 
   if (!rows.length) {
     if (scope.sql) fail(403, 'Offer không tồn tại hoặc nằm ngoài phạm vi được phép xem.');
@@ -93,14 +95,14 @@ async function loadOfferById(offerId, scope, conn = pool) {
   const offer = rows[0];
 
   // Lấy lịch sử phê duyệt
-  const [approvals] = await conn.query(
+  const [approvals] = await withOfferSchemaGuard(() => conn.query(
     `SELECT oa.*, u.full_name AS approver_name
      FROM offer_approvals oa
      JOIN users u ON u.user_id = oa.approver_id
      WHERE oa.offer_id = ?
      ORDER BY oa.action_at DESC`,
     [offerId]
-  );
+  ));
 
   return { ...offer, approvals };
 }
@@ -157,6 +159,20 @@ async function updateDraft(offerId, body, user, ifMatch) {
     if (changed !== 1) fail(409, 'Offer đã thay đổi hoặc bạn không còn quyền cập nhật. Vui lòng tải lại.');
     return loadOfferById(id, scope, conn);
   });
+}
+
+// The department's actual manager records an explicit approver mandate before
+// submission. Never trust role/assignment objects from request JSON.
+async function assignApprover(offerId, approverId, user, ifMatch) {
+  if (!user?.user_id) fail(401, 'Vui long dang nhap.');
+  const version = validation.expectedVersion(ifMatch);
+  const id = validation.positiveId(offerId, 'offerId');
+  const targetId = validation.positiveId(approverId, 'approverId');
+  offerRepository.assertDraftWritesReady();
+  return offerRepository.withTransaction(conn => require('./offerApprovalMandate').assignExplicit({
+    conn, offerId: id, approverId: targetId,
+    actorUserId: user.user_id, expectedRowVersion: version
+  }));
 }
 
 /**
@@ -302,6 +318,7 @@ const eligibilityReasons = {
   DECISION_SCOPE_MISMATCH: 'Quyết định của ứng viên không khớp yêu cầu tuyển dụng của hồ sơ.',
   DECISION_AUTHORITY_UNVERIFIED: 'Chưa có đủ thông tin xác minh thẩm quyền ra quyết định.',
   DECISION_APPLICATION_UNVERIFIED: 'Chưa chứng minh quyết định Đạt còn hiệu lực cho đúng hồ sơ ứng tuyển.',
+  OFFER_SCHEMA_NOT_VERIFIED: 'Schema Offer chưa được kiểm tra khi khởi động. Liên hệ quản trị viên.',
 };
 
 function eligibilityReason(row) {
@@ -343,29 +360,68 @@ async function getEligibility(query, user) {
     throw error;
   }
   if (filters.application_id && !rows.length) fail(403, 'Hồ sơ không tồn tại, không khớp ứng viên hoặc nằm ngoài phạm vi được phép.');
-  const applications = rows.slice(0, 50).map(row => {
-    const reason_code = eligibilityReason(row);
+  // A PASSED candidate-wide summary is not evidence. Replay the dedicated
+  // application-bound decision using the same authority verifier used on writes.
+  // This is only a UI hint: createDraft rechecks inside its write transaction.
+  const applications = await Promise.all(rows.slice(0, 50).map(async row => {
+    let reason_code = eligibilityReason(row);
+    let eligible = false;
+    if (reason_code === 'DECISION_APPLICATION_UNVERIFIED' && row.verified_decision_id) {
+      try {
+        const [decisions] = await pool.query(`SELECT hd.id,hd.application_id,hd.candidate_id,
+          hd.recruitment_request_id,hd.department_id,hd.decision,
+          hd.decision_maker_id AS decided_by,hd.row_version,hd.validity_status,
+          hd.authority_policy,hd.authority_reference,hd.revoked_at,hd.superseded_at,
+          hd.total_rounds_evaluated,hd.average_score
+          FROM candidate_hiring_decisions hd WHERE hd.id = ?`, [row.verified_decision_id]);
+        const app = { id: row.application_id, candidate_id: row.candidate_id,
+          recruitment_request_id: row.recruitment_request_id, department_id: row.department_id };
+        eligible = decisions.length === 1 &&
+          await decisionDependencies.verifyDecisionAuthority(decisions[0], app, pool) === true;
+        if (eligible) reason_code = 'ELIGIBLE';
+      } catch (error) {
+        // A missing schema is a deployment problem, not an ineligible candidate.
+        if (['ER_BAD_FIELD_ERROR','ER_NO_SUCH_TABLE','ECONNREFUSED','ETIMEDOUT','PROTOCOL_CONNECTION_LOST'].includes(error.code)) {
+          Object.assign(error, {statusCode:503, code:'OFFER_ELIGIBILITY_DEPENDENCY_UNAVAILABLE'});
+          throw error;
+        }
+        // Unverified evidence never enables creation, but unrelated faults
+        // must not be disguised as 'candidate not eligible'.
+        if (![403,422].includes(error.statusCode)) throw error;
+      }
+    }
     const mappingValid = reason_code !== 'APPLICATION_MAPPING_UNVERIFIED';
+    const canCreate = eligible && require('./offerRuntimeReadiness').isDraftSchemaReady();
+    if (eligible && !canCreate) reason_code = 'OFFER_SCHEMA_NOT_VERIFIED';
     return {
-      eligible: false, reason_code, reason: eligibilityReasons[reason_code], permissions: { can_create: false },
+      eligible: canCreate, reason_code, reason: canCreate ? null : eligibilityReasons[reason_code],
+      permissions: { can_create: canCreate },
       candidate: { id: row.candidate_id, name: row.candidate_name },
       application: { id: row.application_id, code: row.application_code, recruitment_request_id: row.recruitment_request_id },
       position: mappingValid && row.position_id ? { id: row.position_id, name: row.position_name } : null,
       department: mappingValid && row.department_id ? { id: row.department_id, name: row.department_name } : null,
       prefill: mappingValid && row.position_status === 'ACTIVE' ? { position_id: row.position_id, job_title: row.position_name } : {},
     };
-  });
-  const reason_code = applications.length === 1 ? applications[0].reason_code : applications.length ? 'NO_ELIGIBLE_APPLICATIONS' : 'NO_APPLICATIONS_IN_SCOPE';
-  return { eligible: false, reason_code, reason: eligibilityReasons[reason_code], permissions: { can_create: false },
+  }));
+  const canCreate = applications.some(app => app.permissions.can_create);
+  const reason_code = canCreate ? 'ELIGIBLE' : applications.length === 1 ? applications[0].reason_code : applications.length ? 'NO_ELIGIBLE_APPLICATIONS' : 'NO_APPLICATIONS_IN_SCOPE';
+  return { eligible: canCreate, reason_code, reason: canCreate ? null : eligibilityReasons[reason_code],
+    permissions: { can_create: canCreate },
     applications, next_cursor: rows.length > 50 ? applications[49].application.id : null };
 }
 
 module.exports = {
+  // PR #35 publish/onboarding requires a verified workflow, never role alone.
+  unavailableApprovalExtension(user) {
+    offerAuthorization.getReadScope(user);
+    validation.dependencyUnavailable();
+  },
   getEligibility,
   createDraft,
   updateDraft,
   getAllOffers,
   getOfferById,
   submitOffer,
+  assignApprover,
   processApproval
 };

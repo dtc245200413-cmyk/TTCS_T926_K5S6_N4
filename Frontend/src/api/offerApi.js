@@ -5,6 +5,9 @@ export const ELIGIBILITY_PENDING = 'Đang chờ Backend xác nhận điều ki�
 
 export function offerErrorMessage(error) {
   const status = error.response?.status;
+  if (status === 503 && error.response?.data?.code === 'OFFER_SCHEMA_NOT_READY') {
+    return 'Cơ sở dữ liệu chưa được cập nhật cho chức năng Offer. Vui lòng liên hệ người quản trị.';
+  }
   const messages = {
     400: 'Dữ liệu Offer chưa hợp lệ. Vui lòng kiểm tra các trường đã nhập.',
     401: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
@@ -28,6 +31,23 @@ export function validOfferVersion(version) {
 }
 
 const offerApi = {
+  // PR #35 view shares the same scoped Backend and closed approval workflow.
+  getOffers: (params) => axiosClient.get('/offers', { params }),
+  getOfferById: (id) => axiosClient.get(`/offers/${encodeURIComponent(id)}`),
+  // Explicit assignment-only views; the ordinary creator list is not an approver inbox.
+  getApprovalInbox: () => axiosClient.get('/offers/approval-inbox'),
+  getApprovalDetail: (id) => axiosClient.get(`/offers/${encodeURIComponent(id)}/approval-detail`),
+  decideAtomic: (id, action, reason, version) => {
+    if (!validOfferVersion(version)) return Promise.reject({ response: { status: 428 } });
+    return axiosClient.post(`/offers/${encodeURIComponent(id)}/decide-atomic`,
+      { action, reason }, { headers: { 'If-Match': `"${version}"` } });
+  },
+
+  approveOffer: (id, data) => axiosClient.post(`/offers/${encodeURIComponent(id)}/approve`, data),
+  rejectOffer: (id, data) => axiosClient.post(`/offers/${encodeURIComponent(id)}/reject`, data),
+  requestChangeOffer: (id, data) => axiosClient.post(`/offers/${encodeURIComponent(id)}/request-change`, data),
+  publishOffer: (id) => axiosClient.post(`/offers/${encodeURIComponent(id)}/publish`),
+  getOnboardings: () => axiosClient.get('/offers/onboardings'),
   getById: (id) => axiosClient.get(`/offers/${encodeURIComponent(id)}`),
   create: (payload) => axiosClient.post('/offers', payload),
   update: (id, payload, version) => {

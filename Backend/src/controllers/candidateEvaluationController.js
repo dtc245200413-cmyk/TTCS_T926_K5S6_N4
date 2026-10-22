@@ -32,6 +32,13 @@ const recordDecision = async (req, res, next) => {
   }
 };
 
+const recordVerifiedDecision = async (req, res, next) => {
+  try {
+    const data = await service.recordVerifiedDecision(req.params.id, req.body, req.user, getIp(req));
+    return sendSuccess(res, 'Quyet dinh da duoc xac minh theo application va ghi audit.', data);
+  } catch (error) { next(error); }
+};
+
 const createOffer = async (req, res, next) => {
   try {
     const data = await service.createOffer(req.params.id, req.body, req.user, getIp(req));
@@ -63,6 +70,7 @@ module.exports = {
   getCandidates,
   getCandidateDetail,
   recordDecision,
+  recordVerifiedDecision,
   createOffer,
   addEvaluation,
   seedSampleData

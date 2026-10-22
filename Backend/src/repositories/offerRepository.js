@@ -2,13 +2,14 @@ const { pool } = require('../config/database');
 const validation = require('../services/offerValidation');
 const authorization = require('../services/offerAuthorization');
 const dependencies = require('./offerPersistenceDependencies');
+const runtimeReadiness = require('../services/offerRuntimeReadiness');
 
 // Closed deliberately: no env flag, request flag or automatic migration enables
 // writes. SQL below targets the review draft, NOT a schema known to be deployed.
 // Keep closed until migration, decision writer, assignment and notification
 // integration have all been verified on an isolated database.
 function assertDraftWritesReady() {
-  validation.dependencyUnavailable();
+  if (!runtimeReadiness.isDraftSchemaReady()) validation.dependencyUnavailable();
 }
 
 async function withTransaction(work) {
@@ -92,7 +93,8 @@ async function loadDecision(application, conn) {
     SELECT hd.id, hd.application_id, hd.candidate_id, hd.recruitment_request_id,
            hd.department_id, hd.decision, hd.decision_maker_id AS decided_by,
            hd.decided_at, hd.row_version, hd.validity_status, hd.revoked_at,
-           hd.superseded_at, hd.authority_policy, hd.authority_reference
+           hd.superseded_at, hd.authority_policy, hd.authority_reference,
+           hd.total_rounds_evaluated, hd.average_score
     FROM candidate_hiring_decisions hd
     WHERE hd.application_id = ? AND hd.candidate_id = ?
       AND hd.recruitment_request_id = ? AND hd.department_id = ?
@@ -236,6 +238,7 @@ async function readEligibilityApplications(filters, scope) {
   if (filters.after_id) { where += ' AND a.id > ?'; params.push(filters.after_id); }
   const [rows] = await pool.query(`
     SELECT a.id AS application_id, a.application_code, a.candidate_id,
+           hd.id AS verified_decision_id,
            a.recruitment_request_id, c.full_name AS candidate_name,
            hd.recruitment_request_id AS candidate_request_id,
            CASE WHEN hd.validity_status = 'CURRENT' AND hd.revoked_at IS NULL

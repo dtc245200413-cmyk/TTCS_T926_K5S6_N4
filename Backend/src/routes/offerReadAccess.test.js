@@ -219,3 +219,31 @@ it('does not fall back to unrestricted reads when scope SQL fails', async () => 
   expect((await get('', token))).toMatchObject({ status: 500, body: { success: false } });
   expect(pool.query).toHaveBeenCalledTimes(1);
 });
+
+it.each([
+  ['list missing creator column', '', 'ER_BAD_FIELD_ERROR'],
+  ['detail missing creator column', '/1', 'ER_BAD_FIELD_ERROR'],
+  ['list missing candidate_offers table', '', 'ER_NO_SUCH_TABLE'],
+  ['detail missing candidate_offers table', '/1', 'ER_NO_SUCH_TABLE'],
+])('unmigrated DB: %s returns safe 503 without revealing SQL', async (_name, path, code) => {
+  const token = login(['RECRUITER']);
+  const raw = Object.assign(new Error('PRIVATE_SQL o.created_by users.secret'), { code });
+  pool.query.mockRejectedValueOnce(raw);
+  const result = await get(path, token);
+  expect(result).toMatchObject({ status: 503, body: {
+    success: false, code: 'OFFER_SCHEMA_NOT_READY'
+  } });
+  expect(JSON.stringify(result.body)).not.toContain('PRIVATE_SQL');
+  expect(JSON.stringify(result.body)).not.toContain('users.secret');
+  expect(pool.query).toHaveBeenCalledTimes(1);
+});
+
+it('unmigrated DB: a missing offer_approvals table is a safe 503, never a partial detail', async () => {
+  const token = login(['RECRUITER']);
+  pool.query.mockImplementationOnce(async (sql, params) => queryOffers(sql, params))
+    .mockRejectedValueOnce(Object.assign(new Error('private missing history'), { code: 'ER_NO_SUCH_TABLE' }));
+  const result = await get('/1', token);
+  expect(result).toMatchObject({ status: 503, body: { success: false, code: 'OFFER_SCHEMA_NOT_READY' } });
+  expect(JSON.stringify(result.body)).not.toContain('private missing history');
+  expect(pool.query).toHaveBeenCalledTimes(2);
+});

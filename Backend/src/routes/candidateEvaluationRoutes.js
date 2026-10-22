@@ -25,7 +25,8 @@ router.post('/seed-sample', legacyWriteDisabled);
 router.get('/:id', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER'), controller.getCandidateDetail);
 
 // Trưởng bộ phận chọn Đạt/Không đạt, nhập nhận xét và xác nhận quyết định
-router.post('/:id/decision', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN'), controller.recordDecision);
+router.post('/:id/decision', legacyWriteDisabled);
+router.post('/:id/verified-decision', requireRoles('HIRING_MANAGER'), controller.recordVerifiedDecision);
 
 // Nhập phiếu đánh giá phỏng vấn của phỏng vấn viên / Trưởng bộ phận / HR
 router.post('/:id/evaluations', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER', 'INTERVIEWER'), controller.addEvaluation);

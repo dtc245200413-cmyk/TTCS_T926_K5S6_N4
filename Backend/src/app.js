@@ -82,7 +82,9 @@ const candidateRoutes = require('./routes/candidateRoutes');
 const auditLogRoutes = require('./routes/auditLogRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const interviewScheduleRoutes = require('./routes/interviewScheduleRoutes');
+const candidateProfileRoutes = require('./routes/candidateProfileRoutes');
 app.use('/api/candidates', candidateRoutes);
+app.use('/api/candidates', candidateProfileRoutes);
 
 app.use('/api/competency-frameworks', competencyFrameworkRoutes);
 app.use('/api/interview-questions', interviewQuestionRoutes);

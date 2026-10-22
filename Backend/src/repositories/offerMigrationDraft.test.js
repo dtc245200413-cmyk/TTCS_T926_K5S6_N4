@@ -62,7 +62,7 @@ it('does not register or execute this draft or the dormant Evaluation migration 
 it('keeps the unresolved authority and assignment dependencies closed without any SQL', async () => {
   const dependencies = require('./offerPersistenceDependencies');
   const conn = { query: jest.fn() };
-  await expect(dependencies.verifyDecisionAuthority({}, {}, conn)).rejects.toMatchObject({ statusCode: 503 });
+  await expect(dependencies.verifyDecisionAuthority({}, {}, conn)).resolves.toBe(false);
   await expect(dependencies.resolveSubmissionAssignments({}, {}, {}, conn)).rejects.toMatchObject({ statusCode: 503 });
   expect(conn.query).not.toHaveBeenCalled();
 });

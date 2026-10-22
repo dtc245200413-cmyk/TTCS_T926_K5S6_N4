@@ -6,7 +6,7 @@ const { authenticate } = require('../middleware/authMiddleware');
 router.get('/:id/tags', authenticate, controller.getTags);
 router.post('/:id/tags', authenticate, controller.addTag);
 router.delete('/:id/tags/:tagId', authenticate, controller.removeTag);
-router.get('/:id/notes', authenticate, controller.getNotes);
-router.post('/:id/notes', authenticate, controller.addNote);
+router.get('/:id/profile-notes', authenticate, controller.getNotes);
+router.post('/:id/profile-notes', authenticate, controller.addNote);
 
 module.exports = router;

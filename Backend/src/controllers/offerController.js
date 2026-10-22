@@ -28,12 +28,25 @@ const updateDraft = async (req, res, next) => {
   }
 };
 
+// Rollout compatibility: a teammate may pull the new code before running the
+// reviewed Offer migration. Do not leak raw MySQL diagnostics or claim success.
+function handleOfferReadError(error, res, next) {
+  if (error.code === 'OFFER_SCHEMA_NOT_READY') {
+    return res.status(503).json({
+      success: false,
+      code: 'OFFER_SCHEMA_NOT_READY',
+      message: 'Cơ sở dữ liệu chưa được cập nhật cho chức năng Offer. Vui lòng liên hệ người quản trị.',
+    });
+  }
+  return next(error);
+}
+
 const getAllOffers = async (req, res, next) => {
   try {
     const data = await offerService.getAllOffers(req.query, req.user);
     return sendSuccess(res, 'Lấy danh sách Offer thành công', data);
   } catch (error) {
-    next(error);
+    return handleOfferReadError(error, res, next);
   }
 };
 
@@ -42,8 +55,16 @@ const getOfferById = async (req, res, next) => {
     const data = await offerService.getOfferById(req.params.id, req.user);
     return sendSuccess(res, 'Lấy chi tiết Offer thành công', data);
   } catch (error) {
-    next(error);
+    return handleOfferReadError(error, res, next);
   }
+};
+
+const assignApprover = async (req, res, next) => {
+  try {
+    const data = await offerService.assignApprover(
+      req.params.id, req.body?.approver_id, req.user, req.get('If-Match'));
+    return sendSuccess(res, 'Da ghi nhan nguoi duyet Offer', data);
+  } catch (error) { return handleDraftError(error, res, next); }
 };
 
 const submitOffer = async (req, res, next) => {
@@ -64,6 +85,36 @@ const processApproval = async (req, res, next) => {
   }
 };
 
+// Atomic approval endpoint. All proof/assignment data comes from DB and only
+// the If-Match version and action/reason are accepted from this request.
+const decideAtomic = async (req, res, next) => {
+  try {
+    const { createLiveApprovalService } = require('../services/offerApprovalLive');
+    const data = await createLiveApprovalService().decide({
+      offerId: req.params.id, user: req.user,
+      ifMatch: req.get('If-Match'), action: req.body?.action,
+      reason: req.body?.reason
+    });
+    return sendSuccess(res, 'Da xu ly phe duyet Offer trong giao dich', data);
+  } catch (error) { return next(error); }
+};
+
+const getApprovalDetail = async (req, res, next) => {
+  try {
+    const data = await require('../services/offerApprovalLive').getAssignedOfferDetail({
+      user: req.user, offerId: req.params.id
+    });
+    return sendSuccess(res, 'Chi tiet Offer duoc phan cong', data);
+  } catch (error) { return next(error); }
+};
+
+const getApprovalInbox = async (req, res, next) => {
+  try {
+    const data = await require('../services/offerApprovalLive').getAssignedInbox({user:req.user});
+    return sendSuccess(res, 'Danh sach Offer duoc phan cong phe duyet', data);
+  } catch (error) { return next(error); }
+};
+
 const getEligibility = async (req, res) => {
   try {
     const data = await offerService.getEligibility(req.query, req.user);
@@ -80,11 +131,20 @@ const getEligibility = async (req, res) => {
 };
 
 module.exports = {
+  unavailableApprovalExtension(req, res, next) {
+    try {
+      offerService.unavailableApprovalExtension(req.user);
+    } catch (error) { return handleDraftError(error, res, next); }
+  },
   getEligibility,
   createDraft,
   updateDraft,
   getAllOffers,
   getOfferById,
   submitOffer,
-  processApproval
+  assignApprover,
+  processApproval,
+  decideAtomic,
+  getApprovalInbox,
+  getApprovalDetail
 };

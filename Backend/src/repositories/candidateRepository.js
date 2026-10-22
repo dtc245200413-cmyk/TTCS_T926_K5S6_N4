@@ -62,6 +62,7 @@ async function findById(id) {
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
     if (!isMissingRecruitmentRequests(error)) throw error;
+
     const [rows] = await pool.execute(`SELECT c.* FROM candidates c WHERE c.id = ? LIMIT 1`, [id]);
     return rows.length > 0 ? rows[0] : null;
   }
@@ -82,6 +83,46 @@ async function getAll(user, filters = {}) {
     sort_order = 'DESC'
   } = filters;
 
+  const roles = Array.isArray(user?.roles)
+    ? user.roles.map(role => role.role_code)
+    : [];
+
+  const hasBroadAccess = roles.some(role =>
+    ['ADMIN', 'HR_MANAGER', 'RECRUITER'].includes(role)
+  );
+
+  const isHiringManager = roles.includes('HIRING_MANAGER');
+
+  const emptyResult = {
+    candidates: [],
+    pagination: {
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 1
+    },
+    filterOptions: {
+      positions: [],
+      stages: [],
+      sources: [],
+      tags: []
+    }
+  };
+
+  if (!hasBroadAccess && !isHiringManager) {
+    return emptyResult;
+  }
+
+  if (
+    isHiringManager &&
+    !hasBroadAccess &&
+    (!/^[1-9]\d*$/.test(String(user?.department_id)) ||
+     !/^[1-9]\d*$/.test(String(user?.user_id)) ||
+     !Number.isSafeInteger(Number(user?.department_id)) ||
+     !Number.isSafeInteger(Number(user?.user_id)))
+  ) {
+    return emptyResult;
+  }
   const whereClauses = ['(c.merged_into_id IS NULL)'];
   const params = [];
 
@@ -225,6 +266,7 @@ async function getAll(user, filters = {}) {
     };
   } catch (error) {
     if (!isMissingRecruitmentRequests(error)) throw error;
+    if (!hasBroadAccess) return emptyResult;
     const [rows] = await pool.execute(`
       SELECT c.*, NULL AS job_reason, NULL AS position_id, NULL AS department_name, NULL AS position_name,
              NULL AS stage_changer_name, NULL AS rejection_reason_name

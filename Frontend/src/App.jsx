@@ -56,11 +56,26 @@ import CompetencyFrameworkForm from './pages/competency-frameworks/CompetencyFra
 import PositionManagement from './pages/positions/PositionManagement';
 import DepartmentList from './pages/departments/DepartmentList';
 
+// Offer Management Pages
+import OfferApprovalList from './pages/offers/OfferApprovalList';
+
+// Candidate Portal Context & Pages
+import { CandidateAuthProvider } from './context/CandidateAuthContext';
+import CandidatePortalLayout from './components/CandidatePortalLayout';
+import CandidateProtectedRoute from './components/CandidateProtectedRoute';
+import CandidateLogin from './pages/candidate-portal/CandidateLogin';
+import CandidateRegister from './pages/candidate-portal/CandidateRegister';
+import CandidateDashboard from './pages/candidate-portal/CandidateDashboard';
+import CandidateApplications from './pages/candidate-portal/CandidateApplications';
+import CandidateInterviews from './pages/candidate-portal/CandidateInterviews';
+import CandidateOffers from './pages/candidate-portal/CandidateOffers';
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <CandidateAuthProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
 
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
@@ -70,6 +85,18 @@ function App() {
           <Route path="/jobs/track" element={<TrackApplication />} />
           <Route path="/tra-cuu" element={<TrackApplication />} />
           <Route path="/jobs/:id" element={<PublicJobDetail />} />
+
+          {/* Candidate Portal Routes */}
+          <Route path="/candidate/login" element={<CandidateLogin />} />
+          <Route path="/candidate/register" element={<CandidateRegister />} />
+          <Route path="/candidate" element={<CandidateProtectedRoute />}>
+            <Route element={<CandidatePortalLayout />}>
+              <Route index element={<CandidateDashboard />} />
+              <Route path="applications" element={<CandidateApplications />} />
+              <Route path="interviews" element={<CandidateInterviews />} />
+              <Route path="offers" element={<CandidateOffers />} />
+            </Route>
+          </Route>
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -235,6 +262,12 @@ function App() {
               />
 
             </Route>
+
+            {/* =================================================
+                OFFER MANAGEMENT & APPROVAL
+               ================================================= */}
+            <Route path="/offers/approvals" element={<OfferApprovalList />} />
+
           </Route>
 
           {/* Error Pages */}
@@ -244,6 +277,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+  </CandidateAuthProvider>
   );
 }
 

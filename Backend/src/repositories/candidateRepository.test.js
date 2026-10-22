@@ -5,14 +5,14 @@ describe('SCRUM-129 regression suite', () => {
 
 const { pool } = require('../config/database');
 const repo = require('./candidateRepository');
-const user = (...roles) => ({ department_id: 7, roles: roles.map(role_code => ({ role_code })) });
+const user = (...roles) => ({ user_id: 13, department_id: 7, roles: roles.map(role_code => ({ role_code })) });
 const missingTable = (table = 'recruitment_requests') => Object.assign(
   new Error(`Table 'internal_recruitment_system.${table}' doesn't exist`),
   { code: 'ER_NO_SUCH_TABLE', sqlMessage: `Table 'internal_recruitment_system.${table}' doesn't exist` }
 );
 
 describe('candidateRepository - missing recruitment_requests fallback', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => { jest.resetAllMocks(); pool.query.mockResolvedValue([[]]); });
 
   it('findById prefers the original join when available', async () => {
     const candidate = { id: 4, department_id: 7, position_id: 2 };
@@ -49,45 +49,45 @@ describe('candidateRepository - missing recruitment_requests fallback', () => {
   it.each(['RECRUITER', 'HR_MANAGER', 'ADMIN'])('getAll allows %s fallback with null joined fields', async role => {
     const rows = [{ id: 4, job_reason: null, department_name: null, position_name: null }];
     pool.execute.mockRejectedValueOnce(missingTable()).mockResolvedValueOnce([rows]);
-    expect(await repo.getAll(user(role))).toEqual(rows);
+    expect(await repo.getAll(user(role))).toMatchObject({ candidates: rows });
     expect(pool.execute).toHaveBeenCalledTimes(2);
     expect(pool.execute.mock.calls[0][0]).toContain('LEFT JOIN recruitment_requests');
     const [sql] = pool.execute.mock.calls[1];
-    expect(sql).toContain('NULL AS job_reason, NULL AS department_name, NULL AS position_name');
+    expect(sql).toContain('NULL AS job_reason, NULL AS position_id, NULL AS department_name, NULL AS position_name');
     expect(sql).toMatch(/FROM candidates c\s+ORDER BY c.created_at DESC/);
     expect(sql).not.toMatch(/JOIN/);
   });
 
   it('getAll fails closed for a department-scoped HIRING_MANAGER', async () => {
     pool.execute.mockRejectedValueOnce(missingTable());
-    expect(await repo.getAll(user('HIRING_MANAGER'))).toEqual([]);
+    expect(await repo.getAll(user('HIRING_MANAGER'))).toMatchObject({ candidates: [] });
     expect(pool.execute).toHaveBeenCalledTimes(1);
-    expect(pool.execute.mock.calls[0][0]).toContain('AND r.department_id = ?');
-    expect(pool.execute.mock.calls[0][1]).toEqual([7]);
+    expect(pool.execute.mock.calls[0][0]).toContain('r.department_id = ? OR r.created_by = ?');
+    expect(pool.execute.mock.calls[0][1]).toEqual([7, 13]);
   });
 
   it.each(['RECRUITER', 'HR_MANAGER', 'ADMIN'])('preserves full access for HIRING_MANAGER also assigned %s', async role => {
     pool.execute.mockRejectedValueOnce(missingTable()).mockResolvedValueOnce([[{ id: 4 }]]);
-    expect(await repo.getAll(user('HIRING_MANAGER', role))).toEqual([{ id: 4 }]);
+    expect(await repo.getAll(user('HIRING_MANAGER', role))).toMatchObject({ candidates: [{ id: 4 }] });
     expect(pool.execute.mock.calls[0][1]).toEqual([]);
   });
 
   it.each([undefined, {}, user(), user('CANDIDATE'), user('INTERVIEWER'), user('APPROVER')])('does not grant full fallback access to unsupported users %j', async account => {
     pool.execute.mockRejectedValueOnce(missingTable());
-    expect(await repo.getAll(account)).toEqual([]);
-    expect(pool.execute).toHaveBeenCalledTimes(1);
+    expect(await repo.getAll(account)).toMatchObject({ candidates: [] });
+    expect(pool.execute).not.toHaveBeenCalled();
   });
 
   it.each(['RECRUITER', 'HIRING_MANAGER'])('preserves the successful getAll join for %s', async role => {
     const rows = [{ id: 4, department_name: 'Engineering', position_name: 'Developer', job_reason: 'Tăng mới' }];
-    pool.execute.mockResolvedValue([rows]);
-    expect(await repo.getAll(user(role))).toEqual(rows);
-    expect(pool.execute).toHaveBeenCalledTimes(1);
-    const [sql, params] = pool.execute.mock.calls[0];
+    pool.execute.mockResolvedValueOnce([[{ total: rows.length }]]).mockResolvedValueOnce([rows]);
+    expect(await repo.getAll(user(role))).toMatchObject({ candidates: rows, pagination: { total: rows.length } });
+    expect(pool.execute).toHaveBeenCalledTimes(2);
+    const [sql, params] = pool.execute.mock.calls[1];
     for (const table of ['recruitment_requests', 'departments', 'job_positions']) {
       expect(sql).toContain(`LEFT JOIN ${table}`);
     }
-    expect(params).toEqual(role === 'HIRING_MANAGER' ? [7] : []);
+    expect(params).toEqual(role === 'HIRING_MANAGER' ? [7, 13] : []);
   });
 
   describe.each([
@@ -130,24 +130,24 @@ describe('develop2 regression suite', () => {
 
 const { pool } = require('../config/database');
 const repository = require('./candidateRepository');
-const user = role => ({ department_id: 2, roles: [{ role_code: role }] });
+const user = role => ({ user_id: 13, department_id: 2, roles: [{ role_code: role }] });
 const missingTable = (table = 'recruitment_requests') => Object.assign(
   new Error(`Table 'internal_recruitment_system.${table}' doesn't exist`),
   { code: 'ER_NO_SUCH_TABLE', sqlMessage: `Table 'internal_recruitment_system.${table}' doesn't exist` }
 );
 
-beforeEach(() => jest.resetAllMocks());
+beforeEach(() => { jest.resetAllMocks(); pool.query.mockResolvedValue([[]]); });
 
 describe('candidateRepository: missing recruitment_requests fallback', () => {
   it.each(['RECRUITER', 'HR_MANAGER', 'ADMIN'])('allows %s to read candidates with null job fields', async role => {
     const candidates = [{ id: 1, full_name: 'Candidate', job_reason: null, department_name: null, position_name: null }];
     pool.execute.mockRejectedValueOnce(missingTable()).mockResolvedValueOnce([candidates]);
 
-    await expect(repository.getAll(user(role))).resolves.toEqual(candidates);
+    await expect(repository.getAll(user(role))).resolves.toMatchObject({ candidates });
     expect(pool.execute).toHaveBeenCalledTimes(2);
     expect(pool.execute.mock.calls[0][0]).toContain('LEFT JOIN recruitment_requests');
     const sql = pool.execute.mock.calls[1][0];
-    expect(sql).toContain('SELECT c.*, NULL AS job_reason, NULL AS department_name, NULL AS position_name');
+    expect(sql).toContain('SELECT c.*, NULL AS job_reason, NULL AS position_id, NULL AS department_name, NULL AS position_name');
     expect(sql).toContain('FROM candidates c');
     expect(sql).toContain('ORDER BY c.created_at DESC');
     expect(sql).not.toContain('JOIN');
@@ -155,22 +155,22 @@ describe('candidateRepository: missing recruitment_requests fallback', () => {
 
   it('does not expose all candidates to Hiring Manager when scope is unavailable', async () => {
     pool.execute.mockRejectedValueOnce(missingTable());
-    await expect(repository.getAll(user('HIRING_MANAGER'))).resolves.toEqual([]);
+    await expect(repository.getAll(user('HIRING_MANAGER'))).resolves.toMatchObject({ candidates: [] });
     expect(pool.execute).toHaveBeenCalledTimes(1);
-    expect(pool.execute.mock.calls[0][0]).toContain('AND r.department_id = ?');
-    expect(pool.execute.mock.calls[0][1]).toEqual([2]);
+    expect(pool.execute.mock.calls[0][0]).toContain('r.department_id = ? OR r.created_by = ?');
+    expect(pool.execute.mock.calls[0][1]).toEqual([2, 13]);
   });
 
   it.each([undefined, { roles: [] }, user('INTERVIEWER'), user('CANDIDATE')])('does not grant fallback access without a staff role: %j', async identity => {
     pool.execute.mockRejectedValueOnce(missingTable());
-    await expect(repository.getAll(identity)).resolves.toEqual([]);
-    expect(pool.execute).toHaveBeenCalledTimes(1);
+    await expect(repository.getAll(identity)).resolves.toMatchObject({ candidates: [] });
+    expect(pool.execute).not.toHaveBeenCalled();
   });
 
   it('retains existing broader staff access for a user who also has Hiring Manager role', async () => {
     pool.execute.mockRejectedValueOnce(missingTable()).mockResolvedValueOnce([[{ id: 1 }]]);
     await expect(repository.getAll({ roles: [{ role_code: 'HIRING_MANAGER' }, { role_code: 'RECRUITER' }] }))
-      .resolves.toEqual([{ id: 1 }]);
+      .resolves.toMatchObject({ candidates: [{ id: 1 }] });
   });
 
   it('findById retries a parameterized candidates-only query', async () => {
@@ -203,11 +203,11 @@ describe('primary queries and database errors', () => {
 
   it('keeps successful primary list results without fallback', async () => {
     const rows = [{ id: 1, department_name: 'HR', position_name: 'Developer' }];
-    pool.execute.mockResolvedValueOnce([rows]);
-    await expect(repository.getAll(user('HIRING_MANAGER'))).resolves.toEqual(rows);
-    expect(pool.execute).toHaveBeenCalledTimes(1);
+    pool.execute.mockResolvedValueOnce([[{ total: rows.length }]]).mockResolvedValueOnce([rows]);
+    await expect(repository.getAll(user('HIRING_MANAGER'))).resolves.toMatchObject({ candidates: rows, pagination: { total: rows.length } });
+    expect(pool.execute).toHaveBeenCalledTimes(2);
     expect(pool.execute.mock.calls[0][0]).toContain('LEFT JOIN recruitment_requests');
-    expect(pool.execute.mock.calls[0][1]).toEqual([2]);
+    expect(pool.execute.mock.calls[0][1]).toEqual([2, 13]);
   });
 
   it('keeps successful primary findById results without fallback', async () => {

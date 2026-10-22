@@ -163,7 +163,19 @@ function validateSubmission(offer, { application, decision, catalog, duplicates 
   }
   assertPassedDecision(application, decision);
   assertCatalog(offer, application, catalog, { submit: true });
-  const content = Object.fromEntries(editableFields.filter(key => Object.hasOwn(offer, key)).map(key => [key, offer[key]]));
+  // Normalize MySQL DATE values when reading a stored Offer.
+  // HTTP input validation remains strict.
+  const content = Object.fromEntries(editableFields.filter(key => Object.hasOwn(offer, key)).map(key => {
+    const value = offer[key];
+    if ((key === 'expected_start_date' || key === 'response_deadline') && value instanceof Date) {
+      if (!Number.isFinite(value.getTime())) {
+        fail(400, 'INVALID_OFFER_INPUT', 'Invalid stored date');
+      }
+      const pad = n => String(n).padStart(2, '0');
+      return [key, `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`];
+    }
+    return [key, value];
+  }));
   const normalized = normalizeDraft(content);
   for (const field of ['job_title', 'position_id', 'basic_salary', 'currency', 'expected_start_date', 'response_deadline']) {
     if (normalized[field] == null) fail(422, 'OFFER_REQUIRED_FIELD', `Thiếu ${field} trước khi gửi duyệt.`);

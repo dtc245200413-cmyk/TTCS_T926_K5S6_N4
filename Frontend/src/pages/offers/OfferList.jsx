@@ -141,7 +141,7 @@ const OfferList = () => {
       });
       if (res.data?.success) {
         setMessage({
-          text: `Đã xử lý Offer thành công (${actionModal.type === 'APPROVED' ? 'Phê duyệt' : actionModal.type === 'REJECTED' ? 'Từ chối' : 'Yêu cầu sửa'})! Recruiter phụ trách đã nhận được thông báo.`,
+          text: `Đã xử lý Offer thành công (${actionModal.type === 'APPROVED' ? 'Phê duyệt' : actionModal.type === 'REJECTED' ? 'Từ chối' : 'Yêu cầu sửa'}).`,
           type: 'success'
         });
         setActionModal({ open: false, type: '', offerId: null });
