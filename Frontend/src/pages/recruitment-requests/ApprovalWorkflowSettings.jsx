@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiAlertCircle, FiArrowDown, FiArrowUp, FiCheck, FiGitBranch, FiPlus, FiRefreshCw, FiSave, FiTrash2 } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api';
+const API = `${API_BASE_URL}`;
 
 const ApprovalWorkflowSettings = () => {
   const [departments, setDepartments] = useState([]);

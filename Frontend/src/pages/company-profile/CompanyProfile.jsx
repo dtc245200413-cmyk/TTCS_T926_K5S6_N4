@@ -1,3 +1,4 @@
+import { API_BASE_URL, SERVER_BASE_URL } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaBuilding, FaGlobe, FaFileAlt, FaPalette, FaCheckCircle, FaImage, FaEye, FaEdit, FaHourglassHalf, FaSave } from 'react-icons/fa';
@@ -13,7 +14,7 @@ const CompanyProfile = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/company-profile', {
+        const res = await axios.get(`${API_BASE_URL}/company-profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {
@@ -39,7 +40,7 @@ const CompanyProfile = () => {
       if (logoFile) formData.append('logo', logoFile);
       if (bannerFile) formData.append('banner', bannerFile);
 
-      const res = await axios.put('http://localhost:5000/api/company-profile', formData, {
+      const res = await axios.put(`${API_BASE_URL}/company-profile`, formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -134,7 +135,7 @@ const CompanyProfile = () => {
               <div style={{ textAlign: 'center', zIndex: 1 }}>
                 {profile.logo_url ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <img src={`http://localhost:5000${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                    <img src={`${SERVER_BASE_URL}${profile.logo_url}`} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Logo hiện tại · Nhấp để đổi</span>
                   </div>
                 ) : (
@@ -173,7 +174,7 @@ const CompanyProfile = () => {
               <div style={{ textAlign: 'center', width: '100%', zIndex: 1 }}>
                 {profile.banner_url ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
-                    <img src={`http://localhost:5000${profile.banner_url}`} alt="Banner" style={{ width: '100%', maxHeight: '90px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                    <img src={`${SERVER_BASE_URL}${profile.banner_url}`} alt="Banner" style={{ width: '100%', maxHeight: '90px', objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Ảnh bìa hiện tại · Nhấp để đổi</span>
                   </div>
                 ) : (
@@ -195,8 +196,8 @@ const CompanyProfile = () => {
   );
 
   const renderPreviewMode = () => {
-    const previewBannerUrl = bannerFile ? URL.createObjectURL(bannerFile) : (profile.banner_url ? `http://localhost:5000${profile.banner_url}` : null);
-    const previewLogoUrl = logoFile ? URL.createObjectURL(logoFile) : (profile.logo_url ? `http://localhost:5000${profile.logo_url}` : null);
+    const previewBannerUrl = bannerFile ? URL.createObjectURL(bannerFile) : (profile.banner_url ? `${SERVER_BASE_URL}${profile.banner_url}` : null);
+    const previewLogoUrl = logoFile ? URL.createObjectURL(logoFile) : (profile.logo_url ? `${SERVER_BASE_URL}${profile.logo_url}` : null);
 
     return (
       <div style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', background: 'white', position: 'relative' }}>

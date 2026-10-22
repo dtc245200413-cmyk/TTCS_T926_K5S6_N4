@@ -1,0 +1,368 @@
+[
+  {
+    "path": "/login",
+    "index": false,
+    "parent": "",
+    "element": "Login"
+  },
+  {
+    "path": "/forgot-password",
+    "index": false,
+    "parent": "",
+    "element": "ForgotPassword"
+  },
+  {
+    "path": "/reset-password",
+    "index": false,
+    "parent": "",
+    "element": "ResetPassword"
+  },
+  {
+    "path": "/jobs",
+    "index": false,
+    "parent": "",
+    "element": "PublicJobs"
+  },
+  {
+    "path": "/jobs/track",
+    "index": false,
+    "parent": "",
+    "element": "TrackApplication"
+  },
+  {
+    "path": "/tra-cuu",
+    "index": false,
+    "parent": "",
+    "element": "TrackApplication"
+  },
+  {
+    "path": "/jobs/:id",
+    "index": false,
+    "parent": "",
+    "element": "PublicJobDetail"
+  },
+  {
+    "path": null,
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": "/",
+    "index": false,
+    "parent": "",
+    "element": "Home"
+  },
+  {
+    "path": "/admin-dashboard",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": "/positions",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/positions",
+    "element": "PositionManagement"
+  },
+  {
+    "path": "/reports",
+    "index": false,
+    "parent": "",
+    "element": "Reports"
+  },
+  {
+    "path": "/questions",
+    "index": false,
+    "parent": "",
+    "element": "QuestionBank"
+  },
+  {
+    "path": "/change-password",
+    "index": false,
+    "parent": "",
+    "element": "ChangePassword"
+  },
+  {
+    "path": "/notifications",
+    "index": false,
+    "parent": "",
+    "element": "Notifications"
+  },
+  {
+    "path": "/interview-schedules",
+    "index": false,
+    "parent": "",
+    "element": "InterviewScheduleList"
+  },
+  {
+    "path": "/offers",
+    "index": false,
+    "parent": "",
+    "element": "OfferList"
+  },
+  {
+    "path": "/offers/:id",
+    "index": false,
+    "parent": "",
+    "element": "OfferList"
+  },
+  {
+    "path": "/offers/approval",
+    "index": false,
+    "parent": "",
+    "element": "OfferList"
+  },
+  {
+    "path": "/competency-frameworks",
+    "index": false,
+    "parent": "",
+    "element": "CompetencyFrameworkList"
+  },
+  {
+    "path": "/competency-frameworks/create",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": "/competency-frameworks/:id/edit",
+    "index": false,
+    "parent": "",
+    "element": "CompetencyFrameworkForm"
+  },
+  {
+    "path": "/users",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/users",
+    "element": "UserList"
+  },
+  {
+    "path": "import",
+    "index": false,
+    "parent": "/users",
+    "element": "UserImport"
+  },
+  {
+    "path": ":id",
+    "index": false,
+    "parent": "/users",
+    "element": "UserDetail"
+  },
+  {
+    "path": "/accounts",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/accounts",
+    "element": "AccountList"
+  },
+  {
+    "path": "/users/create",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/users/create",
+    "element": "UserCreate"
+  },
+  {
+    "path": "/users/:id/edit",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/users/:id/edit",
+    "element": "UserEdit"
+  },
+  {
+    "path": "/profile/edit",
+    "index": false,
+    "parent": "",
+    "element": "UserEdit"
+  },
+  {
+    "path": "/roles",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/roles",
+    "element": "RoleList"
+  },
+  {
+    "path": "/audit-logs",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/audit-logs",
+    "element": "AuditLogList"
+  },
+  {
+    "path": "/departments",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/departments",
+    "element": "DepartmentList"
+  },
+  {
+    "path": "/approval-workflows",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": "/job-postings",
+    "index": false,
+    "parent": "",
+    "element": "Outlet"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/job-postings",
+    "element": "JobPostingList"
+  },
+  {
+    "path": "create",
+    "index": false,
+    "parent": "/job-postings",
+    "element": "JobPostingDraft"
+  },
+  {
+    "path": ":id/edit",
+    "index": false,
+    "parent": "/job-postings",
+    "element": "JobPostingDraft"
+  },
+  {
+    "path": ":id/preview",
+    "index": false,
+    "parent": "/job-postings",
+    "element": "JobPostingPreview"
+  },
+  {
+    "path": ":id",
+    "index": false,
+    "parent": "/job-postings",
+    "element": "JobPostingDetail"
+  },
+  {
+    "path": "/company-profile",
+    "index": false,
+    "parent": "",
+    "element": "CompanyProfile"
+  },
+  {
+    "path": "/master-data",
+    "index": false,
+    "parent": "",
+    "element": "MasterData"
+  },
+  {
+    "path": "/recruitment-requests",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/recruitment-requests",
+    "element": "RecruitmentRequestList"
+  },
+  {
+    "path": "approvals",
+    "index": false,
+    "parent": "/recruitment-requests",
+    "element": "RecruitmentRequestApprovalList"
+  },
+  {
+    "path": "create",
+    "index": false,
+    "parent": "/recruitment-requests",
+    "element": "RecruitmentRequestCreate"
+  },
+  {
+    "path": ":id",
+    "index": false,
+    "parent": "/recruitment-requests",
+    "element": "RecruitmentRequestDetail"
+  },
+  {
+    "path": ":id/edit",
+    "index": false,
+    "parent": "/recruitment-requests",
+    "element": "RecruitmentRequestCreate"
+  },
+  {
+    "path": "/candidates",
+    "index": false,
+    "parent": "",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": ":id",
+    "index": false,
+    "parent": "/candidates",
+    "element": "CandidateUnifiedProfile"
+  },
+  {
+    "path": null,
+    "index": true,
+    "parent": "/candidates",
+    "element": "CandidateList"
+  },
+  {
+    "path": "create",
+    "index": false,
+    "parent": "/candidates",
+    "element": "ProtectedRoute"
+  },
+  {
+    "path": "/unauthorized",
+    "index": false,
+    "parent": "",
+    "element": "Unauthorized"
+  },
+  {
+    "path": "*",
+    "index": false,
+    "parent": "",
+    "element": "NotFound"
+  }
+]

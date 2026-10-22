@@ -1,3 +1,4 @@
+import { SERVER_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -257,7 +258,7 @@ const CandidateUnifiedProfile = () => {
   };
 
   const cvUrl = candidate.cv_file_path 
-    ? (candidate.cv_file_path.startsWith('http') ? candidate.cv_file_path : `http://localhost:5000${candidate.cv_file_path}`)
+    ? (candidate.cv_file_path.startsWith('http') ? candidate.cv_file_path : `${SERVER_BASE_URL}${candidate.cv_file_path}`)
     : null;
 
   return (

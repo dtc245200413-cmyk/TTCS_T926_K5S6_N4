@@ -2,17 +2,17 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import offerApi from '../../api/offerApi';
-import { 
-  FiCheckCircle, 
-  FiXCircle, 
-  FiEdit3, 
-  FiSend, 
-  FiEye, 
-  FiClock, 
-  FiUser, 
-  FiX, 
-  FiInfo, 
-  FiFilter, 
+import {
+  FiCheckCircle,
+  FiXCircle,
+  FiEdit3,
+  FiSend,
+  FiEye,
+  FiClock,
+  FiUser,
+  FiX,
+  FiInfo,
+  FiFilter,
   FiSearch,
   FiFileText,
   FiAward
@@ -76,11 +76,14 @@ const OfferApprovalList = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await offerApi.getOffers({
-        status: currentTab,
-        search: searchTerm
-      });
-      setOffers(response.data.data || []);
+      const response = isApproverUser && currentTab === 'PENDING_APPROVAL'
+        ? await offerApi.getApprovalInbox()
+        : await offerApi.getOffers({ status: currentTab, search: searchTerm });
+      const rows = response.data.data || [];
+      setOffers(Array.isArray(rows) && searchTerm.trim() && isApproverUser && currentTab === 'PENDING_APPROVAL'
+        ? rows.filter(o => [o.offer_code, o.candidate_name, o.job_title].some(x =>
+          String(x || '').toLowerCase().includes(searchTerm.trim().toLowerCase())))
+        : rows);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải danh sách Thư mời nhận việc.');
     } finally {
@@ -90,7 +93,7 @@ const OfferApprovalList = () => {
 
   useEffect(() => {
     fetchOffers();
-  }, [currentTab]);
+  }, [currentTab, isApproverUser]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -140,7 +143,9 @@ const OfferApprovalList = () => {
 
   const handleOpenDetail = async (offer) => {
     try {
-      const res = await offerApi.getOfferById(offer.id);
+      const res = isApproverUser && offer.status === 'PENDING_APPROVAL'
+        ? await offerApi.getApprovalDetail(offer.id)
+        : await offerApi.getOfferById(offer.id);
       setSelectedOffer(res.data.data);
       setShowDetailModal(true);
     } catch (e) {
@@ -165,16 +170,16 @@ const OfferApprovalList = () => {
     setSubmitting(true);
     try {
       if (actionType === 'APPROVE') {
-        await offerApi.approveOffer(selectedOffer.id, { note: reasonInput.trim() });
+        await offerApi.decideAtomic(selectedOffer.id, 'APPROVED', reasonInput.trim(), selectedOffer.row_version);
         setSuccessMessage(`Đã phê duyệt Thư mời nhận việc ${selectedOffer.offer_code} thành công.`);
       } else if (actionType === 'REJECT') {
-        await offerApi.rejectOffer(selectedOffer.id, { reason: reasonInput.trim() });
+        await offerApi.decideAtomic(selectedOffer.id, 'REJECTED', reasonInput.trim(), selectedOffer.row_version);
         setSuccessMessage(`Đã từ chối Thư mời nhận việc ${selectedOffer.offer_code}.`);
       } else if (actionType === 'REQUEST_CHANGE') {
-        await offerApi.requestChangeOffer(selectedOffer.id, { reason: reasonInput.trim() });
+        await offerApi.decideAtomic(selectedOffer.id, 'REQUEST_CHANGE', reasonInput.trim(), selectedOffer.row_version);
         setSuccessMessage(`Đã gửi yêu cầu chỉnh sửa Thư mời nhận việc ${selectedOffer.offer_code}.`);
       } else if (actionType === 'PUBLISH') {
-        await offerApi.publishOffer(selectedOffer.id);
+        await offerApi.publishOffer(selectedOffer.id, selectedOffer.row_version);
         setSuccessMessage(`Đã phát hành Thư mời nhận việc ${selectedOffer.offer_code} tới ứng viên thành công.`);
       }
 
@@ -201,7 +206,7 @@ const OfferApprovalList = () => {
   return (
     <div style={{ padding: '24px', backgroundColor: '#f0f4f8', minHeight: 'calc(100vh - 80px)' }}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        
+
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -290,7 +295,7 @@ const OfferApprovalList = () => {
 
         {/* Table Container */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          
+
           {/* Tabs Filter */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
             {tabs.map(t => (
@@ -369,7 +374,7 @@ const OfferApprovalList = () => {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          
+
                           {/* Nút Xem chi tiết */}
                           <button
                             type="button"
@@ -381,7 +386,7 @@ const OfferApprovalList = () => {
                           </button>
 
                           {/* BỘ NÚT HÀNH ĐỘNG CỦA NGƯỜI DUYỆT (Khi status = PENDING_APPROVAL) */}
-                          {(offer.can_approve || (isApproverUser && offer.status === 'PENDING_APPROVAL')) && (
+                          {offer.can_approve === true && offer.status === 'PENDING_APPROVAL' && (
                             <>
                               {/* Nút DUYỆT (Màu xanh lá) */}
                               <button
@@ -452,7 +457,7 @@ const OfferApprovalList = () => {
                           )}
 
                           {/* TIÊU CHÍ 3: Nút PHÁT HÀNH TỚI ỨNG VIÊN (Chỉ khi status = APPROVED) */}
-                          {(offer.can_publish || (isRecruiterUser && offer.status === 'APPROVED')) && (
+                          {offer.can_publish === true && offer.status === 'APPROVED' && (
                             <button
                               type="button"
                               onClick={() => handleOpenActionModal(offer, 'PUBLISH')}
@@ -537,7 +542,7 @@ const OfferApprovalList = () => {
 
             {/* Modal Body */}
             <form onSubmit={handleActionSubmit} style={{ padding: '24px' }}>
-              
+
               {/* Info banner */}
               <div style={{
                 display: 'flex',
@@ -713,7 +718,7 @@ const OfferApprovalList = () => {
 
             {/* Scrollable Content */}
             <div style={{ padding: '24px 32px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
+
               {/* Thông tin ứng viên */}
               <div style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 }}>

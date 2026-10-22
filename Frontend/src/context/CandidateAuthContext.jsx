@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../config/api';
 import React, { createContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
 export const CandidateAuthContext = createContext(null);
-const API = 'http://localhost:5000/api/candidate-portal';
+const API = `${API_BASE_URL}/candidate-portal`;
 
 export const CandidateAuthProvider = ({ children }) => {
   const [candidate, setCandidate] = useState(null);

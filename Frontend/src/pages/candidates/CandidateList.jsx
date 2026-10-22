@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -58,7 +59,7 @@ const CandidateList = () => {
   const fetchCandidates = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/candidates', {
+      const response = await axios.get(`${API_BASE_URL}/candidates`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const raw = response.data?.data;
@@ -74,7 +75,7 @@ const CandidateList = () => {
   const fetchRejectionReasons = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/master-data', {
+      const response = await axios.get(`${API_BASE_URL}/master-data`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const md = response.data.data;
@@ -88,7 +89,7 @@ const CandidateList = () => {
   const fetchActiveMerges = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/candidates/merges', {
+      const response = await axios.get(`${API_BASE_URL}/candidates/merges`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveMerges(response.data.data || []);
@@ -161,7 +162,7 @@ const CandidateList = () => {
     setMergeError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/candidates/merges/${merge.id}/undo`, {}, {
+      await axios.post(`${API_BASE_URL}/candidates/merges/${merge.id}/undo`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
@@ -178,7 +179,7 @@ const CandidateList = () => {
   const downloadResume = async (candidate) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/candidates/${candidate.id}/resume`, {
+      const response = await axios.get(`${API_BASE_URL}/candidates/${candidate.id}/resume`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -240,7 +241,7 @@ const CandidateList = () => {
   const handleUpdateCandidateStatus = async (candidateId, newStatus, rejectionReasonCode = null, rejectionNoteParam = null) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/candidates/${candidateId}/status`, {
+      await axios.put(`${API_BASE_URL}/candidates/${candidateId}/status`, {
         status: newStatus,
         rejection_reason_code: rejectionReasonCode,
         rejection_note: rejectionNoteParam
@@ -260,7 +261,7 @@ const CandidateList = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/candidates/${selectedCandidate.id}/status`, {
+      await axios.put(`${API_BASE_URL}/candidates/${selectedCandidate.id}/status`, {
         status: 'REJECTED',
         rejection_reason_code: rejectReason,
         rejection_note: rejectNote
@@ -278,7 +279,7 @@ const CandidateList = () => {
     if (window.confirm(`Bạn có chắc chắn muốn tuyển dụng ứng viên ${candidate.full_name}?`)) {
       try {
         const token = localStorage.getItem('token');
-        await axios.put(`http://localhost:5000/api/candidates/${candidate.id}/status`, {
+        await axios.put(`${API_BASE_URL}/candidates/${candidate.id}/status`, {
           status: 'HIRED'
         }, {
           headers: { Authorization: `Bearer ${token}` }

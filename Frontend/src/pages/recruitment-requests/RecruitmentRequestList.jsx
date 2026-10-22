@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -24,7 +25,7 @@ import {
   AvatarBadge
 } from './RecruitmentRequestModals';
 
-const API_BASE = 'http://localhost:5000/api/recruitment-requests';
+const API_BASE = `${API_BASE_URL}/recruitment-requests`;
 
 const RecruitmentRequestList = () => {
   const { user } = useContext(AuthContext);
@@ -60,7 +61,7 @@ const RecruitmentRequestList = () => {
 
       const [reqsRes, deptsRes, recsRes] = await Promise.all([
         axios.get(`${API_BASE}/my`, { headers }),
-        axios.get('http://localhost:5000/api/departments', { headers }).catch(() => ({ data: { data: [] } })),
+        axios.get(`${API_BASE_URL}/departments`, { headers }).catch(() => ({ data: { data: [] } })),
         axios.get(`${API_BASE}/recruiters-workload`, { headers }).catch(() => ({ data: { data: [] } }))
       ]);
 

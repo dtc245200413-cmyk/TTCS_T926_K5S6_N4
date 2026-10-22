@@ -359,89 +359,17 @@ async function runSchemaMigrations() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS candidate_offers (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      offer_code VARCHAR(50) NOT NULL UNIQUE,
-      candidate_id INT NOT NULL,
-      application_id INT NULL,
-      recruitment_request_id INT NULL,
-      hiring_decision_id INT NULL,
-      department_id INT NOT NULL,
-      position_id INT NOT NULL,
-      job_title VARCHAR(150) NOT NULL,
-      basic_salary DECIMAL(15,2) NOT NULL DEFAULT 0,
+      application_id INT NOT NULL UNIQUE,
       salary_amount DECIMAL(15,2) NULL,
-      probation_salary DECIMAL(15,2) NULL,
-      probation_period_months INT NOT NULL DEFAULT 2,
       currency VARCHAR(10) NOT NULL DEFAULT 'VND',
-      expected_start_date DATE NOT NULL,
       start_date DATE NULL,
-      response_deadline DATE NOT NULL,
-      work_location VARCHAR(255) NULL,
-      benefits TEXT NULL,
+      response_deadline DATE NULL,
       message TEXT NULL,
-      special_terms TEXT NULL,
-      status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
-      created_by INT NOT NULL,
-      submitted_at DATETIME NULL,
-      approved_at DATETIME NULL,
-      sent_to_candidate_at DATETIME NULL,
-      responded_at DATETIME NULL,
+      status VARCHAR(30) NOT NULL DEFAULT 'PENDING_RESPONSE',
       candidate_response TEXT NULL,
+      responded_at DATETIME NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_co_candidate (candidate_id),
-      INDEX idx_co_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  `);
-  await ensureColumn('candidate_offers', 'offer_code', 'VARCHAR(50) NULL');
-  await ensureColumn('candidate_offers', 'candidate_id', 'INT NULL');
-  await ensureColumn('candidate_offers', 'recruitment_request_id', 'INT NULL');
-  await ensureColumn('candidate_offers', 'hiring_decision_id', 'INT NULL');
-  await ensureColumn('candidate_offers', 'department_id', 'INT NULL');
-  await ensureColumn('candidate_offers', 'position_id', 'INT NULL');
-  await ensureColumn('candidate_offers', 'job_title', 'VARCHAR(150) NULL');
-  await ensureColumn('candidate_offers', 'basic_salary', 'DECIMAL(15,2) NOT NULL DEFAULT 0');
-  await ensureColumn('candidate_offers', 'salary_amount', 'DECIMAL(15,2) NULL');
-  await ensureColumn('candidate_offers', 'probation_salary', 'DECIMAL(15,2) NULL');
-  await ensureColumn('candidate_offers', 'probation_period_months', 'INT NOT NULL DEFAULT 2');
-  await ensureColumn('candidate_offers', 'expected_start_date', 'DATE NULL');
-  await ensureColumn('candidate_offers', 'start_date', 'DATE NULL');
-  await ensureColumn('candidate_offers', 'response_deadline', 'DATE NULL');
-  await ensureColumn('candidate_offers', 'work_location', 'VARCHAR(255) NULL');
-  await ensureColumn('candidate_offers', 'benefits', 'TEXT NULL');
-  await ensureColumn('candidate_offers', 'special_terms', 'TEXT NULL');
-  await ensureColumn('candidate_offers', 'created_by', 'INT NULL');
-  await ensureColumn('candidate_offers', 'submitted_at', 'DATETIME NULL');
-  await ensureColumn('candidate_offers', 'approved_at', 'DATETIME NULL');
-  await ensureColumn('candidate_offers', 'sent_to_candidate_at', 'DATETIME NULL');
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS offer_approvals (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      offer_id INT NOT NULL,
-      approver_id INT NOT NULL,
-      action VARCHAR(50) NOT NULL,
-      reason TEXT NULL,
-      action_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_oa_offer (offer_id, action_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS candidate_onboardings (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      offer_id INT NOT NULL UNIQUE,
-      candidate_id INT NOT NULL,
-      hr_in_charge_id INT NOT NULL,
-      official_start_date DATE NOT NULL,
-      status VARCHAR(30) NOT NULL DEFAULT 'PREPARING',
-      equipment_ready TINYINT(1) NOT NULL DEFAULT 0,
-      account_created TINYINT(1) NOT NULL DEFAULT 0,
-      contract_signed TINYINT(1) NOT NULL DEFAULT 0,
-      orientation_done TINYINT(1) NOT NULL DEFAULT 0,
-      checklist_notes TEXT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_onb_candidate (candidate_id)
+      INDEX idx_candidate_offer_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -657,166 +585,11 @@ async function runSchemaMigrations() {
   if (jpPerm.length > 0) {
     await pool.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (1, ?), (3, ?)', [jpPerm[0].permission_id, jpPerm[0].permission_id]);
   }
+}
 
-  // ── Offer & Onboarding Permissions ──
-  await pool.query(`
-    INSERT IGNORE INTO permissions (permission_code, permission_name, description) VALUES
-    ('OFFER_CREATE', 'Soạn thảo Offer', 'Tạo nháp, chỉnh sửa và gửi duyệt Thư mời nhận việc'),
-    ('OFFER_APPROVE', 'Phê duyệt Offer', 'Duyệt, từ chối hoặc yêu cầu chỉnh sửa Offer'),
-    ('ONBOARDING_MANAGE', 'Quản lý Onboarding', 'Theo dõi checklist nhận việc của nhân viên mới')
-  `);
-  const [offerPerms] = await pool.query(
-    "SELECT permission_id, permission_code FROM permissions WHERE permission_code IN ('OFFER_CREATE', 'OFFER_APPROVE', 'ONBOARDING_MANAGE')"
-  );
-  for (const p of offerPerms) {
-    // Admin (role_id 1) gets all
-    await pool.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (1, ?)', [p.permission_id]);
-    // HR Manager (role_id 2) gets all
-    await pool.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (2, ?)', [p.permission_id]);
-    // Approver (role_id 6) gets OFFER_APPROVE
-    if (p.permission_code === 'OFFER_APPROVE') {
-      await pool.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (6, ?)', [p.permission_id]);
-    }
-    // Recruiter (role_id 3) gets OFFER_CREATE and ONBOARDING_MANAGE
-    if (['OFFER_CREATE', 'ONBOARDING_MANAGE'].includes(p.permission_code)) {
-      await pool.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (3, ?)', [p.permission_id]);
-    }
-  }
-
-  // ── Seed Sample Offers if empty ──
-  const [offersCount] = await pool.query('SELECT COUNT(*) as cnt FROM candidate_offers');
-  if (Number(offersCount[0]?.cnt || 0) === 0) {
-    // Offer 1: SENT (Quỳnh Anh - candidate_id 2)
-    await pool.query(`
-      INSERT INTO candidate_offers (
-        id, offer_code, candidate_id, application_id, recruitment_request_id,
-        department_id, position_id, job_title, basic_salary, salary_amount, probation_salary, probation_period_months,
-        currency, expected_start_date, start_date, response_deadline, work_location, benefits, message, status,
-        created_by, submitted_at, approved_at, sent_to_candidate_at
-      ) VALUES (
-        1, 'OFF-202610-0001', 2, 2, 1,
-        1, 1, 'Senior Backend Developer', 28000000, 28000000, 23800000, 2,
-        'VND', '2026-11-01', '2026-11-01', '2026-10-30', 'Số 1 Duy Tân, Cầu Giấy, Hà Nội',
-        'Thưởng tháng lương 13, Bảo hiểm PTI cao cấp, Phụ cấp ăn trưa 1.000.000 VND/tháng',
-        'Chúc mừng bạn Nguyễn Quỳnh Anh đã xuất sắc vượt qua các vòng phỏng vấn của TechCorp. Ban Giám Đốc trân trọng gửi đến bạn thư mời gia nhập công ty.',
-        'SENT', 3, '2026-10-18 17:30:00', '2026-10-19 09:00:00', '2026-10-19 09:30:00'
-      )
-    `);
-    await pool.query(`
-      INSERT INTO offer_approvals (offer_id, approver_id, action, reason, action_at)
-      VALUES (1, 6, 'APPROVED', 'Mức lương 28 triệu phù hợp với dải lương quy định và năng lực ứng viên xuất sắc.', '2026-10-19 09:00:00')
-    `);
-
-    // Offer 2: ACCEPTED & Onboarding (Tuấn Kiệt - candidate_id 3)
-    await pool.query(`
-      INSERT INTO candidate_offers (
-        id, offer_code, candidate_id, application_id, recruitment_request_id,
-        department_id, position_id, job_title, basic_salary, salary_amount, probation_salary, probation_period_months,
-        currency, expected_start_date, start_date, response_deadline, work_location, benefits, message, status,
-        created_by, submitted_at, approved_at, sent_to_candidate_at, responded_at, candidate_response
-      ) VALUES (
-        2, 'OFF-202610-0002', 3, 3, 1,
-        1, 1, 'Senior Backend Developer (Team Lead)', 32000000, 32000000, 27200000, 2,
-        'VND', '2026-10-25', '2026-10-25', '2026-10-20', 'Số 1 Duy Tân, Cầu Giấy, Hà Nội',
-        'Thưởng dự án, Cổ phiếu ESOP, Gói khám sức khỏe gia đình, Du lịch hàng năm',
-        'Chào mừng anh Đặng Tuấn Kiệt đến với TechCorp. Chúng tôi rất tin tưởng vào sự đóng góp của anh.',
-        'ACCEPTED', 3, '2026-10-15 15:00:00', '2026-10-15 16:30:00', '2026-10-15 17:00:00', '2026-10-16 08:30:00',
-        'Tôi rất vinh dự và đồng ý nhận việc theo đúng các điều khoản trong Offer.'
-      )
-    `);
-    await pool.query(`
-      INSERT INTO offer_approvals (offer_id, approver_id, action, reason, action_at)
-      VALUES (2, 6, 'APPROVED', 'Đồng ý mức đãi ngộ 32 triệu để thu hút ứng viên xuất sắc đảm nhiệm vai trò dẫn dắt kỹ thuật.', '2026-10-15 16:30:00')
-    `);
-    await pool.query(`
-      INSERT IGNORE INTO candidate_onboardings (
-        offer_id, candidate_id, hr_in_charge_id, official_start_date, status,
-        equipment_ready, account_created, contract_signed, orientation_done, checklist_notes
-      ) VALUES (
-        2, 3, 3, '2026-10-25', 'IN_PROGRESS',
-        1, 1, 1, 0, 'Đã cấp phát Macbook Pro M3 và thẻ nhân viên. Đang xếp lịch đào tạo hội nhập ngày đầu tiên.'
-      )
-    `);
-
-    // Offer 3: PENDING_APPROVAL (Trần Văn Mạnh - candidate_id 1) -> Dành cho Người duyệt kiểm tra duyệt/từ chối/yêu cầu sửa
-    await pool.query(`
-      INSERT INTO candidate_offers (
-        id, offer_code, candidate_id, application_id, recruitment_request_id,
-        department_id, position_id, job_title, basic_salary, salary_amount, probation_salary, probation_period_months,
-        currency, expected_start_date, start_date, response_deadline, work_location, benefits, message, status,
-        created_by, submitted_at
-      ) VALUES (
-        3, 'OFF-202610-0003', 1, 1, 1,
-        1, 1, 'Senior Backend Developer (Node.js)', 26000000, 26000000, 22100000, 2,
-        'VND', '2026-11-15', '2026-11-15', '2026-11-05', 'Số 1 Duy Tân, Cầu Giấy, Hà Nội',
-        'Thưởng tháng 13, Bảo hiểm sức khỏe VIP, Hỗ trợ gửi xe, Máy tính xách tay cấu hình cao',
-        'Thân gửi anh Trần Văn Mạnh, TechCorp trân trọng gửi thư mời hợp tác cùng anh phát triển nền tảng kỹ thuật.',
-        'PENDING_APPROVAL', 3, NOW()
-      )
-    `);
-
-    // Offer 4: CHANGE_REQUESTED (Yêu cầu chỉnh sửa có lý do)
-    await pool.query(`
-      INSERT INTO candidate_offers (
-        id, offer_code, candidate_id, application_id, recruitment_request_id,
-        department_id, position_id, job_title, basic_salary, salary_amount, probation_salary, probation_period_months,
-        currency, expected_start_date, start_date, response_deadline, work_location, benefits, message, status,
-        created_by, submitted_at
-      ) VALUES (
-        4, 'OFF-202610-0004', 4, 4, 1,
-        1, 2, 'Middle Frontend Developer', 20000000, 20000000, 17000000, 2,
-        'VND', '2026-11-10', '2026-11-10', '2026-11-01', 'Số 1 Duy Tân, Cầu Giấy, Hà Nội',
-        'Phụ cấp ăn trưa, Thưởng hiệu quả công việc',
-        'Thư mời nhận việc vị trí Middle Frontend Developer.',
-        'CHANGE_REQUESTED', 3, DATE_SUB(NOW(), INTERVAL 2 DAY)
-      )
-    `);
-    await pool.query(`
-      INSERT INTO offer_approvals (offer_id, approver_id, action, reason, action_at)
-      VALUES (4, 6, 'REQUEST_CHANGE', 'Vui lòng bổ sung thêm điều khoản bảo mật thông tin NDA và điều chỉnh lại ngày dự kiến bắt đầu làm việc sang giữa tháng 11.', DATE_SUB(NOW(), INTERVAL 1 DAY))
-    `);
-
-    // Offer 5: REJECTED (Bị từ chối có lý do)
-    await pool.query(`
-      INSERT INTO candidate_offers (
-        id, offer_code, candidate_id, application_id, recruitment_request_id,
-        department_id, position_id, job_title, basic_salary, salary_amount, probation_salary, probation_period_months,
-        currency, expected_start_date, start_date, response_deadline, work_location, status,
-        created_by, submitted_at
-      ) VALUES (
-        5, 'OFF-202610-0005', 1, 1, 1,
-        1, 1, 'Senior Backend Developer (Vượt trần)', 42000000, 42000000, 35700000, 2,
-        'VND', '2026-11-01', '2026-11-01', '2026-10-25', 'Số 1 Duy Tân, Cầu Giấy, Hà Nội', 'REJECTED',
-        3, DATE_SUB(NOW(), INTERVAL 3 DAY)
-      )
-    `);
-    await pool.query(`
-      INSERT INTO offer_approvals (offer_id, approver_id, action, reason, action_at)
-      VALUES (5, 6, 'REJECTED', 'Mức lương 42.000.000 VND vượt khung ngân sách tối đa được duyệt (35.000.000 VND) của yêu cầu tuyển dụng này.', DATE_SUB(NOW(), INTERVAL 2 DAY))
-    `);
-
-    // Offer 6: APPROVED (Đã duyệt - chờ Recruiter bấm nút Phát hành tới ứng viên)
-    await pool.query(`
-      INSERT INTO candidate_offers (
-        id, offer_code, candidate_id, application_id, recruitment_request_id,
-        department_id, position_id, job_title, basic_salary, salary_amount, probation_salary, probation_period_months,
-        currency, expected_start_date, start_date, response_deadline, work_location, benefits, message, status,
-        created_by, submitted_at, approved_at
-      ) VALUES (
-        6, 'OFF-202610-0006', 2, 2, 1,
-        1, 2, 'Middle React Developer', 18000000, 18000000, 15300000, 2,
-        'VND', '2026-11-20', '2026-11-20', '2026-11-10', 'Số 1 Duy Tân, Cầu Giấy, Hà Nội',
-        'Bảo hiểm PTI, Thưởng dự án',
-        'Thư mời nhận việc Middle React Developer đã được phê duyệt.',
-        'APPROVED', 3, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW()
-      )
-    `);
-    await pool.query(`
-      INSERT INTO offer_approvals (offer_id, approver_id, action, reason, action_at)
-      VALUES (6, 6, 'APPROVED', 'Đồng ý phê duyệt mức lương 18 triệu trong dải lương vị trí.', NOW())
-    `);
-  }
-
+// Pending team review: preserve the incoming migration without registering or
+// executing it. Its interview_evaluations schema conflicts with the existing one.
+async function pendingCandidateEvaluationMigrations() {
   // ── SPRINT: ĐÁNH GIÁ PHỎNG VẤN VÀ QUYẾT ĐỊNH CỦA TRƯỞNG BỘ PHẬN ──
   await ensureColumn('candidates', 'interview_decision', 'VARCHAR(30) NULL');
   await ensureColumn('candidates', 'interview_decision_by', 'INT NULL');
@@ -887,6 +660,6 @@ async function runSchemaMigrations() {
   await ensureColumn('candidate_offers', 'created_by', 'INT NULL');
   await ensureColumn('candidate_offers', 'note', 'TEXT NULL');
   await ensureIndex('candidate_offers', 'idx_cand_offer_cand_id', 'CREATE INDEX idx_cand_offer_cand_id ON candidate_offers (candidate_id)');
-}
 
+}
 module.exports = { runSchemaMigrations };

@@ -1,3 +1,4 @@
+import { SERVER_BASE_URL } from '../config/api';
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -77,7 +78,7 @@ const Home = () => {
           }}>
             {user?.avatar_url ? (
               <img 
-                src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:5000${user.avatar_url}`} 
+                src={user.avatar_url.startsWith('http') ? user.avatar_url : `${SERVER_BASE_URL}${user.avatar_url}`}
                 alt="Avatar" 
                 style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
               />
