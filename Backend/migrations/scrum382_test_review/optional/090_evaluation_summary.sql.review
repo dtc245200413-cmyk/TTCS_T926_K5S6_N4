@@ -1,0 +1,21 @@
+-- REVIEW ONLY (5.2C). Not executed, not registered with Backend startup.
+-- Apply only after explicit approval, verified TEST backup/restore and preflight.
+-- All SQL objects are qualified to internal_recruitment_test; never use --force.
+-- A failed/partial step requires inventory and review, NOT a blind rerun.
+SELECT DATABASE() AS selected_database, CURRENT_USER() AS account,
+       VERSION() AS mysql_version;
+-- Operator STOP unless database is exactly internal_recruitment_test and the
+-- approved dedicated migration account is in use (never root/scrum103_reader).
+
+-- OPTIONAL, NOT in the Offer deployment sequence.
+-- Owner: candidateEvaluation. All four columns must be absent or this needs review.
+-- Only for the existing Evaluation display/recordDecision contract.
+-- NOT a decision source for eligibility; NOT sufficient to enable Evaluation.
+-- Missing interview tables, status ENUM and application-bound writer remain
+-- separate owner dependencies. Do not execute pendingCandidateEvaluationMigrations.
+ALTER TABLE internal_recruitment_test.candidates
+  ADD COLUMN interview_decision VARCHAR(30) NULL,
+  ADD COLUMN interview_decision_by INT NULL,
+  ADD COLUMN interview_decision_at DATETIME NULL,
+  ADD COLUMN interview_decision_comment TEXT NULL;
+SHOW CREATE TABLE internal_recruitment_test.candidates;

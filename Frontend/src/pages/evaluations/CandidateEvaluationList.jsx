@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  FiUsers, FiCheckCircle, FiXCircle, FiClock, 
+import {
+  FiUsers, FiCheckCircle, FiXCircle, FiClock,
   FiAlertTriangle, FiSearch, FiChevronRight, FiFilter,
   FiAward, FiShield, FiFileText, FiRefreshCw
 } from 'react-icons/fi';
@@ -38,7 +38,7 @@ const CandidateEvaluationList = () => {
 
   // Bộ lọc danh sách
   const filteredCandidates = candidates.filter(c => {
-    const matchesSearch = 
+    const matchesSearch =
       (c.full_name && c.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (c.position_name && c.position_name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -325,7 +325,7 @@ const CandidateEvaluationList = () => {
             <FiUsers size={48} style={{ opacity: 0.3, marginBottom: '12px' }} />
             <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#334155' }}>Không có ứng viên nào phù hợp</div>
             <p style={{ margin: '6px 0 0', fontSize: '0.88rem' }}>
-              {isHiringManager 
+              {isHiringManager
                 ? 'Không tìm thấy ứng viên trong bộ phận bạn quản lý phù hợp với điều kiện lọc.'
                 : 'Thử thay đổi từ khóa tìm kiếm hoặc chọn tab bộ lọc khác.'}
             </p>
@@ -554,8 +554,8 @@ const CandidateEvaluationList = () => {
                           textDecoration: 'none',
                           fontWeight: '700',
                           fontSize: '0.84rem',
-                          boxShadow: cand.interview_decision 
-                            ? '0 2px 6px rgba(79, 70, 229, 0.25)' 
+                          boxShadow: cand.interview_decision
+                            ? '0 2px 6px rgba(79, 70, 229, 0.25)'
                             : '0 4px 12px rgba(22, 163, 74, 0.3)',
                           transition: 'all 0.2s'
                         }}

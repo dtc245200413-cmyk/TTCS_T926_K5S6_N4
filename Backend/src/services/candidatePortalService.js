@@ -2,8 +2,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const repository = require('../repositories/candidatePortalRepository');
 const jobPostingRepository = require('../repositories/jobPostingRepository');
-const notificationRepository = require('../repositories/notificationRepository');
-const { pool } = require('../config/database');
 const { httpError } = require('../utils/roles');
 
 const MAX_FAILED_LOGINS = 5;
@@ -116,7 +114,7 @@ async function getDashboard(candidateId) {
       applications: applications.length,
       active_applications: applications.filter(item => !['REJECTED', 'HIRED', 'WITHDRAWN'].includes(item.status)).length,
       interviews: interviews.filter(item => ['SCHEDULED', 'CONFIRMED', 'RESCHEDULE_REQUESTED'].includes(item.status)).length,
-      offers: offers.filter(item => item.status === 'PENDING_RESPONSE').length
+      offers: offers.filter(item => ['PENDING_RESPONSE', 'SENT'].includes(item.status)).length
     },
     recent_applications: applications.slice(0, 3),
     notifications: notifications.slice(0, 5)
@@ -146,124 +144,16 @@ async function getOffers(candidateId) {
 }
 
 async function respondToOffer(candidateId, offerId, data) {
-  if (!['ACCEPTED', 'DECLINED'].includes(data.status)) {
-    throw httpError('Phản hồi thư mời không hợp lệ (chỉ chấp nhận Chấp nhận hoặc Từ chối).', 400);
+  if (!['ACCEPTED', 'DECLINED'].includes(data.status)) throw httpError('Phản hồi thư mời không hợp lệ.', 400);
+  if (data.status === 'DECLINED' && !String(data.response || '').trim()) {
+    throw httpError('Vui lòng nhập lý do từ chối thư mời.', 400);
   }
-
-  // 1. Lấy thông tin offer thuộc về ứng viên này
-  const offer = await repository.getOfferByIdForCandidate(candidateId, offerId);
-  if (!offer) {
-    throw httpError('Không tìm thấy Thư mời nhận việc.', 404);
-  }
-
-  // 2. Chặn chặt chẽ: Offer chưa phát hành tới ứng viên
-  if (!['SENT', 'ACCEPTED', 'DECLINED', 'EXPIRED'].includes(offer.status)) {
-    throw httpError('Thư mời nhận việc chưa được phát hành tới bạn hoặc không ở trạng thái có thể phản hồi.', 400);
-  }
-
-  // 3. Chặn các Offer đã được phản hồi trước đó
-  if (['ACCEPTED', 'DECLINED'].includes(offer.status)) {
-    const respondedTime = offer.responded_at ? new Date(offer.responded_at).toLocaleString('vi-VN') : '';
-    throw httpError(`Thư mời nhận việc này đã được phản hồi trước đó${respondedTime ? ' (' + respondedTime + ')' : ''}. Không thể gửi lại phản hồi.`, 400);
-  }
-
-  // 4. Chặn các Offer đã hết hạn (quá hạn phản hồi)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (offer.response_deadline && new Date(offer.response_deadline) < today) {
-    // Đánh dấu sang EXPIRED
-    await repository.updateOfferResponse({ offerId, status: 'EXPIRED', response: 'Hết hạn phản hồi' });
-    const deadlineFormatted = new Date(offer.response_deadline).toLocaleDateString('vi-VN');
-    throw httpError(`Thư mời nhận việc đã hết hạn phản hồi vào ngày ${deadlineFormatted}. Không thể gửi phản hồi.`, 400);
-  }
-
-  const responseText = String(data.response || '').trim();
-
-  // 5. Nếu từ chối: Bắt buộc có lý do
-  if (data.status === 'DECLINED' && !responseText) {
-    throw httpError('Vui lòng nhập lý do từ chối thư mời nhận việc.', 400);
-  }
-
-  // 6. Xử lý theo phản hồi
-  if (data.status === 'ACCEPTED') {
-    // Cập nhật trạng thái offer
-    await repository.updateOfferResponse({
-      offerId,
-      status: 'ACCEPTED',
-      response: responseText || 'Đồng ý nhận việc theo đúng các điều khoản trong Offer.'
-    });
-
-    // Cập nhật ứng viên sang HIRED
-    await pool.execute(
-      `UPDATE candidates SET status = 'HIRED', current_stage = 'HIRED', stage_changed_at = NOW() WHERE id = ?`,
-      [candidateId]
-    );
-
-    // Cập nhật application nếu có
-    if (offer.application_id) {
-      await pool.execute(
-        `UPDATE candidate_applications SET status = 'HIRED', updated_at = NOW() WHERE id = ?`,
-        [offer.application_id]
-      );
-    }
-
-    // Tiêu chí 6: "Khi ứng viên chấp nhận thì cho phép onboarding"
-    // Kích hoạt bản ghi Onboarding
-    const officialStartDate = offer.expected_start_date || offer.start_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-    const hrInChargeId = offer.created_by || 3;
-    await pool.execute(`
-      INSERT INTO candidate_onboardings (
-        offer_id, candidate_id, hr_in_charge_id, official_start_date, status, checklist_notes, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, 'PREPARING', 'Ứng viên vừa chấp nhận Offer qua Cổng ứng viên. Bắt đầu chuẩn bị onboarding.', NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        status = 'PREPARING',
-        updated_at = NOW()
-    `, [offerId, candidateId, hrInChargeId, officialStartDate]);
-
-    // Tạo thông báo cho Recruiter phụ trách
-    if (offer.created_by) {
-      await notificationRepository.create({
-        userId: offer.created_by,
-        title: 'Ứng viên đã CHẤP NHẬN Offer',
-        message: `Ứng viên ${offer.candidate_name || 'Ứng viên'} vừa xác nhận Chấp nhận Thư mời nhận việc cho vị trí ${offer.job_title}! Hệ thống đã tự động kích hoạt quy trình Onboarding.`,
-        type: 'OFFER_ACCEPTED',
-        link: '/offers'
-      });
-    }
-  } else if (data.status === 'DECLINED') {
-    // Cập nhật offer sang DECLINED
-    await repository.updateOfferResponse({
-      offerId,
-      status: 'DECLINED',
-      response: responseText
-    });
-
-    // Lưu kết quả từ chối vào cơ sở dữ liệu ứng viên
-    await pool.execute(
-      `UPDATE candidates SET status = 'REJECTED', current_stage = 'REJECTED', rejection_reason = ?, stage_changed_at = NOW() WHERE id = ?`,
-      [responseText, candidateId]
-    );
-
-    if (offer.application_id) {
-      await pool.execute(
-        `UPDATE candidate_applications SET status = 'REJECTED', updated_at = NOW() WHERE id = ?`,
-        [offer.application_id]
-      );
-    }
-
-    // Tiêu chí 6: "khi từ chối thì lưu kết quả và thông báo cho nhân viên tuyển dụng."
-    if (offer.created_by) {
-      await notificationRepository.create({
-        userId: offer.created_by,
-        title: 'Ứng viên đã TỪ CHỐI Offer',
-        message: `Ứng viên ${offer.candidate_name || 'Ứng viên'} đã từ chối Thư mời nhận việc vị trí ${offer.job_title}. Lý do: ${responseText}`,
-        type: 'OFFER_DECLINED',
-        link: '/offers'
-      });
-    }
-  }
-
-  return { success: true, status: data.status };
+  const updated = await repository.respondToOffer(candidateId, offerId, {
+    status: data.status,
+    response: String(data.response || '').trim()
+  });
+  if (!updated) throw httpError('Không tìm thấy thư mời đang chờ phản hồi.', 404);
+  return { success: true };
 }
 
 async function getNotifications(candidateId) {

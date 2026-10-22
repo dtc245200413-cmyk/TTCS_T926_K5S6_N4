@@ -7,7 +7,7 @@ const { pool } = require('../config/database');
 
 async function getCandidatesForEvaluation(user) {
   let sql = `
-    SELECT 
+    SELECT
       c.id, c.full_name, c.email, c.phone, c.status, c.source_code,
       c.interview_decision, c.interview_decision_at, c.interview_decision_comment,
       c.created_at, c.resume_url,
@@ -82,7 +82,7 @@ async function getCandidatesForEvaluation(user) {
     candEvals.forEach(e => uniqueEvalsMap.set(e.id, e));
     const uniqueEvals = Array.from(uniqueEvalsMap.values());
 
-    let isMissingEvaluations = false;
+    let isMissingEvaluations = candRounds.length === 0;
     let completedRoundsScores = [];
 
     candRounds.forEach(round => {
@@ -102,9 +102,9 @@ async function getCandidatesForEvaluation(user) {
       ? Number((completedRoundsScores.reduce((a, b) => a + b, 0) / completedRoundsScores.length).toFixed(2))
       : null;
 
-    const canCreateOffer = Boolean(
-      (cand.interview_decision === 'PASSED' || cand.status === 'PASSED') && !cand.offer_id
-    );
+    // The legacy candidate-level PASSED flag never grants Offer permission.
+    // Clients must use GET /api/offers/eligibility for application-bound proof.
+    const canCreateOffer = false;
 
     return {
       ...cand,
@@ -119,7 +119,7 @@ async function getCandidatesForEvaluation(user) {
 
 async function getCandidateEvaluationDetail(candidateId, user) {
   const [cands] = await pool.execute(`
-    SELECT 
+    SELECT
       c.id, c.full_name, c.email, c.phone, c.status, c.source_code,
       c.interview_decision, c.interview_decision_at, c.interview_decision_comment,
       c.created_at, c.resume_url,
@@ -197,8 +197,8 @@ async function getCandidateEvaluationDetail(candidateId, user) {
 
   // Tính điểm từng vòng và kiểm tra thiếu phiếu
   let candidateOverallScores = [];
-  let hasMissingEvaluations = false;
-  let totalMissingSheets = 0;
+  let hasMissingEvaluations = rounds.length === 0;
+  let totalMissingSheets = rounds.length === 0 ? 1 : 0;
 
   const roundsWithDetails = rounds.map(r => {
     // Phiếu đánh giá của vòng (đã loại trừ trùng lặp)
@@ -260,10 +260,16 @@ async function getCandidateEvaluationDetail(candidateId, user) {
   }
 
   // Điều kiện tạo Offer: Chỉ ứng viên ĐẠT mới đủ điều kiện tạo Offer
-  const canCreateOffer = Boolean(candidate.interview_decision === 'PASSED' || candidate.status === 'PASSED');
+  const canCreateOffer = false; // Use /api/offers/eligibility for verified application access.
 
+  // Never choose an application by candidate_id when more than one exists.
+  // The verified decision writer requires the exact persisted application ID.
+  const [candidateApplications] = await pool.execute(
+    'SELECT id FROM candidate_applications WHERE candidate_id = ? ORDER BY id ASC LIMIT 2', [candidateId]);
   return {
     ...candidate,
+    verified_decision_application_id: candidateApplications.length === 1 ? candidateApplications[0].id : null,
+    multiple_applications: candidateApplications.length > 1,
     aggregate_score: aggregateScore,
     rating_label: ratingLabel,
     rating_color: ratingColor,
@@ -280,8 +286,8 @@ async function recordDecision(candidateId, decision, comment, userId) {
   const newStatus = decision === 'PASSED' ? 'PASSED' : 'REJECTED';
 
   await pool.execute(`
-    UPDATE candidates 
-    SET 
+    UPDATE candidates
+    SET
       interview_decision = ?,
       interview_decision_by = ?,
       interview_decision_at = NOW(),
@@ -300,72 +306,10 @@ async function recordDecision(candidateId, decision, comment, userId) {
   };
 }
 
-async function createCandidateOffer(candidateId, offerData, userId) {
-  const [cands] = await pool.execute(`
-    SELECT c.*, r.position_id 
-    FROM candidates c 
-    LEFT JOIN recruitment_requests r ON c.recruitment_request_id = r.id 
-    WHERE c.id = ? LIMIT 1
-  `, [candidateId]);
-
-  if (cands.length === 0) {
-    const error = new Error('Ứng viên không tồn tại.');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const candidate = cands[0];
-
-  // Rule 5: Chỉ ứng viên ĐẠT mới đủ điều kiện tạo Offer!
-  if (candidate.interview_decision !== 'PASSED' && candidate.status !== 'PASSED') {
-    const error = new Error('Chỉ ứng viên có kết quả ĐẠT phỏng vấn mới đủ điều kiện tạo Thư mời nhận việc (Offer).');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const [existing] = await pool.execute(
-    `SELECT id FROM candidate_offers WHERE candidate_id = ? AND status != 'DECLINED' LIMIT 1`,
-    [candidateId]
-  );
-  if (existing.length > 0) {
-    const error = new Error('Ứng viên này đã có Thư mời nhận việc (Offer) đang xử lý.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const positionId = offerData.position_id || candidate.position_id || null;
-
-  const [result] = await pool.execute(`
-    INSERT INTO candidate_offers (
-      candidate_id, position_id, salary_amount, currency,
-      start_date, response_deadline, message, note, status, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_RESPONSE', ?)
-  `, [
-    candidateId,
-    positionId,
-    offerData.salary_amount,
-    offerData.currency || 'VND',
-    offerData.start_date || null,
-    offerData.response_deadline || null,
-    offerData.message || null,
-    offerData.note || null,
-    userId
-  ]);
-
-  // Cập nhật trạng thái ứng viên sang OFFERED
-  await pool.execute(
-    `UPDATE candidates SET status = 'OFFERED', stage_changed_at = NOW() WHERE id = ?`,
-    [candidateId]
-  );
-
-  return {
-    id: result.insertId,
-    candidate_id: candidateId,
-    position_id: positionId,
-    salary_amount: offerData.salary_amount,
-    currency: offerData.currency || 'VND',
-    status: 'PENDING_RESPONSE'
-  };
+// Retired: direct candidate-wide Offer writes bypassed submission/approval.
+async function createCandidateOffer() {
+  throw Object.assign(new Error('Legacy candidate-level Offer writer disabled.'),
+    {statusCode:503, code:'LEGACY_OFFER_WRITE_DISABLED'});
 }
 
 async function addEvaluation(candidateId, evalData, userId) {

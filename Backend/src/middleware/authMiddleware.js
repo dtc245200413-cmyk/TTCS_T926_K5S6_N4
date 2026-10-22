@@ -38,6 +38,12 @@ const authenticate = async (req, res, next) => {
 
     const { userId, sessionToken } = decoded;
 
+    // Candidate credentials are not staff sessions. Reject before querying with
+    // missing bind parameters, which would otherwise turn this into a DB error.
+    if (decoded.tokenType === 'candidate' || !userId || !sessionToken) {
+      return sendError(res, 'Invalid staff credentials.', 401);
+    }
+
     // Step 4: Find the session in the database
     const session = await sessionRepository.findByToken(sessionToken);
 

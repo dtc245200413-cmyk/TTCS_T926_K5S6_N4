@@ -197,7 +197,7 @@ const Sidebar = () => {
       <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
         <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
       </NavLink>
-      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+      <NavLink to="/offers/approvals" className={getClassName} style={navLinkStyle}>
         <FiAward size={18} /> Quản lý Offer
       </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
@@ -214,6 +214,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
         <FiBriefcase size={18} /> Hồ sơ công ty
+      </NavLink>
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiFileText size={18} /> Quản lý Offer
       </NavLink>
     </div>
   );
@@ -236,7 +239,7 @@ const Sidebar = () => {
         <FiUser size={18} /> Ứng viên
       </NavLink>
 
-      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+      <NavLink to="/offers/approvals" className={getClassName} style={navLinkStyle}>
         <FiAward size={18} /> Quản lý & Duyệt Offer
       </NavLink>
 
@@ -246,6 +249,10 @@ const Sidebar = () => {
 
       <NavLink to="/reports" className={getClassName} style={navLinkStyle}>
         <FiBarChart2 size={18} /> Báo cáo
+      </NavLink>
+
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiFileText size={18} /> Quản lý Offer
       </NavLink>
 
       {/* Quản lý tổ chức (Collapsible with ▼ matching screenshot) */}
@@ -334,11 +341,14 @@ const Sidebar = () => {
       <NavLink to="/candidate-evaluations" className={getClassName} style={getNavLinkStyle('/candidate-evaluations')}>
         <FiCheckCircle size={18} /> Đánh giá ứng viên
       </NavLink>
-      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')} end>
-        <FiAward size={18} /> Quản lý Offer
+      <NavLink to="/offers/approvals" className={getClassName} style={getNavLinkStyle('/offers/approvals')} end>
+        <FiAward size={18} /> Duyệt Offer
       </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')}>
         <FiCalendar size={18} /> Lịch phỏng vấn
+      </NavLink>
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+        <FiFileText size={18} /> Quản lý Offer
       </NavLink>
     </div>
   );
@@ -351,8 +361,8 @@ const Sidebar = () => {
       <NavLink to="/recruitment-requests/approvals" className={getClassName} style={getNavLinkStyle('/recruitment-requests/approvals')} end>
         <FiCalendar size={18} /> Duyệt yêu cầu
       </NavLink>
-      <NavLink to="/offers/approvals" className={getClassName} style={getNavLinkStyle('/offers/approvals')} end>
-        <FiAward size={18} /> Duyệt Offer
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+        <FiCheckSquare size={18} /> Duyệt Offer
       </NavLink>
     </div>
   );

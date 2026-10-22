@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { 
-  FiArrowLeft, FiCheckCircle, FiXCircle, FiAlertTriangle, 
-  FiAward, FiUser, FiCalendar, FiClock, FiFileText, 
+import {
+  FiArrowLeft, FiCheckCircle, FiXCircle, FiAlertTriangle,
+  FiAward, FiUser, FiCalendar, FiClock, FiFileText,
   FiDollarSign, FiLock, FiUnlock, FiInfo, FiSend, FiEdit3
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
@@ -96,10 +96,14 @@ const CandidateEvaluationDetail = () => {
       if (!proceed) return;
     }
 
+    if (!candidate?.verified_decision_application_id) {
+      alert('Không xác minh được application duy nhất. Vui lòng kiểm tra liên kết hồ sơ.');
+      return;
+    }
     setSubmittingDecision(true);
     setDecisionSuccess('');
     try {
-      await candidateEvaluationApi.recordDecision(id, { decision, comment });
+      await candidateEvaluationApi.recordDecision(id, { decision, comment, application_id: candidate.verified_decision_application_id });
       setDecisionSuccess('Đã xác nhận và lưu quyết định tuyển chọn thành công!');
       setIsEditingDecision(false);
       await fetchDetail();
@@ -208,8 +212,8 @@ const CandidateEvaluationDetail = () => {
     <div style={{ padding: '28px', backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 70px)' }}>
       {/* Navigation Breadcrumb */}
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem' }}>
-        <Link 
-          to="/candidate-evaluations" 
+        <Link
+          to="/candidate-evaluations"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#4f46e5', textDecoration: 'none', fontWeight: '600' }}
         >
           <FiArrowLeft size={16} /> Quay lại danh sách ứng viên
@@ -308,10 +312,10 @@ const CandidateEvaluationDetail = () => {
 
       {/* Grid: Left Column (Evaluations & Scores), Right Column (Decision & Offer) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(340px, 1.2fr)', gap: '24px', alignItems: 'start' }}>
-        
+
         {/* LEFT COLUMN: Scores, Rounds & Detailed Evaluation Sheets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
+
           {/* Card 1: Tổng hợp điểm & Quy tắc rõ ràng */}
           <div style={{ background: '#ffffff', borderRadius: '18px', padding: '24px', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
@@ -715,7 +719,7 @@ const CandidateEvaluationDetail = () => {
                   }}>
                     {candidate.interview_decision === 'PASSED' ? '✓ ĐẠT YÊU CẦU' : '✗ KHÔNG ĐẠT'}
                   </span>
-                  
+
                   <button
                     onClick={() => setIsEditingDecision(true)}
                     style={{

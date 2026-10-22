@@ -61,64 +61,43 @@ async function recordDecision(candidateId, { decision, comment }, user, ipAddres
   return await repo.getCandidateEvaluationDetail(Number(candidateId), user);
 }
 
-async function createOffer(candidateId, offerData, user, ipAddress) {
-  const { salary_amount, currency = 'VND', start_date, response_deadline, message, note } = offerData;
-
-  const numericSalary = Number(salary_amount);
-  if (isNaN(numericSalary) || numericSalary <= 0) {
-    const error = new Error('Mức lương đề xuất không hợp lệ. Phải là số dương.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const candidate = await repo.getCandidateEvaluationDetail(Number(candidateId), user);
-  if (!candidate) {
-    const error = new Error('Ứng viên không tồn tại hoặc không thuộc quyền quản lý của bạn.');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  // Rule 5: Chỉ ứng viên ĐẠT mới đủ điều kiện tạo Offer!
-  if (candidate.interview_decision !== 'PASSED' && candidate.status !== 'PASSED') {
-    const error = new Error('Chỉ ứng viên có quyết định ĐẠT phỏng vấn mới đủ điều kiện tạo Offer.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  // Kiểm tra dải lương của vị trí tuyển dụng nếu có
-  if (candidate.position_id) {
-    try {
-      await positionService.validateOfferSalary(candidate.position_id, numericSalary);
-    } catch (valErr) {
-      // Nếu vượt khung lương thì cảnh báo rõ ràng
-      if (valErr.statusCode === 400) {
-        throw valErr;
-      }
+// This endpoint supersedes the candidate-wide legacy decision writer for
+// SCRUM-103. Both the decision and candidate summary are persisted under one
+// transaction only after trusted application/lifecycle/interview verification.
+async function recordVerifiedDecision(candidateId, { application_id, decision, comment } = {}, user, ipAddress) {
+  const { createOfferDecisionTransaction } = require('./offerDecisionTransaction');
+  const { loadVerifiedDecisionWriteScope } = require('./offerDecisionScopeReader');
+  const { createOfferDecisionSqlWriter } = require('./offerDecisionSqlWriter');
+  const { writeOfferDecisionAudit } = require('./offerDecisionAuditWriter');
+  const { verifyLifecycle, verifyEvaluation } = require('./offerDecisionEvidenceReaders');
+  const writer = createOfferDecisionSqlWriter({ verifyLifecycle, verifyEvaluation });
+  const wrappedWriter = async (args) => {
+    const persisted = await writer(args);
+    const status = args.decision === 'PASSED' ? 'PASSED' : 'REJECTED';
+    const [update] = await args.conn.execute(`
+      UPDATE candidates SET interview_decision = ?, interview_decision_by = ?,
+        interview_decision_at = CURRENT_TIMESTAMP, interview_decision_comment = ?,
+        status = ?, stage_changed_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND recruitment_request_id = ? AND merged_into_id IS NULL`,
+    [args.decision, args.actorUserId, args.comment, status,
+      args.candidateId, args.scope.application.recruitment_request_id]);
+    if (update.affectedRows !== 1) {
+      throw Object.assign(new Error('Candidate summary mapping changed.'), {statusCode:409, code:'DECISION_SUMMARY_CONFLICT'});
     }
-  }
+    return persisted;
+  };
+  const transaction = createOfferDecisionTransaction({ pool,
+    loadScope: loadVerifiedDecisionWriteScope, writeDecision: wrappedWriter, writeAudit: writeOfferDecisionAudit });
+  return transaction.record({ actorUserId: user.user_id, applicationId: application_id,
+    candidateId: candidateId, decision, comment, ipAddress });
+}
 
-  const result = await repo.createCandidateOffer(Number(candidateId), {
-    position_id: candidate.position_id,
-    salary_amount: numericSalary,
-    currency,
-    start_date,
-    response_deadline,
-    message,
-    note
-  }, user.user_id);
-
-  // Ghi nhật ký Audit Log
-  await auditRepo.createLog({
-    userId: user.user_id,
-    performedBy: user.user_id,
-    action: 'CANDIDATE_OFFER_CREATED',
-    entityType: 'candidate_offers',
-    entityId: String(result.id),
-    description: `Tạo Thư mời nhận việc (Offer) cho ứng viên ${candidate.full_name} với mức lương ${numericSalary.toLocaleString()} ${currency}`,
-    ipAddress
-  });
-
-  return await repo.getCandidateEvaluationDetail(Number(candidateId), user);
+// Legacy direct Offer creation bypassed application-bound decisions and approval.
+// Keep the exported function fail-closed for older callers. The only active
+// Offer creation path is POST /api/offers with verified application authority.
+async function createOffer() {
+  throw Object.assign(new Error('Legacy Offer endpoint has been retired. Use the verified Offer workflow.'),
+    {statusCode:503, code:'LEGACY_OFFER_WRITE_DISABLED'});
 }
 
 async function addEvaluation(candidateId, evalData, user, ipAddress) {
@@ -381,6 +360,7 @@ module.exports = {
   getCandidates,
   getCandidateDetail,
   recordDecision,
+  recordVerifiedDecision,
   createOffer,
   addEvaluation,
   seedSampleEvaluationData

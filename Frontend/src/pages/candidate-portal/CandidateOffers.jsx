@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { 
-  FiCheckCircle, 
-  FiMail, 
-  FiCalendar, 
-  FiDollarSign, 
-  FiMapPin, 
-  FiClock, 
-  FiAlertCircle, 
-  FiX, 
+import {
+  FiCheckCircle,
+  FiMail,
+  FiCalendar,
+  FiDollarSign,
+  FiMapPin,
+  FiClock,
+  FiAlertCircle,
+  FiX,
   FiGift,
   FiFileText
 } from 'react-icons/fi';
@@ -173,26 +173,26 @@ const CandidateOffers = () => {
       ) : (
         <div style={{ display: 'grid', gap: 20 }}>
           {offers.map(offer => {
-            const isSentPending = offer.status === 'SENT' && !offer.is_expired;
+            const isSentPending = offer.status === 'PENDING_RESPONSE' && !offer.is_expired;
             const isExpired = offer.is_expired || offer.status === 'EXPIRED';
 
             return (
               <article key={offer.id} className="g-card" style={{ padding: 0, overflow: 'hidden', margin: 0, border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 {/* Header Banner */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '16px 20px', 
-                  background: offer.status === 'ACCEPTED' ? '#f0fdf4' : offer.status === 'DECLINED' ? '#fef2f2' : '#f8fafc', 
-                  borderBottom: '1px solid #e2e8f0' 
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '16px 20px',
+                  background: offer.status === 'ACCEPTED' ? '#f0fdf4' : offer.status === 'DECLINED' ? '#fef2f2' : '#f8fafc',
+                  borderBottom: '1px solid #e2e8f0'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ 
-                      width: 40, 
-                      height: 40, 
-                      borderRadius: 8, 
-                      background: offer.status === 'ACCEPTED' ? '#dcfce7' : '#e0e7ff', 
+                    <div style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 8,
+                      background: offer.status === 'ACCEPTED' ? '#dcfce7' : '#e0e7ff',
                       color: offer.status === 'ACCEPTED' ? '#16a34a' : '#4f46e5',
                       display: 'flex',
                       alignItems: 'center',
@@ -286,12 +286,12 @@ const CandidateOffers = () => {
 
                 {/* Response Information if already answered */}
                 {offer.candidate_response && (
-                  <div style={{ 
-                    margin: '0 20px 16px', 
-                    padding: '12px 16px', 
-                    background: offer.status === 'ACCEPTED' ? '#f0fdf4' : '#fef2f2', 
-                    borderRadius: 8, 
-                    border: `1px solid ${offer.status === 'ACCEPTED' ? '#bbf7d0' : '#fecaca'}` 
+                  <div style={{
+                    margin: '0 20px 16px',
+                    padding: '12px 16px',
+                    background: offer.status === 'ACCEPTED' ? '#f0fdf4' : '#fef2f2',
+                    borderRadius: 8,
+                    border: `1px solid ${offer.status === 'ACCEPTED' ? '#bbf7d0' : '#fecaca'}`
                   }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: offer.status === 'ACCEPTED' ? '#166534' : '#991b1b', marginBottom: 4 }}>
                       Phản hồi của bạn {offer.responded_at ? `(${new Date(offer.responded_at).toLocaleString('vi-VN')})` : ''}:
@@ -311,14 +311,14 @@ const CandidateOffers = () => {
 
                 {/* Action Buttons: Khi offer đang chờ phản hồi */}
                 {isSentPending && (
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    alignItems: 'center', 
-                    gap: 12, 
-                    padding: '14px 20px', 
-                    background: '#f8fafc', 
-                    borderTop: '1px solid #e2e8f0' 
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '14px 20px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0'
                   }}>
                     <button
                       type="button"
@@ -362,14 +362,14 @@ const CandidateOffers = () => {
 
                 {/* Khi offer ĐÃ HẾT HẠN: Vô hiệu hóa nút và báo "Offer đã hết hạn" */}
                 {isExpired && offer.status !== 'ACCEPTED' && offer.status !== 'DECLINED' && (
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    alignItems: 'center', 
-                    gap: 12, 
-                    padding: '14px 20px', 
-                    background: '#f8fafc', 
-                    borderTop: '1px solid #e2e8f0' 
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '14px 20px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0'
                   }}>
                     <button
                       disabled
@@ -408,13 +408,13 @@ const CandidateOffers = () => {
 
                 {/* Khi offer ĐÃ ĐƯỢC PHẢN HỒI TRƯỚC ĐÓ: Khóa nút, hiển thị trạng thái đã phản hồi */}
                 {(offer.status === 'ACCEPTED' || offer.status === 'DECLINED') && (
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    alignItems: 'center', 
-                    gap: 12, 
-                    padding: '12px 20px', 
-                    background: '#f8fafc', 
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 20px',
+                    background: '#f8fafc',
                     borderTop: '1px solid #e2e8f0',
                     fontSize: 13,
                     color: '#64748b'
@@ -442,8 +442,8 @@ const CandidateOffers = () => {
                   <div style={{ fontSize: 13, color: '#64748b' }}>{selectedOffer.job_title} ({selectedOffer.offer_code})</div>
                 </div>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={closeDeclineModal}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 20 }}
               >
@@ -536,8 +536,8 @@ const CandidateOffers = () => {
                   <div style={{ fontSize: 13, color: '#64748b' }}>{selectedOffer.job_title}</div>
                 </div>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={closeAcceptModal}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 20 }}
               >

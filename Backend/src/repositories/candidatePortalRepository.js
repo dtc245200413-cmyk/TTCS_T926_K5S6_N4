@@ -176,80 +176,103 @@ async function respondToInterview(candidateId, interviewId, { status, response }
 
 async function getOffers(candidateId) {
   const [rows] = await pool.execute(`
-    SELECT 
-      o.id,
-      o.offer_code,
-      o.candidate_id,
-      o.application_id,
-      o.department_id,
-      o.position_id,
-      COALESCE(o.job_title, jp.title, 'Vị trí chuyên môn') AS job_title,
-      COALESCE(o.salary_amount, o.basic_salary) AS salary_amount,
-      o.basic_salary,
-      o.probation_salary,
-      o.currency,
-      COALESCE(o.start_date, o.expected_start_date) AS start_date,
-      o.expected_start_date,
-      o.response_deadline,
-      o.work_location,
-      o.benefits,
-      o.message,
-      o.status,
-      o.candidate_response,
-      o.responded_at,
-      o.created_at,
-      COALESCE(d.department_name, d2.department_name) AS department_name
+    SELECT o.id, o.offer_code, o.application_id, o.salary_amount, o.basic_salary,
+      o.currency, o.start_date, o.expected_start_date, o.response_deadline,
+      o.work_location, o.benefits, o.message, o.status, o.candidate_response,
+      o.responded_at, o.created_at,
+      COALESCE(o.job_title, jp.title) AS job_title, d.department_name
     FROM candidate_offers o
-    LEFT JOIN candidate_applications a ON a.id = o.application_id
+    JOIN candidate_applications a ON a.id = o.application_id
     LEFT JOIN job_postings jp ON jp.id = a.job_posting_id
     LEFT JOIN departments d ON d.department_id = o.department_id
-    LEFT JOIN recruitment_requests rr ON rr.id = a.recruitment_request_id
-    LEFT JOIN departments d2 ON d2.department_id = rr.department_id
-    WHERE (o.candidate_id = ? OR a.candidate_id = ?)
-      AND o.status IN ('SENT', 'ACCEPTED', 'DECLINED', 'EXPIRED')
-    ORDER BY o.created_at DESC
-  `, [candidateId, candidateId]);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return rows.map(o => {
-    let currentStatus = o.status;
-    const isExpired = o.response_deadline && new Date(o.response_deadline) < today && o.status === 'SENT';
-    if (isExpired) {
-      currentStatus = 'EXPIRED';
-    }
-    return {
-      ...o,
-      status: currentStatus,
-      is_expired: isExpired
-    };
+    WHERE a.candidate_id = ? AND o.candidate_id = ?
+      AND o.status IN ('SENT', 'PENDING_RESPONSE', 'ACCEPTED', 'DECLINED', 'EXPIRED')
+    ORDER BY o.created_at DESC`, [candidateId, candidateId]);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return rows.map(offer => {
+    const expired = offer.status === 'SENT' && offer.response_deadline &&
+      new Date(offer.response_deadline) < today;
+    return { ...offer, status: expired ? 'EXPIRED' : offer.status,
+      is_expired: Boolean(expired) };
   });
 }
 
-async function getOfferByIdForCandidate(candidateId, offerId) {
-  const [rows] = await pool.execute(`
-    SELECT 
-      o.*,
-      COALESCE(o.salary_amount, o.basic_salary) AS salary_amount,
-      COALESCE(o.start_date, o.expected_start_date) AS start_date,
-      c.full_name AS candidate_name
-    FROM candidate_offers o
-    LEFT JOIN candidates c ON c.id = o.candidate_id
-    LEFT JOIN candidate_applications a ON a.id = o.application_id
-    WHERE o.id = ? AND (o.candidate_id = ? OR a.candidate_id = ?)
-    LIMIT 1
-  `, [offerId, candidateId, candidateId]);
-  return rows[0] || null;
-}
-
-async function updateOfferResponse({ offerId, status, response }) {
-  const [result] = await pool.execute(`
-    UPDATE candidate_offers
-    SET status = ?, candidate_response = ?, responded_at = NOW(), updated_at = NOW()
-    WHERE id = ?
-  `, [status, response || null, offerId]);
-  return result.affectedRows > 0;
+// Updates response, candidate/application state, and creates onboarding inside
+// a single transaction. Unlike PR #35, two simultaneous responses cannot both
+// succeed and a failure cannot leave half of the workflow persisted.
+async function respondToOffer(candidateId, offerId, { status, response }) {
+  const conn = await pool.getConnection();
+  let started = false;
+  try {
+    await conn.beginTransaction(); started = true;
+    const [rows] = await conn.execute(`
+      SELECT o.id, o.status, o.application_id, o.candidate_id, o.created_by,
+        o.response_deadline, o.expected_start_date, o.start_date
+      FROM candidate_offers o
+      JOIN candidate_applications a ON a.id = o.application_id
+      WHERE o.id = ? AND o.candidate_id = ? AND a.candidate_id = ?
+      FOR UPDATE`, [offerId, candidateId, candidateId]);
+    if (rows.length !== 1) {
+      throw Object.assign(new Error('Không tìm thấy Thư mời nhận việc.'), { statusCode: 404 });
+    }
+    if (!['SENT', 'PENDING_RESPONSE'].includes(rows[0].status)) {
+      throw Object.assign(new Error('Thư mời không còn ở trạng thái chờ phản hồi.'), { statusCode: 409 });
+    }
+    const offer = rows[0];
+    const deadline = offer.response_deadline && new Date(offer.response_deadline);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (deadline && deadline < today) {
+      throw Object.assign(new Error('Thư mời đã hết hạn.'), { statusCode: 409 });
+    }
+    const [changed] = await conn.execute(`
+      UPDATE candidate_offers
+      SET status = ?, candidate_response = ?, responded_at = CURRENT_TIMESTAMP,
+        row_version = row_version + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND status IN ('SENT', 'PENDING_RESPONSE')`,
+    [status, response || null, offerId]);
+    if (changed.affectedRows !== 1) {
+      throw Object.assign(new Error('Trạng thái thư mời đã thay đổi.'), { statusCode: 409 });
+    }
+    if (status === 'ACCEPTED') {
+      // There must be an accountable HR owner: NEVER fall back to a magic ID.
+      if (!Number.isSafeInteger(Number(offer.created_by)) || Number(offer.created_by) <= 0) {
+        throw Object.assign(new Error('Thiếu nhân sự phụ trách onboarding.'), { statusCode: 503 });
+      }
+      const officialStart = offer.expected_start_date || offer.start_date;
+      if (!officialStart) {
+        throw Object.assign(new Error('Thiếu ngày bắt đầu nhận việc.'), { statusCode: 503 });
+      }
+      await conn.execute(`INSERT INTO candidate_onboardings
+        (offer_id, candidate_id, hr_in_charge_id, official_start_date, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'PREPARING', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [offerId, candidateId, offer.created_by, officialStart]);
+      await conn.execute(`UPDATE candidate_applications SET status = 'HIRED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND candidate_id = ?`, [offer.application_id, candidateId]);
+      await conn.execute(`UPDATE candidates SET status = 'HIRED', current_stage = 'HIRED',
+        stage_changed_at = CURRENT_TIMESTAMP WHERE id = ?`, [candidateId]);
+    }
+    if (status === 'DECLINED') {
+      // Do not globally reject candidate: they may have other applications.
+      await conn.execute(`UPDATE candidate_applications SET status = 'REJECTED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND candidate_id = ?`, [offer.application_id, candidateId]);
+    }
+    if (Number.isSafeInteger(Number(offer.created_by)) && Number(offer.created_by) > 0) {
+      // Internal recruiter notification is stored in the same transaction,
+      // avoiding a successfully changed Offer with no durable notification.
+      await conn.execute(`INSERT INTO notifications
+        (user_id, title, message, type, link, is_read)
+        VALUES (?, ?, ?, ?, '/offers', 0)`,
+      [offer.created_by,
+        status === 'ACCEPTED' ? 'Ứng viên đã chấp nhận Offer' : 'Ứng viên đã từ chối Offer',
+        `Ứng viên đã phản hồi Offer #${offerId}. Vui lòng kiểm tra hồ sơ.`,
+        status === 'ACCEPTED' ? 'OFFER_ACCEPTED' : 'OFFER_DECLINED']);
+    }
+    await conn.commit(); started = false;
+    return true;
+  } catch (error) {
+    if (started) { try { await conn.rollback(); } catch { /* preserve cause */ } }
+    throw error;
+  } finally { conn.release(); }
 }
 
 async function getNotifications(candidateId) {
@@ -284,8 +307,7 @@ module.exports = {
   getInterviews,
   respondToInterview,
   getOffers,
-  getOfferByIdForCandidate,
-  updateOfferResponse,
+  respondToOffer,
   getNotifications,
   markNotificationRead,
   changePassword

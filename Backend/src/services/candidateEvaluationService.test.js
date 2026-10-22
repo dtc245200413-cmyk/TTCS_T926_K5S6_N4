@@ -150,53 +150,11 @@ describe('Candidate Evaluation & Hiring Manager Decision Flow', () => {
       expect(auditRepo.createLog).toHaveBeenCalled();
     });
 
-    it('Từ chối tạo Offer nếu ứng viên KHÔNG ĐẠT (FAILED)', async () => {
-      const failedCandidate = {
-        id: 3,
-        full_name: 'Hoàng Đức Anh',
-        department_id: 1,
-        interview_decision: 'FAILED',
-        status: 'REJECTED'
-      };
-
-      repo.getCandidateEvaluationDetail.mockResolvedValue(failedCandidate);
-
-      await expect(candidateEvaluationService.createOffer(3, {
-        salary_amount: 15000000,
-        start_date: '2026-11-01'
-      }, hiringManagerUser, '127.0.0.1')).rejects.toThrow('Chỉ ứng viên có quyết định ĐẠT phỏng vấn mới đủ điều kiện tạo Offer.');
-    });
-
-    it('Cho phép tạo Offer khi ứng viên đã ĐẠT phỏng vấn', async () => {
-      const passedCandidate = {
-        id: 1,
-        full_name: 'Lê Minh Tuấn',
-        department_id: 1,
-        position_id: 1,
-        interview_decision: 'PASSED',
-        status: 'PASSED'
-      };
-
-      repo.getCandidateEvaluationDetail.mockResolvedValue(passedCandidate);
-      positionService.validateOfferSalary.mockResolvedValue({ valid: true });
-      repo.createCandidateOffer.mockResolvedValue({
-        id: 10,
-        candidate_id: 1,
-        salary_amount: 18000000,
-        status: 'PENDING_RESPONSE'
-      });
-      auditRepo.createLog.mockResolvedValue(undefined);
-
-      await candidateEvaluationService.createOffer(1, {
-        salary_amount: 18000000,
-        currency: 'VND',
-        start_date: '2026-11-01',
-        response_deadline: '2026-10-25',
-        message: 'Thư mời làm việc cho vị trí Frontend Developer'
-      }, hiringManagerUser, '127.0.0.1');
-
-      expect(repo.createCandidateOffer).toHaveBeenCalled();
-      expect(auditRepo.createLog).toHaveBeenCalled();
+    it('Legacy candidate-wide Offer writer is disabled regardless of PASSED summary', async () => {
+      await expect(candidateEvaluationService.createOffer(1, { salary_amount: 18000000 }, hiringManagerUser))
+        .rejects.toMatchObject({statusCode:503,code:'LEGACY_OFFER_WRITE_DISABLED'});
+      expect(repo.createCandidateOffer).not.toHaveBeenCalled();
+      expect(auditRepo.createLog).not.toHaveBeenCalled();
     });
   });
 });
