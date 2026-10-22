@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Outlet } from 'react-router-dom';
@@ -115,11 +115,13 @@ function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/interview-schedules" element={<InterviewScheduleList />} />
+            <Route path="/interviews" element={<Navigate to="/interview-schedules" replace />} />
             <Route path="/offers" element={<OfferList />} />
             <Route path="/offers/new" element={<OfferForm />} />
             <Route path="/offers/approval" element={<OfferList />} />
             <Route path="/offers/:id/edit" element={<OfferForm />} />
             <Route path="/offers/:id" element={<OfferList />} />
+            <Route path="/onboarding" element={<Navigate to="/candidates" replace />} />
             <Route path="/candidate-evaluations" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
               <Route index element={<CandidateEvaluationList />} />
               <Route path=":id" element={<CandidateEvaluationDetail />} />

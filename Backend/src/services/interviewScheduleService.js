@@ -1,4 +1,5 @@
 const repository = require('../repositories/interviewScheduleRepository');
+const notificationRepository = require('../repositories/notificationRepository');
 const managers = process.env.JEST_WORKER_ID
   ? ['ADMIN', 'HR_MANAGER', 'RECRUITER']
   : ['ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER'];
@@ -142,7 +143,24 @@ async function create(body, user) {
     await validateAndLock(data, connection);
     await checkConflicts(data, null, connection);
     const scheduleId = await repository.insert(data, user.user_id, connection);
-    return repository.findById(scheduleId, allScope, connection);
+    const created = await repository.findById(scheduleId, allScope, connection);
+    try {
+      if (created) {
+        const candidateName = created.candidate_name || 'Ứng viên';
+        const roomInfo = created.room_name ? ` tại ${created.room_name}` : '';
+        const timeInfo = created.start_at ? new Date(created.start_at).toLocaleString('vi-VN') : '';
+        await notificationRepository.create({
+          userId: data.interviewer_id,
+          title: 'Lịch phỏng vấn mới được phân công',
+          message: `Bạn được phân công phỏng vấn ứng viên ${candidateName} vào lúc ${timeInfo}${roomInfo}.`,
+          type: 'INTERVIEW_ASSIGNED',
+          link: '/interview-schedules'
+        }, connection);
+      }
+    } catch (_) {
+      // Bỏ qua lỗi thông báo để không ảnh hưởng thao tác chính
+    }
+    return created;
   });
 }
 
@@ -158,7 +176,46 @@ async function update(scheduleId, body, user) {
     await validateAndLock(data, connection);
     await checkConflicts(data, parsedId, connection);
     await repository.update(parsedId, data, user.user_id, connection);
-    return repository.findById(parsedId, allScope, connection);
+    const updated = await repository.findById(parsedId, allScope, connection);
+    try {
+      if (updated) {
+        const candidateName = updated.candidate_name || 'Ứng viên';
+        const roomInfo = updated.room_name ? ` tại ${updated.room_name}` : '';
+        const timeInfo = updated.start_at ? new Date(updated.start_at).toLocaleString('vi-VN') : '';
+
+        if (existing.interviewer_id !== data.interviewer_id) {
+          // Người phỏng vấn cũ: thông báo thay đổi phân công
+          await notificationRepository.create({
+            userId: existing.interviewer_id,
+            title: 'Thay đổi phân công lịch phỏng vấn',
+            message: `Lịch phỏng vấn ứng viên ${candidateName} đã được chuyển cho người phỏng vấn khác.`,
+            type: 'INTERVIEW_UPDATED',
+            link: '/interview-schedules'
+          }, connection);
+
+          // Người phỏng vấn mới: thông báo được phân công
+          await notificationRepository.create({
+            userId: data.interviewer_id,
+            title: 'Lịch phỏng vấn mới được phân công',
+            message: `Bạn được phân công phỏng vấn ứng viên ${candidateName} vào lúc ${timeInfo}${roomInfo}.`,
+            type: 'INTERVIEW_ASSIGNED',
+            link: '/interview-schedules'
+          }, connection);
+        } else {
+          // Cùng người phỏng vấn nhưng cập nhật thời gian/phòng
+          await notificationRepository.create({
+            userId: data.interviewer_id,
+            title: 'Lịch phỏng vấn đã được cập nhật',
+            message: `Lịch phỏng vấn ứng viên ${candidateName} đã được cập nhật: ${timeInfo}${roomInfo}.`,
+            type: 'INTERVIEW_UPDATED',
+            link: '/interview-schedules'
+          }, connection);
+        }
+      }
+    } catch (_) {
+      // Bỏ qua lỗi thông báo
+    }
+    return updated;
   });
 }
 
@@ -170,7 +227,23 @@ async function cancel(scheduleId, body, user) {
     const existing = await repository.findForUpdate(parsedId, connection);
     if (!existing) fail(404, 'Không tìm thấy lịch phỏng vấn.');
     // Repeated cancellation is idempotent and does not rewrite the original updater.
-    if (existing.status !== 'CANCELLED') await repository.cancel(parsedId, user.user_id, connection);
+    if (existing.status !== 'CANCELLED') {
+      await repository.cancel(parsedId, user.user_id, connection);
+      try {
+        const cancelled = await repository.findById(parsedId, allScope, connection);
+        const candidateName = cancelled?.candidate_name || 'Ứng viên';
+        const timeInfo = cancelled?.start_at ? new Date(cancelled.start_at).toLocaleString('vi-VN') : '';
+        await notificationRepository.create({
+          userId: existing.interviewer_id,
+          title: 'Lịch phỏng vấn đã bị hủy',
+          message: `Lịch phỏng vấn ứng viên ${candidateName} vào lúc ${timeInfo} đã bị hủy.`,
+          type: 'INTERVIEW_CANCELLED',
+          link: '/interview-schedules'
+        }, connection);
+      } catch (_) {
+        // Bỏ qua lỗi thông báo
+      }
+    }
     return repository.findById(parsedId, allScope, connection);
   });
 }

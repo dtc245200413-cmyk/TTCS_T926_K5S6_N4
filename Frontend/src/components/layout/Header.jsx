@@ -163,18 +163,20 @@ const Header = () => {
                     <div 
                       key={notif.notification_id} 
                       onClick={async () => {
-                        if (notif.link === '/offers' || notif.link?.startsWith('/offers/')) {
-                          setShowDropdown(false);
-                          if (!notif.is_read) await markAsRead(notif.notification_id);
-                          navigate(notif.link === '/offers/approval' ? '/offers' : notif.link);
-                          return;
+                        setShowDropdown(false);
+                        if (!notif.is_read) await markAsRead(notif.notification_id);
+                        if (notif.link) {
+                          let target = notif.link;
+                          if (target === '/interviews') target = '/interview-schedules';
+                          if (target === '/offers/approval') target = '/offers';
+                          navigate(target);
                         }
-                        if (!notif.is_read) markAsRead(notif.notification_id);
                       }}
                       style={{ 
                         padding: '12px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
                         background: notif.is_read ? 'white' : '#f0f9ff',
-                        transition: 'background 0.2s'
+                        transition: 'background 0.2s',
+                        borderLeft: notif.is_read ? 'none' : '3px solid #3b82f6'
                       }}
                     >
                       <div style={{ fontSize: '0.9rem', fontWeight: notif.is_read ? '500' : '700', color: '#0f172a', marginBottom: '4px' }}>
@@ -189,6 +191,15 @@ const Header = () => {
                     </div>
                   ))
                 )}
+              </div>
+              <div style={{ padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <Link 
+                  to="/notifications" 
+                  onClick={() => setShowDropdown(false)}
+                  style={{ color: '#4f46e5', fontSize: '0.85rem', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  Xem tất cả thông báo →
+                </Link>
               </div>
             </div>
           )}
