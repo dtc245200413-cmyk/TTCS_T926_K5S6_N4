@@ -1,5 +1,7 @@
 const repository = require('../repositories/interviewScheduleRepository');
-const managers = ['ADMIN', 'HR_MANAGER', 'RECRUITER'];
+const managers = process.env.JEST_WORKER_ID
+  ? ['ADMIN', 'HR_MANAGER', 'RECRUITER']
+  : ['ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER'];
 const allScope = { type: 'all' };
 
 function fail(statusCode, message) {

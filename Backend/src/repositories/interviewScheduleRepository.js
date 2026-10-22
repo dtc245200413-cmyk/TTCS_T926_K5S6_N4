@@ -49,13 +49,14 @@ function scopeClause(scope, params) {
 }
 
 const selectSchedule = `
-  SELECT s.id, s.candidate_id, c.full_name AS candidate_name,
+  SELECT s.id, s.candidate_id, c.full_name AS candidate_name, c.email AS candidate_email,
          s.position_id, p.position_name, s.interviewer_id, u.full_name AS interviewer_name,
          s.room_id, room.name AS room_name, room.is_active AS room_is_active,
          DATE_FORMAT(s.start_at, '%Y-%m-%dT%H:%i:%sZ') AS start_at,
          DATE_FORMAT(s.end_at, '%Y-%m-%dT%H:%i:%sZ') AS end_at,
          s.status, s.created_by, s.updated_by, s.created_at, s.updated_at,
-         e.id AS evaluation_id, e.total_score, e.recommendation, e.status AS evaluation_status
+         e.id AS evaluation_id, e.total_score, e.recommendation, e.status AS evaluation_status,
+         DATE_FORMAT(e.submitted_at, '%Y-%m-%dT%H:%i:%sZ') AS evaluation_submitted_at
   FROM interview_schedules s
   JOIN candidates c ON c.id = s.candidate_id
   JOIN job_positions p ON p.position_id = s.position_id

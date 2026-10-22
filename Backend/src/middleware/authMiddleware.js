@@ -38,6 +38,10 @@ const authenticate = async (req, res, next) => {
 
     const { userId, sessionToken } = decoded;
 
+    if (!sessionToken) {
+      return sendError(res, 'Session token missing. Please log in again.', 401);
+    }
+
     // Step 4: Find the session in the database
     const session = await sessionRepository.findByToken(sessionToken);
 
@@ -121,7 +125,15 @@ const authorize = (requiredPermission) => {
       return sendError(res, 'Not authenticated.', 401);
     }
 
-    if (!req.user.permissions.includes(requiredPermission)) {
+    const isAdmin = req.user.roles?.some(r => r.role_code === 'ADMIN');
+    if (isAdmin) {
+      return next();
+    }
+
+    const hasDirect = req.user.permissions?.includes(requiredPermission);
+    const hasCompetencyManage = requiredPermission === 'COMPETENCY_VIEW' && req.user.permissions?.includes('COMPETENCY_MANAGE');
+
+    if (!hasDirect && !hasCompetencyManage) {
       return sendError(
         res,
         'Bạn không có quyền truy cập chức năng này. Vui lòng liên hệ quản trị viên.',
