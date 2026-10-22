@@ -1,3 +1,4 @@
+import { SERVER_BASE_URL } from '../config/api';
 import React, { useState, useRef, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { FiUser } from 'react-icons/fi';
@@ -12,7 +13,7 @@ const AvatarUpload = ({ onFileSelect }) => {
   const fileInputRef = useRef(null);
 
   const currentAvatar = user?.avatar_url
-    ? (user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:5000${user.avatar_url}`)
+    ? (user.avatar_url.startsWith('http') ? user.avatar_url : `${SERVER_BASE_URL}${user.avatar_url}`)
     : null;
 
   // Cấu hình ràng buộc file

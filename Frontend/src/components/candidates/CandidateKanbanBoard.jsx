@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -236,7 +237,7 @@ const CandidateKanbanBoard = ({
     setActiveMenuId(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/candidates/${cand.id}/history`, {
+      const res = await axios.get(`${API_BASE_URL}/candidates/${cand.id}/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistoryList(res.data.data || []);

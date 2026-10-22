@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -22,7 +23,7 @@ import {
   AvatarBadge
 } from './RecruitmentRequestModals';
 
-const API_BASE = 'http://localhost:5000/api/recruitment-requests';
+const API_BASE = `${API_BASE_URL}/recruitment-requests`;
 
 const RecruitmentRequestDetail = () => {
   const { id } = useParams();

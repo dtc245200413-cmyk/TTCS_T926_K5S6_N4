@@ -1,9 +1,10 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiBriefcase } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api/candidate-portal';
+const API = `${API_BASE_URL}/candidate-portal`;
 const statuses = { SUBMITTED: ['Đang xem xét', 'badge-info'], SCREENING: ['Đang sàng lọc', 'badge-info'], INTERVIEWING: ['Phỏng vấn', 'badge-warning'], OFFERED: ['Thư mời', 'badge-success'], HIRED: ['Đã nhận việc', 'badge-success'], REJECTED: ['Từ chối', 'badge-error'], WITHDRAWN: ['Đã rút hồ sơ', 'badge-warning'] };
 
 const CandidateApplications = () => {

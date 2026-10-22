@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useContext, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -20,7 +21,7 @@ const CandidateRegister = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/candidate-portal/register', form);
+      const response = await axios.post(`${API_BASE_URL}/candidate-portal/register`, form);
       login(response.data.data.token, response.data.data.candidate);
       navigate('/candidate', { replace: true });
     } catch (requestError) {

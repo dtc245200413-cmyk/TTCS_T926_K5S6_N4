@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
@@ -13,7 +14,7 @@ import {
   FiFileText
 } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api/candidate-portal';
+const API = `${API_BASE_URL}/candidate-portal`;
 
 const CandidateOffers = () => {
   const [offers, setOffers] = useState([]);

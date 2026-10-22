@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -21,7 +22,7 @@ import {
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = API_BASE_URL;
 const PAGE_SIZE = 8;
 
 const tabs = [

@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiCalendar, FiCheck, FiMapPin, FiVideo } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api/candidate-portal';
+const API = `${API_BASE_URL}/candidate-portal`;
 const interviewStatus = { SCHEDULED: ['Chờ xác nhận', 'badge-warning'], CONFIRMED: ['Đã xác nhận', 'badge-success'], RESCHEDULE_REQUESTED: ['Đã đề xuất đổi lịch', 'badge-info'], DECLINED: ['Đã từ chối', 'badge-error'], COMPLETED: ['Đã hoàn thành', 'badge-info'] };
 
 const CandidateInterviews = () => {

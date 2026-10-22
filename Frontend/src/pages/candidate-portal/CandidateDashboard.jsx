@@ -1,9 +1,10 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiBell, FiBriefcase, FiCalendar, FiMail, FiArrowRight } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api/candidate-portal';
+const API = `${API_BASE_URL}/candidate-portal`;
 const statusText = { SUBMITTED: 'Đang xem xét', SCREENING: 'Đang sàng lọc', INTERVIEWING: 'Phỏng vấn', OFFERED: 'Thư mời', HIRED: 'Đã nhận việc', REJECTED: 'Từ chối', WITHDRAWN: 'Đã rút hồ sơ' };
 const statusColor = { SUBMITTED: '#2563eb', SCREENING: '#2563eb', INTERVIEWING: '#d97706', OFFERED: '#16a34a', HIRED: '#16a34a', REJECTED: '#dc2626', WITHDRAWN: '#64748b' };
 

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -21,7 +22,7 @@ import {
   FiUnderline
 } from 'react-icons/fi';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = API_BASE_URL;
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('vi-VN') : '-';

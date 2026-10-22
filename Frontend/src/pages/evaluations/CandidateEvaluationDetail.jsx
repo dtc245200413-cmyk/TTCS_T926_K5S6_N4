@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -288,7 +289,7 @@ const CandidateEvaluationDetail = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {candidate.resume_url && (
             <a
-              href={`http://localhost:5000/api/candidates/${candidate.id}/resume`}
+              href={`${API_BASE_URL}/candidates/${candidate.id}/resume`}
               target="_blank"
               rel="noreferrer"
               style={{

@@ -1,3 +1,4 @@
+import { API_BASE_URL, SERVER_BASE_URL } from '../../config/api';
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axiosClient from '../../api/axiosClient';
@@ -94,7 +95,7 @@ const Header = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/me/avatar', {
+      const response = await fetch(`${API_BASE_URL}/users/me/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -215,7 +216,7 @@ const Header = () => {
             title="Nhấn để xem tùy chọn"
           >
             {user?.avatar_url ? (
-              <img src={`http://localhost:5000${user.avatar_url}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={`${SERVER_BASE_URL}${user.avatar_url}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'
             )}

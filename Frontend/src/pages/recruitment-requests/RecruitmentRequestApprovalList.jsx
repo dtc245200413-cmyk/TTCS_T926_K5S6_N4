@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
@@ -26,7 +27,7 @@ const RecruitmentRequestApprovalList = () => {
     const fetchRequests = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/recruitment-requests/approvals', {
+        const response = await axios.get(`${API_BASE_URL}/recruitment-requests/approvals`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setRequests(response.data.data);

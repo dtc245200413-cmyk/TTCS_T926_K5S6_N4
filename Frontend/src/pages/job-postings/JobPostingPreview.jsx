@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -13,7 +14,7 @@ import {
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = API_BASE_URL;
 
 const JobPostingPreview = () => {
   const { id } = useParams();

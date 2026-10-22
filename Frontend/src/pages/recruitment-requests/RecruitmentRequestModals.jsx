@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
@@ -12,7 +13,7 @@ import {
   FiFilter 
 } from 'react-icons/fi';
 
-const API_BASE = 'http://localhost:5000/api/recruitment-requests';
+const API_BASE = `${API_BASE_URL}/recruitment-requests`;
 
 // Helper to get initials & colors
 export const getAvatarColor = (name = '') => {
