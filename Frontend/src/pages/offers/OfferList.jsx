@@ -6,9 +6,6 @@ import { canEditOffer, canUseOfferDrafts } from './offerFormModel';
 import { AuthContext } from '../../context/AuthContext';
 import {
   FiFileText,
-  FiCheck,
-  FiX,
-  FiEdit,
   FiSend,
   FiEye,
   FiClock,
@@ -33,8 +30,6 @@ const OfferList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOffer, setSelectedOffer] = useState(null);
-  const [actionModal, setActionModal] = useState({ open: false, type: '', offerId: null });
-  const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -127,35 +122,6 @@ const OfferList = () => {
     }
   };
 
-  const handleProcessApproval = async () => {
-    if (['REJECTED', 'REQUEST_CHANGE'].includes(actionModal.type) && !reason.trim()) {
-      alert('Vui lòng nhập lý do/yêu cầu cụ thể');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const res = await axiosClient.post(`/offers/${actionModal.offerId}/process-approval`, {
-        action: actionModal.type,
-        reason: reason.trim()
-      });
-      if (res.data?.success) {
-        setMessage({
-          text: `Đã xử lý Offer thành công (${actionModal.type === 'APPROVED' ? 'Phê duyệt' : actionModal.type === 'REJECTED' ? 'Từ chối' : 'Yêu cầu sửa'}).`,
-          type: 'success'
-        });
-        setActionModal({ open: false, type: '', offerId: null });
-        setReason('');
-        fetchOffers();
-        if (selectedOffer?.id === actionModal.offerId) handleViewDetail(actionModal.offerId);
-      }
-    } catch (err) {
-      setMessage({ text: err.response?.data?.message || 'Lỗi khi xử lý phê duyệt Offer', type: 'error' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const getStatusBadge = (status) => {
     switch (status) {
       case 'DRAFT':
@@ -191,9 +157,12 @@ const OfferList = () => {
             Quy trình soạn thảo, gửi duyệt và phê duyệt Offer với thông báo tự động cho Người duyệt & Recruiter
           </p>
         </div>
-        {canUseOfferDrafts(user) && (creationAvailable
-          ? <Link to="/offers/new">Soạn Offer</Link>
-          : <p role="status" style={{ color: '#64748b', fontSize: '0.85rem' }}>{creationReason}</p>)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {isApprover && <Link to="/offers/approvals?tab=PENDING_APPROVAL">Offer được phân công duyệt</Link>}
+          {canUseOfferDrafts(user) && (creationAvailable
+            ? <Link to="/offers/new">Soạn Offer</Link>
+            : <p role="status" style={{ color: '#64748b', fontSize: '0.85rem' }}>{creationReason}</p>)}
+        </div>
       </div>
 
       {/* Thông báo thao tác */}
@@ -357,66 +326,6 @@ const OfferList = () => {
                           Chỉnh sửa nháp
                         </Link>}
 
-                        {/* Quyền Người duyệt: Khi offer ở trạng thái PENDING_APPROVAL */}
-                        {isApprover && offer.status === 'PENDING_APPROVAL' && (
-                          <>
-                            <button
-                              onClick={() => setActionModal({ open: true, type: 'APPROVED', offerId: offer.id })}
-                              style={{
-                                padding: '5px 10px',
-                                background: '#10b981',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '0.8rem',
-                                color: 'white',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <FiCheck size={14} /> Duyệt
-                            </button>
-                            <button
-                              onClick={() => setActionModal({ open: true, type: 'REQUEST_CHANGE', offerId: offer.id })}
-                              style={{
-                                padding: '5px 10px',
-                                background: '#f97316',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '0.8rem',
-                                color: 'white',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <FiEdit size={14} /> Sửa
-                            </button>
-                            <button
-                              onClick={() => setActionModal({ open: true, type: 'REJECTED', offerId: offer.id })}
-                              style={{
-                                padding: '5px 10px',
-                                background: '#ef4444',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '0.8rem',
-                                color: 'white',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <FiX size={14} /> Từ chối
-                            </button>
-                          </>
-                        )}
-
                         {/* Quyền Recruiter: Gửi duyệt khi ở trạng thái DRAFT hoặc CHANGE_REQUESTED */}
                         {canEditOffer(user, offer) && (
                           <button
@@ -575,77 +484,6 @@ const OfferList = () => {
         </div>
       )}
 
-      {/* Modal Xử lý phê duyệt (Duyệt, Từ chối, Yêu cầu sửa) */}
-      {actionModal.open && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1200,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '14px', maxWidth: '500px', width: '100%',
-            padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.15rem', color: '#0f172a' }}>
-              {actionModal.type === 'APPROVED' && 'Xác nhận Phê duyệt Offer'}
-              {actionModal.type === 'REJECTED' && 'Từ chối Phê duyệt Offer'}
-              {actionModal.type === 'REQUEST_CHANGE' && 'Yêu cầu chỉnh sửa Offer'}
-            </h3>
-
-            <p style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: '#64748b' }}>
-              {actionModal.type === 'APPROVED'
-                ? 'Offer sẽ được chuyển sang trạng thái Đã phê duyệt và thông báo tự động tới Recruiter phụ trách.'
-                : 'Vui lòng cung cấp lý do hoặc các điểm cần chỉnh sửa để Recruiter nắm thông tin.'
-              }
-            </p>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                {actionModal.type === 'APPROVED' ? 'Ghi chú phê duyệt (tùy chọn):' : 'Lý do / Hướng dẫn chỉnh sửa (*):'}
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={4}
-                placeholder={actionModal.type === 'APPROVED' ? 'Ví dụ: Đã kiểm tra mức lương phù hợp khung ngân sách...' : 'Ví dụ: Mức lương đề xuất vượt dải lương quy định, cần giảm 2 triệu...'}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.9rem',
-                  fontFamily: 'inherit',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                onClick={() => setActionModal({ open: false, type: '', offerId: null })}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#475569' }}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleProcessApproval}
-                disabled={submitting}
-                style={{
-                  padding: '8px 20px',
-                  background: actionModal.type === 'APPROVED' ? '#10b981' : actionModal.type === 'REJECTED' ? '#ef4444' : '#f97316',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                {submitting ? 'Đang xử lý...' : 'Xác nhận'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

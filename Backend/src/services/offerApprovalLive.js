@@ -100,7 +100,7 @@ async function getAssignedOfferDetail({ dbPool, user, offerId } = {}) {
     const [approvals] = await conn.execute(`SELECT action, reason, action_at, approver_id
       FROM offer_approvals WHERE offer_id = ? ORDER BY action_at DESC`, [id]);
     await conn.commit(); started = false;
-    return { ...details[0], approvals };
+    return { ...details[0], can_approve: true, approvals };
   } catch (error) {
     if (started) { try { await conn.rollback(); } catch { /* preserve cause */ } }
     if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(error?.code)) throw unavailable();
@@ -153,7 +153,7 @@ async function getAssignedInbox({ dbPool, user } = {}) {
         LEFT JOIN job_positions p ON p.position_id = o.position_id
         WHERE o.id = ? AND o.row_version = ? AND o.status = 'PENDING_APPROVAL'`,
         [row.id, row.row_version]);
-      if (details?.length === 1) offers.push(details[0]);
+      if (details?.length === 1) offers.push({ ...details[0], can_approve: true });
     }
     await conn.commit();
     started = false;

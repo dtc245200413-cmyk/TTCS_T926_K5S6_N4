@@ -102,6 +102,7 @@ test('mandate audit forgery denied, no write or commit',async()=>{
 test('assigned inbox exposes only DB-backed proven assigned offers',async()=>{
   const f=fixture();const data=await getAssignedInbox({dbPool:f.pool,user});
   assert.equal(data.length,1);assert.equal(data[0].offer_code,'OFF-19');
+  assert.equal(data[0].can_approve,true, 'Proven assignment must enable approval UI');
   assert.equal(f.state.commits,1);
 });
 
@@ -114,6 +115,7 @@ test('assigned inbox skips invalid provenance before querying candidate name',as
 test('approval detail requires assigned proof before revealing salary',async()=>{
   const f=fixture();const data=await getAssignedOfferDetail({dbPool:f.pool,user,offerId:19});
   assert.equal(data.id,19);assert.equal(data.approvals.length,0);
+  assert.equal(data.can_approve,true, 'Details require proven assignment');
   const g=fixture({mandateValid:false});
   await assert.rejects(getAssignedOfferDetail({dbPool:g.pool,user,offerId:19}),{statusCode:403});
   assert.equal(g.operations.some(x=>x.includes('SELECT o.*, c.full_name')),false);

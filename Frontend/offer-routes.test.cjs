@@ -58,10 +58,16 @@ async function fixture(role, status = 'DRAFT', route = '/offers', failureStatus,
           position: { id: 12, name: 'Developer' }, department: { id: 3, name: 'Engineering' }, prefill: {},
         }] : [],
       };
-      else if (url.pathname === '/api/offers' || url.pathname === '/api/offers/approval-inbox') data = [{...offer, status: state.status}];
+      else if (url.pathname === '/api/offers') data = [{...offer, status: state.status}];
+      else if (url.pathname === '/api/offers/approval-inbox') data = [{...offer, status: state.status,
+        can_approve: role === 'APPROVER'}];
       else if (url.pathname === '/api/offers/101') data = {...offer, status: state.status};
       else if (url.pathname === '/api/offers/101/submit') { state.status = 'PENDING_APPROVAL'; data = {...offer,status:state.status}; }
-      else if (url.pathname === '/api/offers/101/process-approval') { state.status = body.action === 'REQUEST_CHANGE' ? 'CHANGE_REQUESTED' : body.action; data = {...offer,status:state.status}; }
+      else if (url.pathname === '/api/offers/101/approval-detail') data = {...offer, status: state.status, can_approve: true};
+      else if (url.pathname === '/api/offers/101/decide-atomic') {
+        state.status = body.action === 'REQUEST_CHANGE' ? 'CHANGE_REQUESTED' : body.action;
+        data = {...offer,status:state.status};
+      }
       else throw new Error('Unexpected mocked API: '+method+' '+url.pathname);
       await request.respond({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({success:true,message:'OK',data})});
     })().catch(error => {state.errors.push(error.message); request.abort().catch(()=>{});});
@@ -190,12 +196,19 @@ function readRoutes(node, parent = '', out = []) {
       assert.equal(state.calls.filter(c=>c.method==='POST'&&c.path==='/api/offers/101/submit').length,1);
       assert.deepEqual(state.errors,[]); await page.close();
     });
-    for(const [button,action] of [['Duyệt','APPROVED'],['Từ chối','REJECTED'],['Sửa','REQUEST_CHANGE']]) await check('preserved approval action '+action,async()=>{
+    await check('creator list does not expose legacy approval writer', async()=>{
       const {page,state}=await fixture('APPROVER','PENDING_APPROVAL');
-      await clickText(page,button,'tbody button'); await page.waitForSelector('textarea');
-      await page.type('textarea','Smoke reason'); await clickText(page,'Xác nhận');
-      await page.waitForFunction(()=>!document.querySelector('textarea'));
-      assert.ok(state.calls.some(c=>c.path==='/api/offers/101/process-approval'&&c.body?.action===action&&c.body?.reason==='Smoke reason'));
+      assert.equal(await page.$$eval('tbody button', nodes => nodes.filter(node => /^(Duyệt|Từ chối|Sửa)$/.test(node.textContent.trim())).length),0);
+      assert.equal(await page.$$eval('a[href="/offers/approvals?tab=PENDING_APPROVAL"]',nodes=>nodes.length),1);
+      assert.equal(state.calls.some(c=>c.path.includes('/process-approval')),false);
+      assert.deepEqual(state.errors,[]); await page.close();
+    });
+    await check('verified assignment shows atomic approval actions', async()=>{
+      const {page,state}=await fixture('APPROVER','PENDING_APPROVAL','/offers/approvals');
+      assert.ok(state.calls.some(c=>c.path==='/api/offers/approval-inbox'));
+      const labels=await page.$$eval('tbody button',nodes=>nodes.map(n=>n.textContent.trim()));
+      for (const label of ['Duyệt','Từ chối','Yêu cầu sửa']) assert.ok(labels.includes(label), 'Missing: '+label);
+      assert.equal(state.calls.some(c=>c.path.includes('/process-approval')),false);
       assert.deepEqual(state.errors,[]); await page.close();
     });
     await check('Offer notification navigation',async()=>{
