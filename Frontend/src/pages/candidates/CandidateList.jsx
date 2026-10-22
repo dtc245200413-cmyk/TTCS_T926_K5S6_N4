@@ -526,22 +526,6 @@ const CandidateList = () => {
                               {candidateProfileAccess(user).canView && (
                                 <Link to={`/candidates/${cand.id}`} style={{ color: '#4f46e5', fontWeight: '600', textDecoration: 'none', whiteSpace: 'nowrap' }}>Xem hồ sơ</Link>
                               )}
-                              <Link
-                                to={`/candidate-evaluations/${cand.id}`}
-                                style={{
-                                  padding: '5px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #c7d2fe',
-                                  background: '#e0e7ff',
-                                  color: '#4338ca',
-                                  fontWeight: '700',
-                                  fontSize: '0.8rem',
-                                  textDecoration: 'none',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                Đánh giá & Duyệt
-                              </Link>
                               {canViewRatings && (
                                 <button
                                   type="button"
