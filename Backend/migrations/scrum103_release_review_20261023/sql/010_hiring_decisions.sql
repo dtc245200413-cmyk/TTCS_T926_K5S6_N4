@@ -1,0 +1,30 @@
+-- MIGRATION REVIEW: run only after successful preflight + backup/restore test.
+-- Selected DB must be explicitly confirmed. MySQL DDL commits implicitly.
+CREATE TABLE internal_recruitment_test.candidate_hiring_decisions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  candidate_id INT NOT NULL,
+  recruitment_request_id INT NULL,
+  department_id INT NOT NULL,
+  decision_maker_id INT NOT NULL,
+  decision ENUM('PASSED','FAILED') NOT NULL,
+  comments TEXT NOT NULL,
+  total_rounds_evaluated INT NOT NULL DEFAULT 1,
+  average_score DECIMAL(4,2) NULL,
+  decided_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  application_id INT NULL,
+  row_version BIGINT UNSIGNED NOT NULL DEFAULT 1,
+  validity_status ENUM('UNVERIFIED','CURRENT','REVOKED','SUPERSEDED') NOT NULL DEFAULT 'UNVERIFIED',
+  authority_policy VARCHAR(100) NULL,
+  authority_reference VARCHAR(255) NULL,
+  revoked_at DATETIME NULL,
+  superseded_at DATETIME NULL,
+  UNIQUE KEY uq_cand_decision (candidate_id, recruitment_request_id),
+  UNIQUE KEY uq_chd_application (application_id),
+  CONSTRAINT fk_chd_application FOREIGN KEY (application_id) REFERENCES internal_recruitment_test.candidate_applications(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_chd_candidate FOREIGN KEY (candidate_id) REFERENCES internal_recruitment_test.candidates(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_chd_req FOREIGN KEY (recruitment_request_id) REFERENCES internal_recruitment_test.recruitment_requests(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_chd_dept FOREIGN KEY (department_id) REFERENCES internal_recruitment_test.departments(department_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_chd_maker FOREIGN KEY (decision_maker_id) REFERENCES internal_recruitment_test.users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

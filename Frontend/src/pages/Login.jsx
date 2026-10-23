@@ -1,3 +1,4 @@
+import { API_BASE_URL, SERVER_BASE_URL } from '../config/api';
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -43,7 +44,7 @@ const Login = () => {
   useEffect(() => {
     const fetchCompanyProfile = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/company-profile');
+        const res = await axios.get(`${API_BASE_URL}/company-profile`);
         if (res.data.success) {
           setCompanyProfile(res.data.data);
         }
@@ -90,7 +91,7 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-banner" style={{ 
-        backgroundImage: companyProfile?.banner_url ? `url(http://localhost:5000${companyProfile.banner_url})` : undefined, 
+        backgroundImage: companyProfile?.banner_url ? `url(${SERVER_BASE_URL}${companyProfile.banner_url})` : undefined,
         backgroundSize: 'cover', 
         backgroundPosition: 'center',
         position: 'relative'
@@ -100,7 +101,7 @@ const Login = () => {
           
           {companyProfile?.logo_url && (
             <div style={{ width: '80px', height: '80px', backgroundColor: 'white', borderRadius: '16px', padding: '8px', marginBottom: '24px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}>
-              <img src={`http://localhost:5000${companyProfile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={`${SERVER_BASE_URL}${companyProfile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
           )}
 

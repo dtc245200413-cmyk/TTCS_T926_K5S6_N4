@@ -1,3 +1,4 @@
+import { API_BASE_URL, SERVER_BASE_URL } from '../../config/api';
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axiosClient from '../../api/axiosClient';
@@ -94,7 +95,7 @@ const Header = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/me/avatar', {
+      const response = await fetch(`${API_BASE_URL}/users/me/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -161,13 +162,21 @@ const Header = () => {
                   notifications.map(notif => (
                     <div 
                       key={notif.notification_id} 
-                      onClick={() => {
-                        if (!notif.is_read) markAsRead(notif.notification_id);
+                      onClick={async () => {
+                        setShowDropdown(false);
+                        if (!notif.is_read) await markAsRead(notif.notification_id);
+                        if (notif.link) {
+                          let target = notif.link;
+                          if (target === '/interviews') target = '/interview-schedules';
+                          if (target === '/offers/approval') target = '/offers';
+                          navigate(target);
+                        }
                       }}
                       style={{ 
                         padding: '12px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
                         background: notif.is_read ? 'white' : '#f0f9ff',
-                        transition: 'background 0.2s'
+                        transition: 'background 0.2s',
+                        borderLeft: notif.is_read ? 'none' : '3px solid #3b82f6'
                       }}
                     >
                       <div style={{ fontSize: '0.9rem', fontWeight: notif.is_read ? '500' : '700', color: '#0f172a', marginBottom: '4px' }}>
@@ -182,6 +191,15 @@ const Header = () => {
                     </div>
                   ))
                 )}
+              </div>
+              <div style={{ padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <Link 
+                  to="/notifications" 
+                  onClick={() => setShowDropdown(false)}
+                  style={{ color: '#4f46e5', fontSize: '0.85rem', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  Xem tất cả thông báo →
+                </Link>
               </div>
             </div>
           )}
@@ -209,7 +227,7 @@ const Header = () => {
             title="Nhấn để xem tùy chọn"
           >
             {user?.avatar_url ? (
-              <img src={`http://localhost:5000${user.avatar_url}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={`${SERVER_BASE_URL}${user.avatar_url}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'
             )}

@@ -194,6 +194,12 @@ const Sidebar = () => {
       <NavLink to="/candidates" className={getClassName} style={navLinkStyle}>
         <FiUsers size={18} /> Quản lý ứng viên
       </NavLink>
+      <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+      </NavLink>
+      <NavLink to="/offers" className={getClassName} style={navLinkStyle}>
+        <FiAward size={18} /> Quản lý Offer
+      </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
         <FiCalendar size={18} /> Lịch phỏng vấn
       </NavLink>
@@ -208,6 +214,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/company-profile" className={getClassName} style={navLinkStyle}>
         <FiBriefcase size={18} /> Hồ sơ công ty
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={navLinkStyle}>
+        <FiBell size={18} /> Thông báo
       </NavLink>
     </div>
   );
@@ -230,12 +239,20 @@ const Sidebar = () => {
         <FiUser size={18} /> Ứng viên
       </NavLink>
 
+      <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+      </NavLink>
+
       <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
         <FiCalendar size={18} /> Lịch phỏng vấn
       </NavLink>
 
       <NavLink to="/reports" className={getClassName} style={navLinkStyle}>
         <FiBarChart2 size={18} /> Báo cáo
+      </NavLink>
+
+      <NavLink to="/notifications" className={getClassName} style={navLinkStyle}>
+        <FiBell size={18} /> Thông báo
       </NavLink>
 
       {/* Quản lý tổ chức (Collapsible with ▼ matching screenshot) */}
@@ -263,6 +280,10 @@ const Sidebar = () => {
 
       <NavLink to="/approval-workflows" className={getClassName} style={navLinkStyle}>
         <FiCheckCircle size={18} /> Luồng phê duyệt
+      </NavLink>
+
+      <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
       </NavLink>
 
       <NavLink to="/competency-frameworks" className={getClassName} style={navLinkStyle}>
@@ -297,6 +318,10 @@ const Sidebar = () => {
         <FiUsers size={18} /> Ứng viên bộ phận
       </NavLink>
 
+      <NavLink to="/candidate-evaluations" className={getClassName} style={navLinkStyle}>
+        <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+      </NavLink>
+
       <NavLink to="/interview-schedules" className={getClassName} style={navLinkStyle}>
         <FiCalendar size={18} /> Lịch phỏng vấn
       </NavLink>
@@ -317,8 +342,17 @@ const Sidebar = () => {
       <NavLink to="/candidates" className={getClassName} style={getNavLinkStyle('/candidates')} end>
         <FiUsers size={18} /> Quản lý ứng viên
       </NavLink>
+      <NavLink to="/candidate-evaluations" className={getClassName} style={getNavLinkStyle('/candidate-evaluations')}>
+        <FiCheckCircle size={18} /> Đánh giá ứng viên
+      </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')}>
         <FiCalendar size={18} /> Lịch phỏng vấn
+      </NavLink>
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+        <FiFileText size={18} /> Quản lý Offer
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
       </NavLink>
     </div>
   );
@@ -331,6 +365,15 @@ const Sidebar = () => {
       <NavLink to="/recruitment-requests/approvals" className={getClassName} style={getNavLinkStyle('/recruitment-requests/approvals')} end>
         <FiCalendar size={18} /> Duyệt yêu cầu
       </NavLink>
+      <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+        <FiCheckSquare size={18} /> Duyệt Offer
+      </NavLink>
+      <NavLink to="/candidate-evaluations" className={getClassName} style={getNavLinkStyle('/candidate-evaluations')}>
+        <FiCheckCircle size={18} /> Đánh giá ứng viên
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
+      </NavLink>
     </div>
   );
 
@@ -341,6 +384,9 @@ const Sidebar = () => {
       </NavLink>
       <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')} end>
         <FiCalendar size={18} /> Lịch phỏng vấn
+      </NavLink>
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
       </NavLink>
     </div>
   );
@@ -369,11 +415,33 @@ const Sidebar = () => {
         </NavLink>
       )}
 
+      {(isRecruiterRole || isHrManager || isApprover || isHiringManager || isAdmin) && (
+        <NavLink to="/candidate-evaluations" className={getClassName} style={getNavLinkStyle('/candidate-evaluations')}>
+          <FiCheckCircle size={18} /> Đánh giá & Tuyển chọn
+        </NavLink>
+      )}
+
+      {(isRecruiterRole || isAdmin) && (
+        <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+          <FiAward size={18} /> Quản lý Offer
+        </NavLink>
+      )}
+
+      {isApprover && (
+        <NavLink to="/offers" className={getClassName} style={getNavLinkStyle('/offers')}>
+          <FiCheckSquare size={18} /> Duyệt Offer
+        </NavLink>
+      )}
+
       {interviewAccess(user).canView && (
         <NavLink to="/interview-schedules" className={getClassName} style={getNavLinkStyle('/interview-schedules')}>
           <FiCalendar size={18} /> Lịch phỏng vấn
         </NavLink>
       )}
+
+      <NavLink to="/notifications" className={getClassName} style={getNavLinkStyle('/notifications')}>
+        <FiBell size={18} /> Thông báo
+      </NavLink>
     </div>
   );
 

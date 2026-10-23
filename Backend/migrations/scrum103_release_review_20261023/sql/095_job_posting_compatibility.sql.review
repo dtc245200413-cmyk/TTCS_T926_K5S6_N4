@@ -1,0 +1,13 @@
+-- REVIEW ONLY. Do not run this template verbatim against an existing database.
+-- These columns originate from Backend/src/config/schemaMigrations.js.
+-- For MySQL 8.0, generate the ALTER statement from information_schema
+-- for ONLY columns that are absent in the approved target database.
+-- A successful isolated trial is not authorization to modify the shared DB.
+-- Example for missing three columns (if AND ONLY if all three are absent):
+-- ALTER TABLE job_postings
+--   ADD COLUMN department_id INT NULL,
+--   ADD COLUMN hidden_by INT NULL,
+--   ADD COLUMN hidden_at DATETIME NULL;
+-- Review also: review_note, submitted_by, submitted_at, reviewed_by,
+-- reviewed_at, published_by, published_at, closed_at. These should already
+-- exist; the helper checks them, adds any missing ones on trial only.

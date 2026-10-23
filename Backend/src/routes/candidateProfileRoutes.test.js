@@ -112,13 +112,13 @@ it('rejects wrong-group, inactive and nonexistent tags', async () => {
 });
 
 it('saves and reopens notes with trusted author, trimmed content, timestamp and newest-first ordering', async () => {
-  const first = await request('/1/notes', { method: 'POST', body: { note_content: '  Ghi chú đầu  ' } });
+  const first = await request('/1/profile-notes', { method: 'POST', body: { note_content: '  Ghi chú đầu  ' } });
   expect(first.status).toBe(201);
   expect(first.body.data).toMatchObject({ author_id: 7, author_name: 'Recruiter Test', note_content: 'Ghi chú đầu' });
   expect(first.body.data.created_at).toBeTruthy();
-  await request('/1/notes', { method: 'POST', body: { note_content: 'Ghi chú sau' } });
-  expect((await request('/1/notes')).body.data.map(note => note.note_content)).toEqual(['Ghi chú sau', 'Ghi chú đầu']);
-  expect((await request('/2/notes')).body.data).toEqual([]);
+  await request('/1/profile-notes', { method: 'POST', body: { note_content: 'Ghi chú sau' } });
+  expect((await request('/1/profile-notes')).body.data.map(note => note.note_content)).toEqual(['Ghi chú sau', 'Ghi chú đầu']);
+  expect((await request('/2/profile-notes')).body.data).toEqual([]);
 });
 
 it('rejects forged author, empty note and overlong note without writing', async () => {
@@ -126,40 +126,40 @@ it('rejects forged author, empty note and overlong note without writing', async 
     { note_content: 'Hello', author_id: 999 },
     { note_content: ' \n ' },
     { note_content: 'x'.repeat(5001) }
-  ]) expect((await request('/1/notes', { method: 'POST', body })).status).toBe(400);
+  ]) expect((await request('/1/profile-notes', { method: 'POST', body })).status).toBe(400);
   expect(notes).toHaveLength(0);
 });
 
 it.each(['CANDIDATE', 'INTERVIEWER', 'APPROVER'])('returns 403 for %s on every new endpoint', async role => {
   for (const [path, method, body] of [
     ['/1/tags', 'GET'], ['/1/tags', 'POST', { tag_id: 12 }], ['/1/tags/12', 'DELETE'],
-    ['/1/notes', 'GET'], ['/1/notes', 'POST', { note_content: 'Secret' }]
+    ['/1/profile-notes', 'GET'], ['/1/profile-notes', 'POST', { note_content: 'Secret' }]
   ]) expect((await request(path, { method, body, role })).status).toBe(403);
   expect(repository.findCandidate).not.toHaveBeenCalled();
 });
 
 it('authenticates requests before reaching the service', async () => {
-  expect((await request('/1/notes', { role: null })).status).toBe(401);
+  expect((await request('/1/profile-notes', { role: null })).status).toBe(401);
   expect(repository.findCandidate).not.toHaveBeenCalled();
 });
 
 it('returns 404 for a missing candidate', async () => {
-  expect((await request('/999/notes')).status).toBe(404);
+  expect((await request('/999/profile-notes')).status).toBe(404);
   expect((await request('/999/tags', { method: 'POST', body: { tag_id: 12 } })).status).toBe(404);
 });
 
 it('enforces Hiring Manager department scope and denies writes', async () => {
-  expect((await request('/1/notes', { role: 'HIRING_MANAGER' })).status).toBe(200);
+  expect((await request('/1/profile-notes', { role: 'HIRING_MANAGER' })).status).toBe(200);
   expect((await request('/1/tags', { role: 'HIRING_MANAGER', method: 'POST', body: { tag_id: 12 } })).status).toBe(403);
   repository.findRequestDepartment.mockResolvedValue(null);
-  expect((await request('/1/notes', { role: 'HIRING_MANAGER' })).status).toBe(403);
+  expect((await request('/1/profile-notes', { role: 'HIRING_MANAGER' })).status).toBe(403);
   expect((await request('/1/tags', { role: 'HIRING_MANAGER' })).status).toBe(403);
 });
 
 it('returns a safe 500 on database errors and continues serving subsequent requests', async () => {
   repository.getNotes.mockRejectedValueOnce(Object.assign(new Error('sensitive SQL diagnostic'), { code: 'ER_NO_SUCH_TABLE' }));
-  const failed = await request('/1/notes');
+  const failed = await request('/1/profile-notes');
   expect(failed.status).toBe(500);
   expect(JSON.stringify(failed.body)).not.toContain('sensitive SQL diagnostic');
-  expect((await request('/1/notes')).status).toBe(200);
+  expect((await request('/1/profile-notes')).status).toBe(200);
 });

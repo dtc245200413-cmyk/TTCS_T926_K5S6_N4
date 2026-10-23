@@ -1,0 +1,17 @@
+-- REVIEW ONLY (5.2C). Not executed, not registered with Backend startup.
+-- Apply only after explicit approval, verified TEST backup/restore and preflight.
+-- All SQL objects are qualified to internal_recruitment_test; never use --force.
+-- A failed/partial step requires inventory and review, NOT a blind rerun.
+SELECT DATABASE() AS selected_database, CURRENT_USER() AS account,
+       VERSION() AS mysql_version;
+-- Operator STOP unless database is exactly internal_recruitment_test and the
+-- approved dedicated migration account is in use (never root/scrum103_reader).
+
+-- Owner: Candidate Portal/Application tracking. Required by the Offer DTO.
+-- Precondition: application_code and uq_cand_app_code are BOTH absent as in 5.2B.
+-- If either exists, compare type/null/default/index and review a partial plan.
+-- No code generation/backfill; no candidates.application_code change.
+ALTER TABLE internal_recruitment_test.candidate_applications
+  ADD COLUMN application_code VARCHAR(50) NULL,
+  ADD UNIQUE KEY uq_cand_app_code (application_code);
+SHOW CREATE TABLE internal_recruitment_test.candidate_applications;

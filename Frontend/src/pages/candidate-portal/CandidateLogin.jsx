@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useContext, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -20,7 +21,7 @@ const CandidateLogin = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/candidate-portal/login', { email, password });
+      const response = await axios.post(`${API_BASE_URL}/candidate-portal/login`, { email, password });
       login(response.data.data.token, response.data.data.candidate);
       const returnTo = searchParams.get('returnTo');
       navigate(returnTo?.startsWith('/candidate') ? returnTo : '/candidate', { replace: true });

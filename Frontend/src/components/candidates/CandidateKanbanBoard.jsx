@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -17,7 +18,8 @@ import {
   FiArrowRight,
   FiMoreHorizontal,
   FiGrid,
-  FiList
+  FiList,
+  FiCheckCircle
 } from 'react-icons/fi';
 import { candidateProfileAccess } from '../../utils/candidateProfile';
 
@@ -236,7 +238,7 @@ const CandidateKanbanBoard = ({
     setActiveMenuId(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/candidates/${cand.id}/history`, {
+      const res = await axios.get(`${API_BASE_URL}/candidates/${cand.id}/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistoryList(res.data.data || []);
@@ -396,6 +398,25 @@ const CandidateKanbanBoard = ({
             >
               <FiList size={14} /> Danh sách
             </button>
+            <Link
+              to="/candidate-evaluations"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                borderRadius: 8,
+                border: '1px solid #c7d2fe',
+                fontSize: 13,
+                fontWeight: 600,
+                textDecoration: 'none',
+                backgroundColor: '#eef2ff',
+                color: '#4338ca',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <FiCheckCircle size={14} color="#4f46e5" /> Đánh giá & Tuyển chọn
+            </Link>
           </div>
         )}
       </div>
@@ -698,7 +719,31 @@ const CandidateKanbanBoard = ({
                             <FiDownload size={12} /> CV
                           </button>
 
-                          {/* Button 3: More (...) */}
+                          {/* Button 3: Đánh giá */}
+                          <Link
+                            to={`/candidate-evaluations/${cand.id}`}
+                            title="Xem điểm phỏng vấn & Quyết định Đạt / Không đạt"
+                            style={{
+                              flex: 1.15,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 3,
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: 6,
+                              padding: '5px 0',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: '#1d4ed8',
+                              textDecoration: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <FiCheckCircle size={11} color="#2563eb" /> Đánh giá
+                          </Link>
+
+                          {/* Button 4: More (...) */}
                           <div className="card-more-menu-container" style={{ position: 'relative' }}>
                             <button
                               type="button"
@@ -760,6 +805,28 @@ const CandidateKanbanBoard = ({
                                 >
                                   <FiArrowRight size={13} color="#2563eb" /> Chuyển giai đoạn...
                                 </button>
+                                <Link
+                                  to={`/candidate-evaluations/${cand.id}`}
+                                  style={{
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    padding: '8px 12px',
+                                    fontSize: 12,
+                                    color: '#1d4ed8',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    textDecoration: 'none',
+                                    fontWeight: 600
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                >
+                                  <FiCheckCircle size={13} color="#2563eb" /> Đánh giá & Tuyển chọn...
+                                </Link>
                                 <button
                                   type="button"
                                   onClick={() => handleViewHistory(cand)}

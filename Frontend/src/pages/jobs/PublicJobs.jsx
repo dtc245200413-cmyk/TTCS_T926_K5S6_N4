@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -16,7 +17,7 @@ import {
 } from 'react-icons/fi';
 import '../../styles/public-jobs.css';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = API_BASE_URL;
 
 const PublicJobs = () => {
   const [jobs, setJobs] = useState([]);

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -15,7 +16,7 @@ import {
   FiMapPin 
 } from 'react-icons/fi';
 
-const API = 'http://localhost:5000/api';
+const API = `${API_BASE_URL}`;
 
 const TrackApplication = () => {
   const [searchParams, setSearchParams] = useSearchParams();

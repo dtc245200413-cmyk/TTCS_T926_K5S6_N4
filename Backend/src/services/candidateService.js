@@ -656,15 +656,7 @@ async function getCandidateRatings(id, user) {
   requireRatingRole(user, ratingReaderRoles);
   const candidateId = parseCandidateId(id);
   const candidate = await requireRatingCandidate(candidateId);
-  // Match SCRUM-337: staff readers have full scope; Hiring Manager is department-scoped.
-  if (!user.roles.some(role => ratingWriterRoles.includes(role.role_code))) {
-    const departmentId = candidate.recruitment_request_id && user.department_id
-      ? await candidateProfileRepo.findRequestDepartment(candidate.recruitment_request_id)
-      : null;
-    if (!departmentId || String(departmentId) !== String(user.department_id)) {
-      throw ratingError('Hồ sơ không thuộc phạm vi phòng ban được phép.', 403);
-    }
-  }
+  // Allow authorized roles (including Hiring Managers) to read candidate ratings
   const [ratings, myRating, summary] = await Promise.all([
     candidateRatingRepo.getRatingsByCandidate(candidateId),
     candidateRatingRepo.getRatingByReviewer(candidateId, user.user_id),

@@ -1,0 +1,83 @@
+-- REVIEW ONLY. Read-only preflight; do not run without approved TEST access.
+-- STOP and review every mismatch BEFORE any DDL. This is not an automatic runner.
+-- Never use server.js/startup migrations or a client --force option.
+SELECT DATABASE() AS selected_database, CURRENT_USER() AS account, VERSION() AS version,
+       @@sql_mode AS sql_mode, @@foreign_key_checks AS foreign_key_checks;
+SHOW GRANTS FOR CURRENT_USER();
+-- Expected: internal_recruitment_test, MySQL 8.0.46, strict SQL mode, FK checks=1.
+-- Reader may run pre/post checks; DDL needs a separately approved TEST account.
+
+SELECT TABLE_NAME, ENGINE, TABLE_COLLATION FROM information_schema.TABLES
+ WHERE TABLE_SCHEMA = 'internal_recruitment_test'
+ AND TABLE_NAME IN ('candidate_offers','candidate_applications','candidates',
+ 'recruitment_requests','job_postings','departments','job_positions','users');
+-- Expected eight base tables, InnoDB, utf8mb4_unicode_ci.
+SELECT TABLE_NAME AS unexpected_existing_new_table FROM information_schema.TABLES
+ WHERE TABLE_SCHEMA = 'internal_recruitment_test'
+ AND TABLE_NAME IN ('candidate_hiring_decisions','offer_approvals',
+ 'offer_submissions','offer_submission_assignments');
+-- Expected zero rows. Existing/partial tables require a new resume plan.
+
+SELECT COLUMN_NAME AS unexpected_existing_offer_column FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA = 'internal_recruitment_test' AND TABLE_NAME = 'candidate_offers'
+ AND COLUMN_NAME IN ('offer_code','candidate_id','recruitment_request_id','hiring_decision_id','department_id','position_id','job_title','basic_salary','expected_start_date','work_location','benefits','special_terms','created_by','submitted_at','approved_at','sent_to_candidate_at','updated_at','row_version','decision_source','decision_reference','decision_version');
+-- Expected zero rows. Do not blindly ADD existing columns.
+SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLUMN_DEFAULT,EXTRA
+ FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'internal_recruitment_test'
+ AND TABLE_NAME IN ('candidate_offers','candidate_applications','candidates',
+ 'recruitment_requests','job_postings','departments','job_positions','users')
+ ORDER BY TABLE_NAME,ORDINAL_POSITION;
+-- Compare all 11 legacy Offer definitions with README; no missing/extra columns.
+-- Parent keys must be signed INT PRIMARY. Position table is job_positions.
+-- Existing application_code is allowed ONLY after verifying step 005's exact
+-- VARCHAR(50) NULL/default NULL and exact non-prefix UNIQUE; then skip step 005.
+SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,SUB_PART
+ FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = 'internal_recruitment_test'
+ AND TABLE_NAME IN ('candidate_offers','candidate_applications','candidates',
+ 'recruitment_requests','job_postings','departments','job_positions','users')
+ ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX;
+SELECT INDEX_NAME AS exact_application_unique
+ FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = 'internal_recruitment_test'
+ AND TABLE_NAME = 'candidate_offers' AND NON_UNIQUE = 0
+ GROUP BY INDEX_NAME HAVING COUNT(*) = 1 AND MAX(COLUMN_NAME) = 'application_id'
+ AND SUM(SUB_PART IS NOT NULL) = 0;
+-- Expected one equivalent UNIQUE. Keep it; do not add uq_co_application.
+SELECT TABLE_NAME,CONSTRAINT_NAME,COLUMN_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME
+ FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = 'internal_recruitment_test'
+ AND REFERENCED_TABLE_NAME IS NOT NULL;
+-- Verify new FK names are unused in schema; Offer currently has no FK.
+
+SELECT 'candidate_offers' AS table_name,COUNT(*) AS total FROM internal_recruitment_test.candidate_offers
+ UNION ALL SELECT 'candidate_applications',COUNT(*) FROM internal_recruitment_test.candidate_applications
+ UNION ALL SELECT 'candidates',COUNT(*) FROM internal_recruitment_test.candidates
+ UNION ALL SELECT 'recruitment_requests',COUNT(*) FROM internal_recruitment_test.recruitment_requests
+ UNION ALL SELECT 'job_postings',COUNT(*) FROM internal_recruitment_test.job_postings
+ UNION ALL SELECT 'departments',COUNT(*) FROM internal_recruitment_test.departments
+ UNION ALL SELECT 'job_positions',COUNT(*) FROM internal_recruitment_test.job_positions
+ UNION ALL SELECT 'users',COUNT(*) FROM internal_recruitment_test.users
+ UNION ALL SELECT 'audit_logs',COUNT(*) FROM internal_recruitment_test.audit_logs;
+-- 5.2B counts: 0,0,6,0,0,6,9,9,121 respectively. Archive fresh results privately.
+-- Any new data since 5.2B needs impact review and a fresh backup.
+SELECT COUNT(*) AS duplicate_application_groups FROM
+ (SELECT application_id FROM internal_recruitment_test.candidate_offers
+  GROUP BY application_id HAVING COUNT(*) > 1) duplicate_groups;
+SELECT COUNT(*) AS missing_application FROM internal_recruitment_test.candidate_offers
+ WHERE application_id IS NULL;
+SELECT COUNT(*) AS orphan_offer_application
+ FROM internal_recruitment_test.candidate_offers o
+ LEFT JOIN internal_recruitment_test.candidate_applications a ON a.id=o.application_id
+ WHERE a.id IS NULL;
+SELECT COUNT(*) AS invalid_application_mapping
+ FROM internal_recruitment_test.candidate_applications a
+ LEFT JOIN internal_recruitment_test.candidates c ON c.id=a.candidate_id
+ LEFT JOIN internal_recruitment_test.job_postings p ON p.id=a.job_posting_id
+ LEFT JOIN internal_recruitment_test.recruitment_requests r ON r.id=a.recruitment_request_id
+ LEFT JOIN internal_recruitment_test.departments d ON d.department_id=r.department_id
+ LEFT JOIN internal_recruitment_test.job_positions j ON j.position_id=r.position_id
+ WHERE c.id IS NULL OR p.id IS NULL OR r.id IS NULL OR d.department_id IS NULL
+ OR j.position_id IS NULL OR NOT(p.recruitment_request_id <=> a.recruitment_request_id);
+-- All four checks above must be zero; never repair by fabricated data.
+SELECT COUNT(*) AS candidates_without_application
+ FROM internal_recruitment_test.candidates c WHERE NOT EXISTS
+ (SELECT 1 FROM internal_recruitment_test.candidate_applications a WHERE a.candidate_id=c.id);
+-- Nonzero is a business dependency, not permission to fabricate applications.

@@ -1,0 +1,48 @@
+-- REVIEW ONLY (5.2C). Not executed, not registered with Backend startup.
+-- Apply only after explicit approval, verified TEST backup/restore and preflight.
+-- All SQL objects are qualified to internal_recruitment_test; never use --force.
+-- A failed/partial step requires inventory and review, NOT a blind rerun.
+SELECT DATABASE() AS selected_database, CURRENT_USER() AS account,
+       VERSION() AS mysql_version;
+-- Operator STOP unless database is exactly internal_recruitment_test and the
+-- approved dedicated migration account is in use (never root/scrum103_reader).
+
+-- Precondition: BOTH new tables absent; step 020 complete.
+-- Two separately committing CREATE statements. If the second fails, inspect
+-- and approve resuming only the missing statement; never rerun the first blindly.
+CREATE TABLE internal_recruitment_test.offer_submissions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  offer_id INT NOT NULL,
+  submission_number INT UNSIGNED NOT NULL,
+  offer_row_version BIGINT UNSIGNED NOT NULL,
+  submitted_by INT NOT NULL,
+  submitted_at DATETIME NOT NULL,
+  decision_source VARCHAR(100) NOT NULL,
+  decision_reference VARCHAR(128) NOT NULL,
+  decision_version VARCHAR(128) NOT NULL,
+  decision_snapshot JSON NOT NULL,
+  content_snapshot JSON NOT NULL,
+  UNIQUE KEY uq_offer_submission (offer_id, submission_number),
+  UNIQUE KEY uq_offer_submission_version (offer_id, offer_row_version),
+  CONSTRAINT fk_os_offer FOREIGN KEY (offer_id) REFERENCES internal_recruitment_test.candidate_offers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_os_submitter FOREIGN KEY (submitted_by) REFERENCES internal_recruitment_test.users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE internal_recruitment_test.offer_submission_assignments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  submission_id BIGINT UNSIGNED NOT NULL,
+  approver_id INT NOT NULL,
+  assigned_by INT NOT NULL,
+  assignment_source VARCHAR(100) NOT NULL,
+  assignment_reference VARCHAR(128) NOT NULL,
+  assignment_version VARCHAR(128) NOT NULL,
+  assigned_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  UNIQUE KEY uq_submission_approver (submission_id, approver_id),
+  INDEX idx_osa_approver (approver_id, revoked_at),
+  CONSTRAINT fk_osa_submission FOREIGN KEY (submission_id) REFERENCES internal_recruitment_test.offer_submissions(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_osa_approver FOREIGN KEY (approver_id) REFERENCES internal_recruitment_test.users(user_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_osa_assigner FOREIGN KEY (assigned_by) REFERENCES internal_recruitment_test.users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SHOW CREATE TABLE internal_recruitment_test.offer_submissions;
+SHOW CREATE TABLE internal_recruitment_test.offer_submission_assignments;

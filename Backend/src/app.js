@@ -35,7 +35,7 @@ app.use(cors({
     'http://localhost:5174'
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
   exposedHeaders: ['Content-Disposition']
 }));
 
@@ -82,15 +82,21 @@ const candidateRoutes = require('./routes/candidateRoutes');
 const auditLogRoutes = require('./routes/auditLogRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const interviewScheduleRoutes = require('./routes/interviewScheduleRoutes');
+const candidateProfileRoutes = require('./routes/candidateProfileRoutes');
 app.use('/api/candidates', candidateRoutes);
+app.use('/api/candidates', candidateProfileRoutes);
 
 app.use('/api/competency-frameworks', competencyFrameworkRoutes);
 app.use('/api/interview-questions', interviewQuestionRoutes);
 app.use('/api/interview-schedules', interviewScheduleRoutes);
 const interviewEvaluationRoutes = require('./routes/interviewEvaluationRoutes');
 app.use('/api/interview-evaluations', interviewEvaluationRoutes);
+const candidateEvaluationRoutes = require('./routes/candidateEvaluationRoutes');
+app.use('/api/candidate-evaluations', candidateEvaluationRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationRoutes);
+const offerRoutes = require('./routes/offerRoutes');
+app.use('/api/offers', offerRoutes);
 
 // ── 404 Handler ─────────────────────────────────────────────
 

@@ -152,7 +152,7 @@ router.get('/:id/ratings', candidateController.getRatings);
 router.put('/:id/rating', requireCandidateWriter, candidateController.updateRating);
 
 // Notes (Ghi chú đánh giá)
-router.get('/:id/notes', requireCandidateReader, candidateController.getNotes);
+router.get('/:id/notes', requireCandidateWriter, candidateController.getNotes);
 router.post('/:id/notes', requireCandidateWriter, candidateController.addNote);
 router.put('/:id/notes/:noteId', requireCandidateWriter, candidateController.updateNote);
 

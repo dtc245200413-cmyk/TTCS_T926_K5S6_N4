@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Outlet } from 'react-router-dom';
@@ -16,6 +16,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import Reports from './pages/Reports';
 import QuestionBank from './pages/questions/QuestionBank';
 import Notifications from './pages/Notifications';
+import OfferList from './pages/offers/OfferList';
+import OfferForm from './pages/offers/OfferForm';
 
 // User Pages
 import UserList from './pages/users/UserList';
@@ -45,6 +47,8 @@ import CandidateList from './pages/candidates/CandidateList';
 import CandidateCreate from './pages/candidates/CandidateCreate';
 import CandidateUnifiedProfile from './pages/candidates/CandidateUnifiedProfile';
 import InterviewScheduleList from './pages/interviews/InterviewScheduleList';
+import CandidateEvaluationList from './pages/evaluations/CandidateEvaluationList';
+import CandidateEvaluationDetail from './pages/evaluations/CandidateEvaluationDetail';
 
 // Competency Framework Pages
 import CompetencyFrameworkList from './pages/competency-frameworks/CompetencyFrameworkList';
@@ -52,11 +56,26 @@ import CompetencyFrameworkForm from './pages/competency-frameworks/CompetencyFra
 import PositionManagement from './pages/positions/PositionManagement';
 import DepartmentList from './pages/departments/DepartmentList';
 
+// Offer Management Pages
+import OfferApprovalList from './pages/offers/OfferApprovalList';
+
+// Candidate Portal Context & Pages
+import { CandidateAuthProvider } from './context/CandidateAuthContext';
+import CandidatePortalLayout from './components/CandidatePortalLayout';
+import CandidateProtectedRoute from './components/CandidateProtectedRoute';
+import CandidateLogin from './pages/candidate-portal/CandidateLogin';
+import CandidateRegister from './pages/candidate-portal/CandidateRegister';
+import CandidateDashboard from './pages/candidate-portal/CandidateDashboard';
+import CandidateApplications from './pages/candidate-portal/CandidateApplications';
+import CandidateInterviews from './pages/candidate-portal/CandidateInterviews';
+import CandidateOffers from './pages/candidate-portal/CandidateOffers';
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <CandidateAuthProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
 
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
@@ -66,6 +85,18 @@ function App() {
           <Route path="/jobs/track" element={<TrackApplication />} />
           <Route path="/tra-cuu" element={<TrackApplication />} />
           <Route path="/jobs/:id" element={<PublicJobDetail />} />
+
+          {/* Candidate Portal Routes */}
+          <Route path="/candidate/login" element={<CandidateLogin />} />
+          <Route path="/candidate/register" element={<CandidateRegister />} />
+          <Route path="/candidate" element={<CandidateProtectedRoute />}>
+            <Route element={<CandidatePortalLayout />}>
+              <Route index element={<CandidateDashboard />} />
+              <Route path="applications" element={<CandidateApplications />} />
+              <Route path="interviews" element={<CandidateInterviews />} />
+              <Route path="offers" element={<CandidateOffers />} />
+            </Route>
+          </Route>
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -84,6 +115,18 @@ function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/interview-schedules" element={<InterviewScheduleList />} />
+            <Route path="/interviews" element={<Navigate to="/interview-schedules" replace />} />
+            <Route path="/offers" element={<OfferApprovalList />} />
+            <Route path="/offers/drafts" element={<OfferList />} />
+            <Route path="/offers/new" element={<OfferForm />} />
+            <Route path="/offers/approval" element={<OfferApprovalList />} />
+            <Route path="/offers/:id/edit" element={<OfferForm />} />
+            <Route path="/offers/:id" element={<OfferApprovalList />} />
+            <Route path="/onboarding" element={<Navigate to="/candidates" replace />} />
+            <Route path="/candidate-evaluations" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+              <Route index element={<CandidateEvaluationList />} />
+              <Route path=":id" element={<CandidateEvaluationDetail />} />
+            </Route>
             
             {/* ============================= */}
             {/* COMPETENCY FRAMEWORK */}
@@ -222,6 +265,12 @@ function App() {
               />
 
             </Route>
+
+            {/* =================================================
+                OFFER MANAGEMENT & APPROVAL
+               ================================================= */}
+            <Route path="/offers/approvals" element={<OfferApprovalList />} />
+
           </Route>
 
           {/* Error Pages */}
@@ -231,6 +280,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+  </CandidateAuthProvider>
   );
 }
 

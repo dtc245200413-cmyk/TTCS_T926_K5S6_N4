@@ -2,6 +2,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const repository = require('../repositories/candidatePortalRepository');
 const jobPostingRepository = require('../repositories/jobPostingRepository');
+const { pool } = require('../config/database');
+const notificationRepository = require('../repositories/notificationRepository');
 const { httpError } = require('../utils/roles');
 
 const MAX_FAILED_LOGINS = 5;
@@ -114,7 +116,7 @@ async function getDashboard(candidateId) {
       applications: applications.length,
       active_applications: applications.filter(item => !['REJECTED', 'HIRED', 'WITHDRAWN'].includes(item.status)).length,
       interviews: interviews.filter(item => ['SCHEDULED', 'CONFIRMED', 'RESCHEDULE_REQUESTED'].includes(item.status)).length,
-      offers: offers.filter(item => item.status === 'PENDING_RESPONSE').length
+      offers: offers.filter(item => ['PENDING_RESPONSE', 'SENT'].includes(item.status)).length
     },
     recent_applications: applications.slice(0, 3),
     notifications: notifications.slice(0, 5)
@@ -153,6 +155,32 @@ async function respondToOffer(candidateId, offerId, data) {
     response: String(data.response || '').trim()
   });
   if (!updated) throw httpError('Không tìm thấy thư mời đang chờ phản hồi.', 404);
+
+  try {
+    const [offerRows] = await pool.query(
+      `SELECT o.created_by, o.offer_code, c.full_name AS candidate_name 
+       FROM candidate_offers o
+       JOIN candidates c ON c.id = o.candidate_id
+       WHERE o.id = ?`,
+      [offerId]
+    );
+    if (offerRows.length && offerRows[0].created_by) {
+      const offer = offerRows[0];
+      const isAccepted = data.status === 'ACCEPTED';
+      await notificationRepository.create({
+        userId: offer.created_by,
+        title: isAccepted ? 'Ứng viên đã CHẤP NHẬN Offer' : 'Ứng viên đã TỪ CHỐI Offer',
+        message: isAccepted
+          ? `Ứng viên ${offer.candidate_name} vừa xác nhận Chấp nhận Thư mời nhận việc! Hãy bắt đầu quy trình Onboarding.`
+          : `Ứng viên ${offer.candidate_name} đã từ chối Thư mời nhận việc. Lý do: ${String(data.response || '').trim() || 'Không có lý do'}`,
+        type: isAccepted ? 'OFFER_ACCEPTED' : 'OFFER_DECLINED',
+        link: isAccepted ? '/onboarding' : '/offers'
+      });
+    }
+  } catch (err) {
+    // Không làm gián đoạn phản hồi của ứng viên nếu lỗi gửi thông báo
+  }
+
   return { success: true };
 }
 

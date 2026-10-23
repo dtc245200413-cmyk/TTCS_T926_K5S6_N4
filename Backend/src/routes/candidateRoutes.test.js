@@ -10,7 +10,7 @@ jest.mock('../repositories/candidateRatingRepository', () => ({
 jest.mock('../repositories/sessionRepository', () => ({ findByToken: jest.fn() }));
 jest.mock('../repositories/userRepository', () => ({ findById: jest.fn(), getRolesAndPermissions: jest.fn() }));
 
-jest.mock('../repositories/candidateRepository', () => ({ create: jest.fn(), findById: jest.fn(), updateStatus: jest.fn(), getAll: jest.fn() }));
+jest.mock('../repositories/candidateRepository', () => ({ create: jest.fn(), findById: jest.fn(), updateStatus: jest.fn(), getAll: jest.fn(), search: jest.fn(), addActivity: jest.fn() }));
 jest.mock('../repositories/candidateMergeRepository', () => ({ findPotentialDuplicates: jest.fn() }));
 jest.mock('../repositories/auditRepository', () => ({ createLog: jest.fn() }));
 jest.mock('../utils/cvParser', () => ({ parseCvBuffer: jest.fn() }));
@@ -250,8 +250,10 @@ beforeEach(() => {
   errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
   sessions.findByToken.mockResolvedValue({ revoked_at: null, expires_at: new Date(Date.now() + 60000) });
   users.findById.mockResolvedValue({ user_id: 7, status: 'ACTIVE', department_id: 2 });
+  require('../config/database').pool.query.mockResolvedValue([[{ id: 1, name: 'Test' }]]);
   candidates.create.mockResolvedValue(12);
   candidates.getAll.mockResolvedValue([{ id: 12, full_name: 'Test Candidate' }]);
+  candidates.search.mockResolvedValue({ rows: [{ id: 12, full_name: 'Test Candidate' }], total: 1 });
   candidates.findById.mockResolvedValue({ id: 12, full_name: 'Test Candidate' });
   duplicates.findPotentialDuplicates.mockResolvedValue([]);
   parseCvBuffer.mockResolvedValue({ full_name: 'Test Candidate', email: 'test@example.test', phone: '', missing_fields: ['phone'] });
@@ -273,7 +275,7 @@ async function request(operation, roles = ['RECRUITER'], options = {}) {
     if (operation === 'status') { method = 'PUT'; url += '/12/status'; }
     body = JSON.stringify(operation === 'status'
       ? { status: options.status || 'REJECTED', rejection_reason_code: 'UNSUITABLE' }
-      : { full_name: 'Test Candidate', email: 'test@example.test', allow_duplicate: options.allowDuplicate || false });
+      : { full_name: 'Test Candidate', email: 'test@example.test', phone: '0987654321', source_code: 'LINKEDIN', recruitment_request_id: 1, allow_duplicate: options.allowDuplicate || false });
   }
   const response = await fetch(url, { method, headers, body });
   return { status: response.status, body: await response.json() };
@@ -285,8 +287,8 @@ describe('GET /candidates authorization', () => {
     expect(candidates.getAll).not.toHaveBeenCalled();
   });
   it.each(['ADMIN', 'HR_MANAGER', 'RECRUITER', 'HIRING_MANAGER'])('allows %s and passes authenticated department scope', async role => {
-    expect(await request('list', [role])).toMatchObject({ status: 200, body: { data: [{ id: 12 }] } });
-    expect(candidates.getAll).toHaveBeenCalledWith(expect.objectContaining({ user_id: 7, department_id: 2 }));
+    expect(await request('list', [role])).toMatchObject({ status: 200, body: { data: { items: [{ id: 12 }] } } });
+    expect(candidates.search).toHaveBeenCalledWith(expect.objectContaining({ user: expect.objectContaining({ user_id: 7, department_id: 2 }) }));
   });
   it.each(['ADMIN', 'HR_MANAGER', 'RECRUITER', 'HIRING_MANAGER'])('denies CANDIDATE combined with %s', async role => {
     expect((await request('list', ['CANDIDATE', role])).status).toBe(403);
@@ -333,7 +335,7 @@ describe.each(['parse', 'create', 'status'])('%s authorization', operation => {
 
 it.each(['ADMIN', 'HR_MANAGER'])('%s can hire', async role => {
   expect((await request('status', [role], { status: 'HIRED' })).status).toBe(200);
-  expect(candidates.updateStatus).toHaveBeenCalledWith('12', 'HIRED', 'UNSUITABLE');
+  expect(candidates.updateStatus).toHaveBeenCalledWith('12', 'HIRED', 'UNSUITABLE', 'Test', 7, undefined);
 });
 it('Recruiter cannot bypass the HR hire decision', async () => {
   expect((await request('status', ['RECRUITER'], { status: 'HIRED' })).status).toBe(403);

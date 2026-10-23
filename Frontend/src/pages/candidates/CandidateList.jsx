@@ -1,7 +1,8 @@
+import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar, FiClock } from 'react-icons/fi';
+import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import candidateApi from '../../api/candidateApi';
 import CandidateRatingModal from '../../components/CandidateRatingModal';
@@ -58,7 +59,7 @@ const CandidateList = () => {
   const fetchCandidates = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/candidates', {
+      const response = await axios.get(`${API_BASE_URL}/candidates`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const raw = response.data?.data;
@@ -74,7 +75,7 @@ const CandidateList = () => {
   const fetchRejectionReasons = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/master-data', {
+      const response = await axios.get(`${API_BASE_URL}/master-data`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const md = response.data.data;
@@ -88,7 +89,7 @@ const CandidateList = () => {
   const fetchActiveMerges = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/candidates/merges', {
+      const response = await axios.get(`${API_BASE_URL}/candidates/merges`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveMerges(response.data.data || []);
@@ -161,7 +162,7 @@ const CandidateList = () => {
     setMergeError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/candidates/merges/${merge.id}/undo`, {}, {
+      await axios.post(`${API_BASE_URL}/candidates/merges/${merge.id}/undo`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
@@ -178,7 +179,7 @@ const CandidateList = () => {
   const downloadResume = async (candidate) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/candidates/${candidate.id}/resume`, {
+      const response = await axios.get(`${API_BASE_URL}/candidates/${candidate.id}/resume`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -240,7 +241,7 @@ const CandidateList = () => {
   const handleUpdateCandidateStatus = async (candidateId, newStatus, rejectionReasonCode = null, rejectionNoteParam = null) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/candidates/${candidateId}/status`, {
+      await axios.put(`${API_BASE_URL}/candidates/${candidateId}/status`, {
         status: newStatus,
         rejection_reason_code: rejectionReasonCode,
         rejection_note: rejectionNoteParam
@@ -260,7 +261,7 @@ const CandidateList = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/candidates/${selectedCandidate.id}/status`, {
+      await axios.put(`${API_BASE_URL}/candidates/${selectedCandidate.id}/status`, {
         status: 'REJECTED',
         rejection_reason_code: rejectReason,
         rejection_note: rejectNote
@@ -278,7 +279,7 @@ const CandidateList = () => {
     if (window.confirm(`Bạn có chắc chắn muốn tuyển dụng ứng viên ${candidate.full_name}?`)) {
       try {
         const token = localStorage.getItem('token');
-        await axios.put(`http://localhost:5000/api/candidates/${candidate.id}/status`, {
+        await axios.put(`${API_BASE_URL}/candidates/${candidate.id}/status`, {
           status: 'HIRED'
         }, {
           headers: { Authorization: `Bearer ${token}` }
@@ -459,6 +460,25 @@ const CandidateList = () => {
                 >
                   <FiList size={14} /> Danh sách
                 </button>
+                <Link
+                  to="/candidate-evaluations"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #c7d2fe',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    backgroundColor: '#eef2ff',
+                    color: '#4338ca',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <FiCheckCircle size={14} color="#4f46e5" /> Đánh giá & Tuyển chọn
+                </Link>
               </div>
             </div>
 
@@ -526,6 +546,22 @@ const CandidateList = () => {
                               {candidateProfileAccess(user).canView && (
                                 <Link to={`/candidates/${cand.id}`} style={{ color: '#4f46e5', fontWeight: '600', textDecoration: 'none', whiteSpace: 'nowrap' }}>Xem hồ sơ</Link>
                               )}
+                              <Link
+                                to={`/candidate-evaluations/${cand.id}`}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #c7d2fe',
+                                  background: '#e0e7ff',
+                                  color: '#4338ca',
+                                  fontWeight: '700',
+                                  fontSize: '0.8rem',
+                                  textDecoration: 'none',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                Đánh giá & Duyệt
+                              </Link>
                               {canViewRatings && (
                                 <button
                                   type="button"

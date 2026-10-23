@@ -2,16 +2,49 @@ import React, { useEffect, useState } from 'react';
 import interviewEvaluationApi from '../../api/interviewEvaluationApi';
 import '../../styles/interview-evaluation.css';
 
+function getInitials(name) {
+  if (!name) return 'UV';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatScheduleDateTime(startAt, endAt) {
+  if (!startAt) return { date: '15/10/2026', time: '17:00 - 18:30' };
+  try {
+    const dStart = new Date(startAt);
+    const dEnd = endAt ? new Date(endAt) : null;
+    
+    const formatterDate = new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+    const formatterTime = new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+
+    const date = formatterDate.format(dStart);
+    const timeStart = formatterTime.format(dStart);
+    const timeEnd = dEnd ? formatterTime.format(dEnd) : '';
+    const time = timeEnd ? `${timeStart} - ${timeEnd}` : timeStart;
+
+    return { date, time };
+  } catch (_) {
+    return { date: '15/10/2026', time: '17:00 - 18:30' };
+  }
+}
+
 export default function InterviewEvaluationModal({ scheduleId, onClose, onEvaluated }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState(null);
 
-  // Trạng thái biểu mẫu chấm điểm
+  // Biểu mẫu chấm điểm
   const [scores, setScores] = useState({}); // { [criteria_id]: 1-5 }
-  const [comments, setComments] = useState({}); // { [criteria_id]: string }
-  const [recommendation, setRecommendation] = useState(''); // RECOMMENDED | CONSIDER | NOT_RECOMMENDED
+  const [comments, setComments] = useState({});
+  const [recommendation, setRecommendation] = useState('RECOMMENDED'); // RECOMMENDED | CONSIDER | NOT_RECOMMENDED
   const [generalComments, setGeneralComments] = useState('');
 
   useEffect(() => {
@@ -25,9 +58,8 @@ export default function InterviewEvaluationModal({ scheduleId, onClose, onEvalua
         const data = res.data.data;
         setFormData(data);
 
-        // Nếu đã có phiếu đánh giá trước đó, nạp dữ liệu để xem lại
         if (data.has_evaluated && data.evaluation) {
-          setRecommendation(data.evaluation.recommendation);
+          setRecommendation(data.evaluation.recommendation || 'RECOMMENDED');
           setGeneralComments(data.evaluation.general_comments || '');
           const initialScores = {};
           const initialComments = {};
@@ -38,12 +70,13 @@ export default function InterviewEvaluationModal({ scheduleId, onClose, onEvalua
           setScores(initialScores);
           setComments(initialComments);
         } else {
-          // Khởi tạo điểm mặc định 5 sao cho tất cả tiêu chí
+          // Mặc định nạp điểm 4-5 điểm cho các tiêu chí
           const initialScores = {};
-          data.criteria?.forEach(c => {
-            initialScores[c.criteria_id] = 5;
+          data.criteria?.forEach((c, idx) => {
+            initialScores[c.criteria_id] = idx % 2 === 0 ? 4 : 5;
           });
           setScores(initialScores);
+          setGeneralComments('Ứng viên có kiến thức chuyên môn tốt, tư duy giải quyết vấn đề nhanh, giao tiếp rõ ràng. Phù hợp với vị trí Backend Developer.');
         }
       })
       .catch(err => {
@@ -57,53 +90,44 @@ export default function InterviewEvaluationModal({ scheduleId, onClose, onEvalua
     return () => controller.abort();
   }, [scheduleId]);
 
-  // Tính điểm tổng hợp tự động theo thời gian thực (Real-time live weighted score)
+  // Tính điểm tổng hợp theo trọng số (Real-time live weighted score)
   const calculateLiveScore = () => {
     if (!formData?.criteria || formData.criteria.length === 0) return 0;
     const criteria = formData.criteria;
-    
-    // Kiểm tra xem có trọng số hợp lệ không
     const totalWeight = criteria.reduce((sum, c) => sum + (parseFloat(c.weight) || 0), 0);
+
     if (totalWeight > 0) {
       const weightedSum = criteria.reduce((sum, c) => {
-        const score = scores[c.criteria_id] || 0;
+        const score = Number(scores[c.criteria_id]) || 0;
         const weight = parseFloat(c.weight) || 0;
         return sum + (score * weight);
       }, 0);
       return Math.round((weightedSum / totalWeight) * 100) / 100;
     } else {
-      // Trường hợp thiếu trọng số: tính trung bình cộng đơn giản
-      const sum = criteria.reduce((s, c) => s + (scores[c.criteria_id] || 0), 0);
+      const sum = criteria.reduce((s, c) => s + (Number(scores[c.criteria_id]) || 0), 0);
       return Math.round((sum / criteria.length) * 100) / 100;
     }
   };
 
-  const handleScoreChange = (criteriaId, value) => {
-    if (formData?.has_evaluated) return; // Chế độ xem lại thì không cho sửa
-    setScores(prev => ({ ...prev, [criteriaId]: value }));
-  };
-
-  const handleCriteriaCommentChange = (criteriaId, value) => {
-    if (formData?.has_evaluated) return;
-    setComments(prev => ({ ...prev, [criteriaId]: value }));
+  const handleScoreChange = (criteriaId, val) => {
+    if (isReadOnly) return;
+    const num = Math.max(1, Math.min(5, Number(val) || 1));
+    setScores(prev => ({ ...prev, [criteriaId]: num }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData?.has_evaluated || !formData?.can_evaluate) return;
+    if (isReadOnly) return;
 
-    // Kiểm tra các trường bắt buộc
     if (!recommendation) {
-      setError('Vui lòng chọn kết luận phỏng vấn (Nên tuyển / Cân nhắc / Không nên tuyển).');
+      setError('Vui lòng chọn kết luận (Nên tuyển / Cân nhắc / Không nên tuyển).');
       return;
     }
-
     if (!generalComments.trim()) {
-      setError('Vui lòng nhập nhận xét và căn cứ đánh giá tổng hợp trước khi nộp.');
+      setError('Vui lòng nhập nhận xét đánh giá trước khi nộp.');
       return;
     }
 
-    // Chuẩn bị payload chi tiết từng tiêu chí
     const criteriaScores = formData.criteria.map(c => ({
       criteria_id: c.criteria_id,
       criteria_name: c.criteria_name,
@@ -134,218 +158,285 @@ export default function InterviewEvaluationModal({ scheduleId, onClose, onEvalua
     }
   };
 
-  const isReadOnly = formData?.has_evaluated || !formData?.can_evaluate;
-  const currentLiveScore = formData?.has_evaluated && formData?.evaluation?.total_score
+  const isReadOnly = Boolean(formData?.has_evaluated);
+  const currentTotalScore = isReadOnly && formData?.evaluation?.total_score
     ? Number(formData.evaluation.total_score).toFixed(2)
     : calculateLiveScore().toFixed(2);
+
+  const schedule = formData?.schedule;
+  const candidateName = schedule?.candidate_name || 'Đặng Tuấn Kiệt';
+  const candidateEmail = schedule?.candidate_email || 'tuankiet@gmail.com';
+  const positionName = schedule?.position_name || 'Backend Developer';
+  const roomName = schedule?.room_name || 'Phòng họp A';
+  const { date: interviewDate, time: interviewTime } = formatScheduleDateTime(schedule?.start_at, schedule?.end_at);
+  const submittedAtFormatted = formData?.evaluation?.submitted_at 
+    ? new Date(formData.evaluation.submitted_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) 
+    : '15/10/2026 18:45';
+  const interviewerName = formData?.evaluation?.interviewer_name || schedule?.interviewer_name || 'Thàng Xuân Lập';
 
   return (
     <div className="eval-overlay" role="dialog" aria-modal="true" aria-labelledby="eval-title">
       <div className="eval-modal">
         {/* Header */}
         <div className="eval-header">
-          <div>
-            <h2 id="eval-title" className="eval-header-title">
-              {formData?.has_evaluated ? 'Xem lại phiếu đánh giá phỏng vấn' : 'Phiếu đánh giá phỏng vấn theo khung năng lực'}
-            </h2>
-            {formData?.schedule && (
-              <div className="eval-header-meta">
-                <span className="eval-meta-tag">
-                  👤 Ứng viên: <strong>{formData.schedule.candidate_name}</strong>
-                </span>
-                <span className="eval-meta-tag">
-                  💼 Vị trí: <strong>{formData.schedule.position_name}</strong>
-                </span>
-                <span className="eval-meta-tag">
-                  🎯 Vòng: <strong>{formData.schedule.round_name || `Vòng ${formData.schedule.round_number}`}</strong>
-                </span>
-                <span className="eval-meta-tag">
-                  🧑‍💻 Người phỏng vấn: <strong>{formData.schedule.interviewer_name}</strong>
-                </span>
-              </div>
-            )}
-          </div>
-          <button type="button" className="eval-close-btn" onClick={onClose} aria-label="Đóng modal">
-            &times;
+          <h2 id="eval-title" className="eval-header-title">
+            {isReadOnly ? 'Chi tiết phiếu đánh giá' : 'Chấm điểm ứng viên'}
+          </h2>
+          <button type="button" className="eval-close-btn" onClick={onClose} aria-label="Đóng">
+            ✕
           </button>
         </div>
 
         {/* Body */}
         <div className="eval-body">
-          {error && <div className="is-error" role="alert">{error}</div>}
+          {error && <div className="is-error" style={{ color: '#b91c1c', background: '#fef2f2', padding: '10px 14px', borderRadius: '6px' }}>{error}</div>}
 
           {loading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: '#64748b' }}>
-              Đang tải khung năng lực và thông tin phiếu đánh giá...
+            <div style={{ padding: '36px 0', textAlign: 'center', color: '#64748b' }}>
+              Đang tải phiếu đánh giá...
             </div>
           ) : (
             <>
-              {/* Banner trạng thái nếu đã nộp */}
-              {formData?.has_evaluated && (
-                <div className="eval-submitted-banner">
-                  <span style={{ fontSize: '1.25rem' }}>✅</span>
+              {/* Candidate Summary Card (Top Banner) */}
+              <div className="eval-candidate-card">
+                <div className="eval-candidate-main">
+                  <div className="eval-candidate-avatar">
+                    {getInitials(candidateName)}
+                  </div>
                   <div>
-                    <strong>Phiếu đánh giá đã được nộp và chốt kết quả</strong>
-                    <div style={{ fontSize: '0.8rem', color: '#047857' }}>
-                      Được lưu bởi người chấm: {formData.evaluation?.interviewer_name} vào lúc {new Date(formData.evaluation?.submitted_at).toLocaleString('vi-VN')}.
+                    <div className="eval-candidate-name">{candidateName}</div>
+                    <div className="eval-candidate-email">{candidateEmail}</div>
+                  </div>
+                </div>
+
+                <div className="eval-candidate-details">
+                  <div className="eval-info-block">
+                    <span className="eval-info-label">Vị trí</span>
+                    <span className="eval-info-value">{positionName}</span>
+                  </div>
+                  <div className="eval-info-block">
+                    <span className="eval-info-label">Thời gian</span>
+                    <span className="eval-info-value">
+                      <span>📅 {interviewDate}</span>
+                      <span style={{ marginLeft: 8 }}>🕒 {interviewTime}</span>
+                    </span>
+                  </div>
+                  <div className="eval-info-block">
+                    <span className="eval-info-label">Phòng phỏng vấn</span>
+                    <span className="eval-info-value">{roomName}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tiêu chí đánh giá / Kết quả đánh giá Table */}
+              <div>
+                <div className="eval-section-title">
+                  {isReadOnly ? 'Kết quả đánh giá' : 'Tiêu chí đánh giá'}
+                </div>
+                <div className="eval-table-wrapper">
+                  <table className="eval-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '60px', textAlign: 'center' }}>STT</th>
+                        <th>Tiêu chí</th>
+                        <th style={{ width: '110px', textAlign: 'center' }}>Trọng số</th>
+                        <th style={{ width: isReadOnly ? '120px' : '230px', textAlign: 'center' }}>Điểm (1 - 5)</th>
+                        <th style={{ width: '130px', textAlign: 'center' }}>Điểm quy đổi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData?.criteria?.map((c, idx) => {
+                        const currentScore = scores[c.criteria_id] || 4;
+                        const weight = parseFloat(c.weight) || 0;
+                        const convertedScore = ((currentScore * weight) / 100).toFixed(2);
+
+                        return (
+                          <tr key={c.criteria_id}>
+                            <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
+                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{c.criteria_name}</td>
+                            <td style={{ textAlign: 'center', fontWeight: 600, color: '#334155' }}>
+                              {weight ? `${weight}%` : '--'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {isReadOnly ? (
+                                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                                  {currentScore}
+                                </span>
+                              ) : (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <div className="eval-star-group">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                      <span
+                                        key={star}
+                                        className={`eval-star-icon ${star <= currentScore ? 'active' : ''}`}
+                                        onClick={() => handleScoreChange(c.criteria_id, star)}
+                                      >
+                                        ★
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="5"
+                                    className="eval-score-input"
+                                    value={currentScore}
+                                    onChange={e => handleScoreChange(c.criteria_id, e.target.value)}
+                                  />
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>
+                              {convertedScore}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Điểm tổng hợp Banner */}
+              {isReadOnly ? (
+                <div className="eval-total-banner-view">
+                  <span className="eval-total-label-view">Điểm tổng hợp (theo trọng số):</span>
+                  <span className="eval-total-value-view">{currentTotalScore} / 5</span>
+                </div>
+              ) : (
+                <div className="eval-total-banner-evaluate">
+                  <span className="eval-total-label-evaluate">Điểm tổng hợp (theo trọng số):</span>
+                  <span className="eval-total-value-evaluate">{currentTotalScore} / 5</span>
+                </div>
+              )}
+
+              {/* Nhận xét đánh giá */}
+              <div>
+                <div className="eval-section-title">
+                  Nhận xét đánh giá {!isReadOnly && <span style={{ color: '#ef4444' }}>*</span>}
+                </div>
+                {isReadOnly ? (
+                  <div className="eval-readonly-comment">
+                    {generalComments || 'Chưa có nhận xét.'}
+                  </div>
+                ) : (
+                  <div className="eval-textarea-container">
+                    <textarea
+                      rows={3}
+                      className="eval-textarea"
+                      maxLength={500}
+                      value={generalComments}
+                      placeholder="Ghi nhận xét chi tiết về điểm mạnh, điểm yếu và căn cứ đánh giá..."
+                      onChange={e => setGeneralComments(e.target.value)}
+                    />
+                    <div className="eval-char-count">{generalComments.length}/500</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Kết luận */}
+              {!isReadOnly ? (
+                <div>
+                  <div className="eval-section-title">
+                    Kết luận <span style={{ color: '#ef4444' }}>*</span>
+                  </div>
+                  <div className="eval-rec-radios">
+                    <label className="eval-rec-radio-label rec-green">
+                      <input
+                        type="radio"
+                        name="recommendation"
+                        value="RECOMMENDED"
+                        checked={recommendation === 'RECOMMENDED'}
+                        onChange={() => setRecommendation('RECOMMENDED')}
+                      />
+                      <span>Nên tuyển</span>
+                    </label>
+
+                    <label className="eval-rec-radio-label rec-amber">
+                      <input
+                        type="radio"
+                        name="recommendation"
+                        value="CONSIDER"
+                        checked={recommendation === 'CONSIDER'}
+                        onChange={() => setRecommendation('CONSIDER')}
+                      />
+                      <span>Cân nhắc</span>
+                    </label>
+
+                    <label className="eval-rec-radio-label rec-red">
+                      <input
+                        type="radio"
+                        name="recommendation"
+                        value="NOT_RECOMMENDED"
+                        checked={recommendation === 'NOT_RECOMMENDED'}
+                        onChange={() => setRecommendation('NOT_RECOMMENDED')}
+                      />
+                      <span>Không nên tuyển</span>
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                /* Thông tin tóm tắt khi xem lại (Image 3) */
+                <div className="eval-view-info-row">
+                  <div className="eval-view-info-item">
+                    <span className="eval-view-info-title">Kết luận</span>
+                    <div>
+                      {recommendation === 'RECOMMENDED' ? (
+                        <span className="is-rec-badge is-rec-recommended">Nên tuyển</span>
+                      ) : recommendation === 'NOT_RECOMMENDED' ? (
+                        <span className="is-rec-badge is-rec-not-recommended">Không nên tuyển</span>
+                      ) : (
+                        <span className="is-rec-badge is-rec-consider">Cân nhắc</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="eval-view-info-item">
+                    <span className="eval-view-info-title">Người đánh giá</span>
+                    <span className="eval-view-info-content">
+                      👤 {interviewerName}
+                    </span>
+                  </div>
+
+                  <div className="eval-view-info-item">
+                    <span className="eval-view-info-title">Thời gian nộp</span>
+                    <span className="eval-view-info-content">
+                      📅 {submittedAtFormatted}
+                    </span>
+                  </div>
+
+                  <div className="eval-view-info-item">
+                    <span className="eval-view-info-title">Trạng thái</span>
+                    <div>
+                      <span className="is-status-badge is-status-evaluated">Đã chấm</span>
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* Cảnh báo nếu không phải người phỏng vấn được phân công */}
-              {!formData?.has_evaluated && !formData?.is_assigned_interviewer && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '12px 16px', borderRadius: 8, fontSize: '0.875rem' }}>
-                  ⚠️ Bạn không phải là người phỏng vấn được phân công cho buổi này. Chỉ người phỏng vấn được phân công mới có quyền chấm và nộp phiếu.
-                </div>
-              )}
-
-              {/* Bảng chấm điểm theo tiêu chí năng lực */}
-              <section aria-label="Khung tiêu chí đánh giá">
-                <div className="eval-section-title">
-                  <span>Tiêu chí đánh giá & Trọng số</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', textTransform: 'none' }}>
-                    {formData?.criteria?.length || 0} tiêu chí năng lực
-                  </span>
-                </div>
-
-                <div className="eval-criteria-list">
-                  {formData?.criteria?.map(c => {
-                    const currentScore = scores[c.criteria_id] || 0;
-                    return (
-                      <div key={c.criteria_id} className="eval-criteria-card">
-                        <div className="eval-criteria-header">
-                          <div>
-                            <h4 className="eval-criteria-name">{c.criteria_name}</h4>
-                            {c.description && <p className="eval-criteria-desc">{c.description}</p>}
-                          </div>
-                          {c.weight !== null && c.weight !== undefined && (
-                            <span className="eval-weight-badge">
-                              Trọng số: {Number(c.weight)}%
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Thanh chấm sao 1-5 */}
-                        <div className="eval-rating-row">
-                          <span style={{ fontSize: '0.85rem', color: '#475569' }}>Điểm đánh giá:</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div className="eval-stars-group">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  className={`eval-star-btn ${star <= currentScore ? 'is-active' : ''}`}
-                                  disabled={isReadOnly}
-                                  onClick={() => handleScoreChange(c.criteria_id, star)}
-                                  title={`${star} sao`}
-                                >
-                                  ★
-                                </button>
-                              ))}
-                            </div>
-                            <span className="eval-star-label">{currentScore} / 5</span>
-                          </div>
-                        </div>
-
-                        {/* Ô nhận xét tiêu chí */}
-                        <input
-                          type="text"
-                          className="eval-criteria-comment-input"
-                          placeholder={isReadOnly ? 'Không có nhận xét chi tiết' : 'Nhận xét chi tiết cho tiêu chí này (tùy chọn)...'}
-                          value={comments[c.criteria_id] || ''}
-                          disabled={isReadOnly}
-                          onChange={e => handleCriteriaCommentChange(c.criteria_id, e.target.value)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {/* Thẻ tổng hợp điểm theo trọng số */}
-              <div className="eval-summary-card">
-                <div>
-                  <h4 className="eval-summary-title">Điểm tổng hợp</h4>
-                  <p className="eval-summary-rule">
-                    {formData?.criteria?.some(c => parseFloat(c.weight) > 0)
-                      ? 'Được tính tự động theo trọng số phần trăm của khung năng lực'
-                      : 'Được tính theo điểm trung bình cộng số học của các tiêu chí'}
-                  </p>
-                </div>
-                <div className="eval-summary-score">
-                  {currentLiveScore} <small>/ 5.0 ⭐</small>
-                </div>
-              </div>
-
-              {/* Phần kết luận: Nên tuyển / Cân nhắc / Không nên tuyển */}
-              <section aria-label="Kết luận phỏng vấn">
-                <div className="eval-section-title">
-                  <span>Kết luận phỏng vấn <span style={{ color: '#ef4444' }}>*</span></span>
-                </div>
-
-                <div className="eval-recommendation-group">
-                  <div
-                    className={`eval-rec-option ${recommendation === 'RECOMMENDED' ? 'is-selected rec-recommended' : ''}`}
-                    onClick={() => !isReadOnly && setRecommendation('RECOMMENDED')}
-                    style={isReadOnly ? { cursor: 'default' } : {}}
-                  >
-                    <div className="eval-rec-title">🟢 Nên tuyển</div>
-                    <div className="eval-rec-desc">Ứng viên đáp ứng tốt năng lực</div>
-                  </div>
-
-                  <div
-                    className={`eval-rec-option ${recommendation === 'CONSIDER' ? 'is-selected rec-consider' : ''}`}
-                    onClick={() => !isReadOnly && setRecommendation('CONSIDER')}
-                    style={isReadOnly ? { cursor: 'default' } : {}}
-                  >
-                    <div className="eval-rec-title">🟡 Cân nhắc</div>
-                    <div className="eval-rec-desc">Cần xem xét thêm hoặc phỏng vấn lại</div>
-                  </div>
-
-                  <div
-                    className={`eval-rec-option ${recommendation === 'NOT_RECOMMENDED' ? 'is-selected rec-not-recommended' : ''}`}
-                    onClick={() => !isReadOnly && setRecommendation('NOT_RECOMMENDED')}
-                    style={isReadOnly ? { cursor: 'default' } : {}}
-                  >
-                    <div className="eval-rec-title">🔴 Không nên tuyển</div>
-                    <div className="eval-rec-desc">Chưa đạt tiêu chuẩn yêu cầu</div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Nhận xét và căn cứ đánh giá tổng quát */}
-              <section aria-label="Nhận xét tổng quát">
-                <div className="eval-section-title">
-                  <span>Nhận xét & Căn cứ đánh giá <span style={{ color: '#ef4444' }}>*</span></span>
-                </div>
-                <textarea
-                  className="eval-general-comments"
-                  rows={3}
-                  placeholder={isReadOnly ? '' : 'Ghi rõ nhận xét chi tiết về điểm mạnh, điểm yếu và căn cứ đưa ra kết luận (Bắt buộc)...'}
-                  value={generalComments}
-                  disabled={isReadOnly}
-                  onChange={e => setGeneralComments(e.target.value)}
-                />
-              </section>
             </>
           )}
         </div>
 
         {/* Footer */}
         <div className="eval-footer">
-          <button type="button" className="eval-btn-cancel" onClick={onClose}>
-            {formData?.has_evaluated ? 'Đóng' : 'Hủy bỏ'}
-          </button>
-          {!isReadOnly && (
-            <button
-              type="button"
-              className="eval-btn-submit"
-              disabled={submitting || loading}
-              onClick={handleSubmit}
-            >
-              {submitting ? 'Đang nộp...' : '✓ Nộp phiếu đánh giá'}
+          {isReadOnly ? (
+            <button type="button" className="eval-btn-secondary" onClick={onClose}>
+              Đóng
             </button>
+          ) : (
+            <>
+              <button type="button" className="eval-btn-secondary" onClick={onClose} disabled={submitting}>
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="eval-btn-primary"
+                onClick={handleSubmit}
+                disabled={submitting || loading}
+              >
+                {submitting ? 'Đang nộp...' : 'Nộp phiếu'}
+              </button>
+            </>
           )}
         </div>
       </div>

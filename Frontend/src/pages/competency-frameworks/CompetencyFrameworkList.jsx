@@ -17,11 +17,12 @@ const CompetencyFrameworkList = () => {
   // PHÂN QUYỀN
   // =========================================================
 
-  // Có COMPETENCY_VIEW -> được xem khung năng lực
-  const canView = hasPermission('COMPETENCY_VIEW');
+  const isAdminOrHR = user?.roles?.some(r => r.role_code === 'ADMIN' || r.role_code === 'HR_MANAGER');
 
-  // Có COMPETENCY_MANAGE -> được thêm / sửa / xóa
-  const canManage = hasPermission('COMPETENCY_MANAGE');
+  // Có COMPETENCY_MANAGE hoặc ADMIN/HR_MANAGER -> được thêm / sửa / xóa
+  const canManage = isAdminOrHR || hasPermission('COMPETENCY_MANAGE');
+  // Có COMPETENCY_VIEW hoặc canManage -> được xem khung năng lực
+  const canView = isAdminOrHR || canManage || hasPermission('COMPETENCY_VIEW');
   const canCreate = canManage;
 
   // =========================================================
