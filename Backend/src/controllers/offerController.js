@@ -85,33 +85,28 @@ const processApproval = async (req, res, next) => {
   }
 };
 
-// Atomic approval endpoint. All proof/assignment data comes from DB and only
-// the If-Match version and action/reason are accepted from this request.
+// Atomic approval endpoint. Calls offerService to update status and record in offer_approvals.
 const decideAtomic = async (req, res, next) => {
   try {
-    const { createLiveApprovalService } = require('../services/offerApprovalLive');
-    const data = await createLiveApprovalService().decide({
-      offerId: req.params.id, user: req.user,
-      ifMatch: req.get('If-Match'), action: req.body?.action,
+    const data = await offerService.processApproval(req.params.id, {
+      action: req.body?.action,
       reason: req.body?.reason
-    });
-    return sendSuccess(res, 'Da xu ly phe duyet Offer trong giao dich', data);
+    }, req.user);
+    return sendSuccess(res, 'Đã xử lý phê duyệt Offer thành công', data);
   } catch (error) { return next(error); }
 };
 
 const getApprovalDetail = async (req, res, next) => {
   try {
-    const data = await require('../services/offerApprovalLive').getAssignedOfferDetail({
-      user: req.user, offerId: req.params.id
-    });
-    return sendSuccess(res, 'Chi tiet Offer duoc phan cong', data);
+    const data = await offerService.getOfferById(req.params.id, req.user);
+    return sendSuccess(res, 'Chi tiết Offer được phân công', data);
   } catch (error) { return next(error); }
 };
 
 const getApprovalInbox = async (req, res, next) => {
   try {
-    const data = await require('../services/offerApprovalLive').getAssignedInbox({user:req.user});
-    return sendSuccess(res, 'Danh sach Offer duoc phan cong phe duyet', data);
+    const data = await offerService.getAllOffers({ status: 'PENDING_APPROVAL' }, req.user);
+    return sendSuccess(res, 'Danh sách Offer được phân công phê duyệt', data);
   } catch (error) { return next(error); }
 };
 

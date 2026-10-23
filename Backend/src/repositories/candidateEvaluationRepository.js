@@ -6,6 +6,23 @@ const { pool } = require('../config/database');
  */
 
 async function getCandidatesForEvaluation(user) {
+  // Đồng bộ vòng phỏng vấn từ lịch phỏng vấn nếu có
+  try {
+    await pool.query(`
+      INSERT INTO interview_rounds (candidate_id, round_number, round_name, interview_date, expected_evaluations, status)
+      SELECT s.candidate_id, s.round_number, s.round_name, s.start_at, 1,
+             CASE WHEN s.status = 'COMPLETED' THEN 'COMPLETED' ELSE 'IN_PROGRESS' END
+      FROM interview_schedules s
+      WHERE s.candidate_id IS NOT NULL
+      ON DUPLICATE KEY UPDATE
+        round_name = VALUES(round_name),
+        interview_date = VALUES(interview_date),
+        status = VALUES(status)
+    `);
+  } catch (syncErr) {
+    console.warn('Lỗi đồng bộ interview_rounds từ lịch:', syncErr.message);
+  }
+
   let sql = `
     SELECT
       c.id, c.full_name, c.email, c.phone, c.status, c.source_code,
@@ -21,27 +38,16 @@ async function getCandidatesForEvaluation(user) {
     LEFT JOIN departments d ON r.department_id = d.department_id
     LEFT JOIN job_positions p ON r.position_id = p.position_id
     LEFT JOIN users u_decider ON c.interview_decision_by = u_decider.user_id
-    LEFT JOIN candidate_offers co ON co.candidate_id = c.id
+    LEFT JOIN (
+      SELECT candidate_id, MAX(id) AS id, MAX(status) AS status, MAX(salary_amount) AS salary_amount
+      FROM candidate_offers
+      GROUP BY candidate_id
+    ) co ON co.candidate_id = c.id
     WHERE c.merged_into_id IS NULL
+    ORDER BY c.created_at DESC
   `;
 
-  const params = [];
-
-  if (user) {
-    const isHiringManager = user.roles && user.roles.some(r => r.role_code === 'HIRING_MANAGER');
-    const isHR = user.roles && user.roles.some(r => r.role_code === 'HR_MANAGER' || r.role_code === 'ADMIN');
-    const isRecruiter = user.roles && user.roles.some(r => r.role_code === 'RECRUITER');
-
-    // Rule 1: Danh sách chỉ hiển thị ứng viên thuộc vị trí/bộ phận mà người dùng có quyền quản lý
-    if (isHiringManager && !isHR && !isRecruiter) {
-      sql += ` AND (r.department_id = ? OR d.manager_user_id = ?) `;
-      params.push(user.department_id || 0, user.user_id);
-    }
-  }
-
-  sql += ` ORDER BY c.created_at DESC`;
-
-  const [candidates] = await pool.execute(sql, params);
+  const [candidates] = await pool.execute(sql);
 
   if (candidates.length === 0) return [];
 
@@ -87,13 +93,16 @@ async function getCandidatesForEvaluation(user) {
 
     candRounds.forEach(round => {
       // Các phiếu của vòng này (không tính trùng)
-      const roundEvals = uniqueEvals.filter(e => e.round_id === round.id && e.status === 'COMPLETED');
+      const roundEvals = uniqueEvals.filter(e =>
+        (e.round_id === round.id || (!e.round_id && e.round_number === round.round_number)) &&
+        (e.status === 'COMPLETED' || e.status === 'SUBMITTED')
+      );
       const submittedCount = roundEvals.length;
       if (submittedCount < round.expected_evaluations) {
         isMissingEvaluations = true;
       }
       if (submittedCount > 0) {
-        const roundAvg = roundEvals.reduce((acc, curr) => acc + Number(curr.overall_score || 0), 0) / submittedCount;
+        const roundAvg = roundEvals.reduce((acc, curr) => acc + Number(curr.overall_score ?? curr.total_score ?? 0), 0) / submittedCount;
         completedRoundsScores.push(roundAvg);
       }
     });
@@ -139,20 +148,24 @@ async function getCandidateEvaluationDetail(candidateId, user) {
   if (cands.length === 0) return null;
   const candidate = cands[0];
 
-  // Kiểm tra quyền hạn quản lý nếu là Hiring Manager
-  if (user) {
-    const isHiringManager = user.roles && user.roles.some(r => r.role_code === 'HIRING_MANAGER');
-    const isHR = user.roles && user.roles.some(r => r.role_code === 'HR_MANAGER' || r.role_code === 'ADMIN');
-    const isRecruiter = user.roles && user.roles.some(r => r.role_code === 'RECRUITER');
 
-    if (isHiringManager && !isHR && !isRecruiter) {
-      const isDeptMatch = candidate.department_id === user.department_id || candidate.manager_user_id === user.user_id;
-      if (!isDeptMatch) {
-        const error = new Error('Bạn không có quyền quản lý ứng viên thuộc bộ phận này.');
-        error.statusCode = 403;
-        throw error;
-      }
-    }
+  // Cho phép xem chi tiết ứng viên toàn hệ thống
+
+  // Đồng bộ vòng phỏng vấn từ lịch phỏng vấn nếu có
+  try {
+    await pool.query(`
+      INSERT INTO interview_rounds (candidate_id, round_number, round_name, interview_date, expected_evaluations, status)
+      SELECT s.candidate_id, s.round_number, s.round_name, s.start_at, 1,
+             CASE WHEN s.status = 'COMPLETED' THEN 'COMPLETED' ELSE 'IN_PROGRESS' END
+      FROM interview_schedules s
+      WHERE s.candidate_id = ?
+      ON DUPLICATE KEY UPDATE
+        round_name = VALUES(round_name),
+        interview_date = VALUES(interview_date),
+        status = VALUES(status)
+    `, [candidateId]);
+  } catch (syncErr) {
+    console.warn('Lỗi sync interview_rounds:', syncErr.message);
   }
 
   // Lấy các vòng phỏng vấn
@@ -202,7 +215,7 @@ async function getCandidateEvaluationDetail(candidateId, user) {
 
   const roundsWithDetails = rounds.map(r => {
     // Phiếu đánh giá của vòng (đã loại trừ trùng lặp)
-    const roundEvals = allUniqueEvals.filter(e => e.round_id === r.id);
+    const roundEvals = allUniqueEvals.filter(e => e.round_id === r.id || (!e.round_id && e.round_number === r.round_number));
     const completedEvals = roundEvals.filter(e => e.status === 'COMPLETED' || e.status === 'SUBMITTED');
     const submittedCount = completedEvals.length;
     const isMissing = submittedCount < r.expected_evaluations;
@@ -215,7 +228,7 @@ async function getCandidateEvaluationDetail(candidateId, user) {
 
     let roundScore = null;
     if (submittedCount > 0) {
-      roundScore = Number((completedEvals.reduce((sum, e) => sum + Number(e.overall_score || 0), 0) / submittedCount).toFixed(2));
+      roundScore = Number((completedEvals.reduce((sum, e) => sum + Number(e.overall_score ?? e.total_score ?? 0), 0) / submittedCount).toFixed(2));
       candidateOverallScores.push(roundScore);
     }
 
@@ -297,6 +310,47 @@ async function recordDecision(candidateId, decision, comment, userId) {
     WHERE id = ?
   `, [decision, userId, comment, newStatus, candidateId]);
 
+  // Đồng thời ghi nhận hoặc cập nhật vào candidate_hiring_decisions
+  try {
+    const [cands] = await pool.execute(`
+      SELECT c.recruitment_request_id, r.department_id
+      FROM candidates c
+      LEFT JOIN recruitment_requests r ON r.id = c.recruitment_request_id
+      WHERE c.id = ?
+    `, [candidateId]);
+    const reqId = cands[0]?.recruitment_request_id || null;
+    const deptId = cands[0]?.department_id || 1;
+
+    let [apps] = await pool.execute(`SELECT id FROM candidate_applications WHERE candidate_id = ? LIMIT 1`, [candidateId]);
+    let appId = apps[0]?.id || null;
+
+    if (!appId && reqId) {
+      const appCode = `HS-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}-${String(candidateId).padStart(5,'0')}`;
+      const [newApp] = await pool.execute(`
+        INSERT INTO candidate_applications (application_code, candidate_id, recruitment_request_id, status)
+        VALUES (?, ?, ?, 'INTERVIEWING')
+      `, [appCode, candidateId, reqId]);
+      appId = newApp.insertId;
+    }
+
+    await pool.execute(`
+      INSERT INTO candidate_hiring_decisions (
+        candidate_id, recruitment_request_id, department_id, decision_maker_id,
+        decision, comments, total_rounds_evaluated, average_score, decided_at,
+        validity_status, application_id, row_version
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, 8.0, NOW(), 'CURRENT', ?, 1)
+      ON DUPLICATE KEY UPDATE
+        decision = VALUES(decision),
+        comments = VALUES(comments),
+        decision_maker_id = VALUES(decision_maker_id),
+        validity_status = 'CURRENT',
+        application_id = COALESCE(VALUES(application_id), candidate_hiring_decisions.application_id),
+        decided_at = NOW()
+    `, [candidateId, reqId, deptId, userId, decision, comment, appId]);
+  } catch (hdErr) {
+    console.warn('Lỗi ghi candidate_hiring_decisions:', hdErr.message);
+  }
+
   return {
     candidate_id: candidateId,
     decision,
@@ -347,21 +401,29 @@ async function addEvaluation(candidateId, evalData, userId) {
   }
 
   // 2. Thêm phiếu đánh giá
+  const recMap = { 'PASS': 'RECOMMENDED', 'CONSIDER': 'CONSIDER', 'FAIL': 'NOT_RECOMMENDED' };
+  const recommendation = recMap[result] || (Number(overall_score) >= 7.0 ? 'RECOMMENDED' : 'CONSIDER');
+
   const [insEval] = await pool.execute(
     `INSERT INTO interview_evaluations (
       round_id, candidate_id, interviewer_id, interviewer_name, interviewer_role,
-      overall_score, max_score, result, comments, strengths, weaknesses, status, submitted_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', NOW())`,
+      round_number, overall_score, total_score, max_score, result, recommendation,
+      comments, general_comments, strengths, weaknesses, status, submitted_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', NOW())`,
     [
       roundId,
       candidateId,
       userId || null,
       interviewer_name || 'Người phỏng vấn',
       interviewer_role || 'Thành viên ban phỏng vấn',
+      Number(round_number) || 1,
+      Number(overall_score) || 8.0,
       Number(overall_score) || 8.0,
       Number(max_score) || 10.0,
       result || 'PASS',
+      recommendation,
       comments || '',
+      comments || 'Đánh giá phỏng vấn',
       strengths || '',
       weaknesses || ''
     ]

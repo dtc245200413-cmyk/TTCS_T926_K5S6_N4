@@ -334,16 +334,16 @@ export default function InterviewScheduleList() {
             <table className="is-schedule-table">
               <thead>
                 <tr>
-                  <th style={{ width: '4%', textAlign: 'center' }}>STT</th>
-                  <th style={{ width: '17%' }}>Ứng viên</th>
-                  <th style={{ width: '13%' }}>Vị trí</th>
-                  <th style={{ width: '15%' }}>Người phỏng vấn</th>
-                  <th style={{ width: '13%' }}>Phòng phỏng vấn</th>
-                  <th style={{ width: '13%' }}>Thời gian</th>
-                  <th style={{ width: '9%', textAlign: 'center' }}>Trạng thái</th>
-                  <th style={{ width: '5%', textAlign: 'center' }}>Điểm tổng</th>
-                  <th style={{ width: '9%', textAlign: 'center' }}>Kết luận</th>
-                  <th style={{ width: '9%', textAlign: 'center' }}>Thao tác</th>
+                  <th style={{ width: '50px', textAlign: 'center' }}>STT</th>
+                  <th style={{ width: '240px' }}>Ứng viên</th>
+                  <th style={{ width: '180px' }}>Vị trí</th>
+                  <th style={{ width: '190px' }}>Người phỏng vấn</th>
+                  <th style={{ width: '170px' }}>Phòng phỏng vấn</th>
+                  <th style={{ width: '150px' }}>Thời gian</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ width: '85px', textAlign: 'center' }}>Điểm tổng</th>
+                  <th style={{ width: '140px', textAlign: 'center' }}>Kết luận</th>
+                  <th style={{ width: '135px', textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,7 +373,7 @@ export default function InterviewScheduleList() {
                           <div className="is-candidate-avatar" style={getAvatarStyle(row.candidate_name)}>
                             {getInitials(row.candidate_name)}
                           </div>
-                          <div>
+                          <div className="is-candidate-info">
                             <div className="is-candidate-name">{row.candidate_name}</div>
                             <div className="is-candidate-email">{row.candidate_email || 'tuankiet@gmail.com'}</div>
                           </div>
@@ -381,7 +381,7 @@ export default function InterviewScheduleList() {
                       </td>
 
                       {/* Vị trí */}
-                      <td style={{ fontWeight: 500, color: '#334155' }}>
+                      <td className="is-position-cell">
                         {row.position_name || 'Backend Developer'}
                       </td>
 
@@ -391,7 +391,7 @@ export default function InterviewScheduleList() {
                           <div className="is-interviewer-avatar">
                             👤
                           </div>
-                          <div>
+                          <div className="is-interviewer-info">
                             <div className="is-interviewer-name">
                               {row.interviewer_name || 'Thàng Xuân Lập'}
                             </div>
@@ -465,7 +465,7 @@ export default function InterviewScheduleList() {
                           >
                             👁 Xem phiếu
                           </button>
-                        ) : hasCompleted ? (
+                        ) : (hasCompleted || hasInProgress) ? (
                           <button
                             type="button"
                             className="is-btn-evaluate"

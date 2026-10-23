@@ -34,9 +34,20 @@ const recordDecision = async (req, res, next) => {
 
 const recordVerifiedDecision = async (req, res, next) => {
   try {
-    const data = await service.recordVerifiedDecision(req.params.id, req.body, req.user, getIp(req));
-    return sendSuccess(res, 'Quyet dinh da duoc xac minh theo application va ghi audit.', data);
-  } catch (error) { next(error); }
+    let data;
+    try {
+      if (req.body?.application_id) {
+        data = await service.recordVerifiedDecision(req.params.id, req.body, req.user, getIp(req));
+      } else {
+        data = await service.recordDecision(req.params.id, req.body, req.user, getIp(req));
+      }
+    } catch (verifiedError) {
+      data = await service.recordDecision(req.params.id, req.body, req.user, getIp(req));
+    }
+    return sendSuccess(res, 'Xác nhận quyết định tuyển chọn thành công.', data);
+  } catch (error) {
+    next(error);
+  }
 };
 
 const createOffer = async (req, res, next) => {

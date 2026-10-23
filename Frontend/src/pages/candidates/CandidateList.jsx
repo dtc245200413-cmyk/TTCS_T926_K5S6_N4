@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../../config/api';
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar, FiClock } from 'react-icons/fi';
+import { FiDownload, FiEye, FiX, FiFileText, FiUser, FiGrid, FiList, FiUsers, FiStar, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import candidateApi from '../../api/candidateApi';
 import CandidateRatingModal from '../../components/CandidateRatingModal';
@@ -460,6 +460,25 @@ const CandidateList = () => {
                 >
                   <FiList size={14} /> Danh sách
                 </button>
+                <Link
+                  to="/candidate-evaluations"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #c7d2fe',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    backgroundColor: '#eef2ff',
+                    color: '#4338ca',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <FiCheckCircle size={14} color="#4f46e5" /> Đánh giá & Tuyển chọn
+                </Link>
               </div>
             </div>
 

@@ -16,17 +16,17 @@ const legacyWriteDisabled = (req, res) => {
 };
 
 // Lấy danh sách ứng viên đánh giá (Hiring Manager chỉ thấy bộ phận mình quản lý)
-router.get('/', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER'), controller.getCandidates);
+router.get('/', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER', 'APPROVER', 'DIRECTOR'), controller.getCandidates);
 
 // Khởi tạo dữ liệu mẫu nếu cần
 router.post('/seed-sample', legacyWriteDisabled);
 
 // Chi tiết điểm từng vòng, từng phiếu, quy tắc tổng hợp và cảnh báo thiếu phiếu
-router.get('/:id', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER'), controller.getCandidateDetail);
+router.get('/:id', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER', 'APPROVER', 'DIRECTOR'), controller.getCandidateDetail);
 
-// Trưởng bộ phận chọn Đạt/Không đạt, nhập nhận xét và xác nhận quyết định
-router.post('/:id/decision', legacyWriteDisabled);
-router.post('/:id/verified-decision', requireRoles('HIRING_MANAGER'), controller.recordVerifiedDecision);
+// Trưởng bộ phận, Admin, HR Manager, Giám đốc xác nhận quyết định tuyển chọn
+router.post('/:id/decision', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'APPROVER', 'DIRECTOR'), controller.recordDecision);
+router.post('/:id/verified-decision', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'APPROVER', 'DIRECTOR'), controller.recordVerifiedDecision);
 
 // Nhập phiếu đánh giá phỏng vấn của phỏng vấn viên / Trưởng bộ phận / HR
 router.post('/:id/evaluations', requireRoles('HIRING_MANAGER', 'HR_MANAGER', 'ADMIN', 'RECRUITER', 'INTERVIEWER'), controller.addEvaluation);

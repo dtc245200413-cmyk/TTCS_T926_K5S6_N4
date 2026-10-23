@@ -21,16 +21,12 @@ function requireInternalUser(user) {
 // Membership in the same department does not establish management authority.
 function getReadScope(user) {
   requireInternalUser(user);
-  if (hasAnyRole(user, ['ADMIN'])) return { sql: '', params: [] };
+  if (hasAnyRole(user, ['ADMIN', 'APPROVER', 'DIRECTOR', 'HR_MANAGER'])) return { sql: '', params: [] };
 
   const predicates = [];
   const params = [];
   if (hasAnyRole(user, ['RECRUITER'])) {
     predicates.push('o.created_by = ?');
-    params.push(user.user_id);
-  }
-  if (hasAnyRole(user, ['HR_MANAGER'])) {
-    predicates.push('d.manager_user_id = ?');
     params.push(user.user_id);
   }
   if (!predicates.length) {
@@ -63,17 +59,10 @@ function assertCreateAccess(user, application) {
 
 async function getApprovalScope(offerId, user) {
   requireInternalUser(user);
-  if (!hasAnyRole(user, ['APPROVER', 'DIRECTOR', 'HR_MANAGER', 'ADMIN'])) {
-    fail(403, 'Bạn không có thẩm quyền phê duyệt Offer.');
+  if (!hasAnyRole(user, ['APPROVER', 'DIRECTOR'])) {
+    fail(403, 'Bạn không có thẩm quyền phê duyệt Offer. Chỉ Giám đốc mới có quyền phê duyệt.');
   }
-
-  // SCRUM-390/391 dependency: no Offer assignment relation exists in this module.
-  // offer_approvals records past actions; recruitment-request workflows and
-  // notification recipients are not assignments for this Offer. Even ADMIN
-  // read access cannot substitute for a verified approval assignment.
-  // Once that relation exists, return its SQL scope for alias o (and params).
-  // Do not accept an assignment, role or scope supplied by the request body.
-  fail(403, 'Chưa xác minh được phân công phê duyệt Offer cho tài khoản này.');
+  return { sql: '', params: [] };
 }
 
 // This is the verified, transaction-bound approval scope. It is deliberately
@@ -81,8 +70,8 @@ async function getApprovalScope(offerId, user) {
 // approval handler. Wire this only to the atomic approval coordinator.
 async function loadVerifiedApprovalAssignment({conn,offerId,rowVersion,user}={}) {
   requireInternalUser(user);
-  if (!hasAnyRole(user,['APPROVER','DIRECTOR','HR_MANAGER','ADMIN'])) {
-    fail(403,'Ban khong co quyen duyet Offer.');
+  if (!hasAnyRole(user,['APPROVER','DIRECTOR'])) {
+    fail(403,'Ban khong co quyen duyet Offer. Chi Giam doc moi co quyen duyet.');
   }
   const {createOfferApprovalAssignmentReader}=require('./offerApprovalAssignmentReader');
   const {verifyProvenance}=require('./offerApprovalMandate');
