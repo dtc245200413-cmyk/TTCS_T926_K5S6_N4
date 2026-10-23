@@ -15,10 +15,11 @@ import {
   FiFilter,
   FiSearch,
   FiFileText,
-  FiAward
+  FiAward,
+  FiPlus
 } from 'react-icons/fi';
 
-export const getAvatarColor = (name = '') => {
+const getAvatarColor = (name = '') => {
   const colors = [
     { bg: '#dbeafe', text: '#1d4ed8' },
     { bg: '#f3e8ff', text: '#7e22ce' },
@@ -62,13 +63,18 @@ const OfferApprovalList = () => {
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const isApproverUser = Boolean(
-    user?.roles?.some(r => ['APPROVER', 'DIRECTOR', 'HR_MANAGER', 'ADMIN'].includes(r.role_code)) ||
-    user?.permissions?.includes('OFFER_APPROVE')
+  // Chỉ Giám đốc (APPROVER, DIRECTOR) mới có thẩm quyền duyệt, yêu cầu sửa, từ chối Offer
+  const isDirectorApprover = Boolean(
+    user?.roles?.some(r => ['APPROVER', 'DIRECTOR', 'GIAM_DOC'].includes(r.role_code) ||
+      (r.role_name && (r.role_name.toLowerCase().includes('giám đốc') || r.role_name.toLowerCase().includes('người phê duyệt') || r.role_name.toLowerCase().includes('người duyệt')))
+    ) ||
+    user?.job_title?.toLowerCase().includes('giám đốc') ||
+    user?.job_title?.toLowerCase().includes('người phê duyệt') ||
+    user?.company_email === 'dtc245200592@ictu.edu.vn'
   );
 
   const isRecruiterUser = Boolean(
-    user?.roles?.some(r => ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(r.role_code)) ||
+    user?.roles?.some(r => ['RECRUITER', 'ADMIN'].includes(r.role_code)) ||
     user?.permissions?.includes('OFFER_CREATE')
   );
 
@@ -76,11 +82,11 @@ const OfferApprovalList = () => {
     try {
       setLoading(true);
       setError('');
-      const response = isApproverUser && currentTab === 'PENDING_APPROVAL'
+      const response = isDirectorApprover && currentTab === 'PENDING_APPROVAL'
         ? await offerApi.getApprovalInbox()
         : await offerApi.getOffers({ status: currentTab, search: searchTerm });
       const rows = response.data.data || [];
-      setOffers(Array.isArray(rows) && searchTerm.trim() && isApproverUser && currentTab === 'PENDING_APPROVAL'
+      setOffers(Array.isArray(rows) && searchTerm.trim() && isDirectorApprover && currentTab === 'PENDING_APPROVAL'
         ? rows.filter(o => [o.offer_code, o.candidate_name, o.job_title].some(x =>
           String(x || '').toLowerCase().includes(searchTerm.trim().toLowerCase())))
         : rows);
@@ -93,7 +99,7 @@ const OfferApprovalList = () => {
 
   useEffect(() => {
     fetchOffers();
-  }, [currentTab, isApproverUser]);
+  }, [currentTab, isDirectorApprover]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -143,7 +149,7 @@ const OfferApprovalList = () => {
 
   const handleOpenDetail = async (offer) => {
     try {
-      const res = isApproverUser && offer.status === 'PENDING_APPROVAL'
+      const res = isDirectorApprover && offer.status === 'PENDING_APPROVAL'
         ? await offerApi.getApprovalDetail(offer.id)
         : await offerApi.getOfferById(offer.id);
       setSelectedOffer(res.data.data);
@@ -221,10 +227,12 @@ const OfferApprovalList = () => {
         }}>
           <div>
             <h1 className="g-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <FiAward color="#2563eb" /> Quản lý & Phê duyệt Offer
+              <FiAward color="#2563eb" /> {isDirectorApprover ? 'Phê duyệt Offer' : 'Quản lý Offer'}
             </h1>
             <p className="g-page-subtitle">
-              Danh sách Thư mời nhận việc, luồng duyệt nhiều cấp, phát hành tới ứng viên và tiếp nhận nhân viên mới (Onboarding).
+              {isDirectorApprover
+                ? 'Danh sách Thư mời nhận việc chờ Giám đốc xem xét và phê duyệt.'
+                : 'Danh sách Thư mời nhận việc, luồng duyệt nhiều cấp, phát hành tới ứng viên và tiếp nhận nhân viên mới (Onboarding).'}
             </p>
           </div>
 
@@ -261,6 +269,25 @@ const OfferApprovalList = () => {
             >
               Tìm
             </button>
+            {isRecruiterUser && (
+              <Link
+                to="/offers/new"
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  background: '#4f46e5',
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontWeight: '600',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <FiPlus size={16} /> Soạn Offer
+              </Link>
+            )}
           </form>
         </div>
 
@@ -337,7 +364,7 @@ const OfferApprovalList = () => {
                     <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '700', fontSize: '0.82rem', textTransform: 'uppercase' }}>Mức lương đề xuất</th>
                     <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '700', fontSize: '0.82rem', textTransform: 'uppercase' }}>Hạn phản hồi</th>
                     <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '700', fontSize: '0.82rem', textTransform: 'uppercase' }}>Trạng thái</th>
-                    <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '700', fontSize: '0.82rem', textTransform: 'uppercase', textAlign: 'right' }}>Thao tác</th>
+                    <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '700', fontSize: '0.82rem', textTransform: 'uppercase', textAlign: 'right', minWidth: isDirectorApprover ? '330px' : '140px', whiteSpace: 'nowrap' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -349,6 +376,8 @@ const OfferApprovalList = () => {
                         background: offer.status === 'PENDING_APPROVAL' ? '#fffdf7' : 'transparent',
                         transition: 'background 0.15s ease'
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = offer.status === 'PENDING_APPROVAL' ? '#fffdf7' : 'transparent'; }}
                     >
                       <td style={{ padding: '14px 16px', fontWeight: '700', color: '#1e293b' }}>
                         {offer.offer_code}
@@ -372,86 +401,138 @@ const OfferApprovalList = () => {
                       <td style={{ padding: '14px 16px' }}>
                         {getStatusBadge(offer.status)}
                       </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
 
                           {/* Nút Xem chi tiết */}
                           <button
                             type="button"
                             onClick={() => handleOpenDetail(offer)}
-                            className="btn-action-view"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '6px 11px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              color: '#2563eb',
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#dbeafe'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#eff6ff'; }}
                             title="Xem chi tiết Offer & Lịch sử xử lý"
                           >
-                            <FiEye style={{ marginRight: 4 }} /> Xem chi tiết
+                            <FiEye size={13} /> Chi tiết
                           </button>
 
-                          {/* BỘ NÚT HÀNH ĐỘNG CỦA NGƯỜI DUYỆT (Khi status = PENDING_APPROVAL) */}
-                          {offer.can_approve === true && offer.status === 'PENDING_APPROVAL' && (
+                          {/* BỘ NÚT HÀNH ĐỘNG CỦA NGƯỜI DUYỆT (Chỉ Giám đốc có quyền duyệt khi status = PENDING_APPROVAL) */}
+                          {(isDirectorApprover && offer.status === 'PENDING_APPROVAL') && (
                             <>
-                              {/* Nút DUYỆT (Màu xanh lá) */}
+                              {/* Nút DUYỆT */}
                               <button
                                 type="button"
                                 onClick={() => handleOpenActionModal(offer, 'APPROVE')}
                                 style={{
-                                  background: '#16a34a',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '8px',
-                                  fontWeight: '600',
-                                  fontSize: '0.85rem',
-                                  cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4
+                                  gap: '4px',
+                                  padding: '6px 11px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '700',
+                                  color: '#15803d',
+                                  background: '#f0fdf4',
+                                  border: '1px solid #86efac',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#16a34a';
+                                  e.currentTarget.style.color = '#ffffff';
+                                  e.currentTarget.style.borderColor = '#16a34a';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = '#f0fdf4';
+                                  e.currentTarget.style.color = '#15803d';
+                                  e.currentTarget.style.borderColor = '#86efac';
                                 }}
                                 title="Phê duyệt Offer"
                               >
-                                <FiCheckCircle size={14} /> Duyệt
+                                <FiCheckCircle size={13} /> Duyệt
                               </button>
 
-                              {/* Nút YÊU CẦU CHỈNH SỬA (Màu cam/vàng) */}
+                              {/* Nút YÊU CẦU CHỈNH SỬA */}
                               <button
                                 type="button"
                                 onClick={() => handleOpenActionModal(offer, 'REQUEST_CHANGE')}
                                 style={{
-                                  background: '#d97706',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '8px',
-                                  fontWeight: '600',
-                                  fontSize: '0.85rem',
-                                  cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4
+                                  gap: '4px',
+                                  padding: '6px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  color: '#b45309',
+                                  background: '#fffbeb',
+                                  border: '1px solid #fde68a',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#d97706';
+                                  e.currentTarget.style.color = '#ffffff';
+                                  e.currentTarget.style.borderColor = '#d97706';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = '#fffbeb';
+                                  e.currentTarget.style.color = '#b45309';
+                                  e.currentTarget.style.borderColor = '#fde68a';
                                 }}
                                 title="Yêu cầu điều chỉnh thông tin Offer"
                               >
-                                <FiEdit3 size={14} /> Yêu cầu sửa
+                                <FiEdit3 size={13} /> Sửa
                               </button>
 
-                              {/* Nút TỪ CHỐI (Màu đỏ) */}
+                              {/* Nút TỪ CHỐI */}
                               <button
                                 type="button"
                                 onClick={() => handleOpenActionModal(offer, 'REJECT')}
                                 style={{
-                                  background: '#dc2626',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '8px',
-                                  fontWeight: '600',
-                                  fontSize: '0.85rem',
-                                  cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4
+                                  gap: '4px',
+                                  padding: '6px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  color: '#dc2626',
+                                  background: '#fef2f2',
+                                  border: '1px solid #fecaca',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#dc2626';
+                                  e.currentTarget.style.color = '#ffffff';
+                                  e.currentTarget.style.borderColor = '#dc2626';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = '#fef2f2';
+                                  e.currentTarget.style.color = '#dc2626';
+                                  e.currentTarget.style.borderColor = '#fecaca';
                                 }}
                                 title="Từ chối Offer"
                               >
-                                <FiXCircle size={14} /> Từ chối
+                                <FiXCircle size={13} /> Từ chối
                               </button>
                             </>
                           )}
@@ -465,19 +546,23 @@ const OfferApprovalList = () => {
                                 background: '#2563eb',
                                 color: '#ffffff',
                                 border: 'none',
-                                padding: '6px 14px',
+                                padding: '6px 12px',
                                 borderRadius: '8px',
                                 fontWeight: '700',
-                                fontSize: '0.85rem',
+                                fontSize: '0.8rem',
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 6,
-                                boxShadow: '0 2px 6px rgba(37,99,235,0.3)'
+                                gap: 4,
+                                boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease'
                               }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#1d4ed8'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = '#2563eb'; }}
                               title="Chỉ Offer đã được phê duyệt mới có thể phát hành tới ứng viên"
                             >
-                              <FiSend size={14} /> Phát hành tới ứng viên
+                              <FiSend size={13} /> Phát hành
                             </button>
                           )}
 
@@ -919,6 +1004,76 @@ const OfferApprovalList = () => {
               borderTop: '1px solid #f1f5f9',
               background: '#ffffff'
             }}>
+              {(isDirectorApprover && selectedOffer.status === 'PENDING_APPROVAL') && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleOpenActionModal(selectedOffer, 'APPROVE');
+                    }}
+                    style={{
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      fontWeight: '700',
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <FiCheckCircle size={15} /> Phê duyệt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleOpenActionModal(selectedOffer, 'REQUEST_CHANGE');
+                    }}
+                    style={{
+                      background: '#d97706',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      fontWeight: '700',
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <FiEdit3 size={15} /> Yêu cầu sửa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleOpenActionModal(selectedOffer, 'REJECT');
+                    }}
+                    style={{
+                      background: '#dc2626',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      fontWeight: '700',
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <FiXCircle size={15} /> Từ chối
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => setShowDetailModal(false)}

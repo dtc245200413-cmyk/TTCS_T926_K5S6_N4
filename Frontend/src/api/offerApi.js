@@ -38,18 +38,18 @@ const offerApi = {
   getApprovalInbox: () => axiosClient.get('/offers/approval-inbox'),
   getApprovalDetail: (id) => axiosClient.get(`/offers/${encodeURIComponent(id)}/approval-detail`),
   decideAtomic: (id, action, reason, version) => {
-    if (!validOfferVersion(version)) return Promise.reject({ response: { status: 428 } });
+    const v = validOfferVersion(version) ? version : 1;
     return axiosClient.post(`/offers/${encodeURIComponent(id)}/decide-atomic`,
-      { action, reason }, { headers: { 'If-Match': `"${version}"` } });
+      { action, reason }, { headers: { 'If-Match': `"${v}"` } });
   },
 
   approveOffer: (id, data) => axiosClient.post(`/offers/${encodeURIComponent(id)}/approve`, data),
   rejectOffer: (id, data) => axiosClient.post(`/offers/${encodeURIComponent(id)}/reject`, data),
   requestChangeOffer: (id, data) => axiosClient.post(`/offers/${encodeURIComponent(id)}/request-change`, data),
   publishOffer: (id, version) => {
-    if (!validOfferVersion(version)) return Promise.reject({ response: { status: 428 } });
+    const v = validOfferVersion(version) ? version : 1;
     return axiosClient.post(`/offers/${encodeURIComponent(id)}/publish`, {}, {
-      headers: { 'If-Match': `"${version}"` }
+      headers: { 'If-Match': `"${v}"` }
     });
   },
   getOnboardings: () => axiosClient.get('/offers/onboardings'),

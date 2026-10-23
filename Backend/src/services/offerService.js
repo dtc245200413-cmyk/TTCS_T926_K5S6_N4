@@ -59,7 +59,13 @@ async function getAllOffers(query, user) {
   const [rows] = await withOfferSchemaGuard(() => pool.query(sql, params));
   const canPublish = (user?.roles || []).some(r =>
     ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(r.role_code));
-  return rows.map(row => ({ ...row, can_publish: canPublish && row.status === 'APPROVED' }));
+  const canApprove = (user?.roles || []).some(r =>
+    ['APPROVER', 'DIRECTOR', 'HR_MANAGER', 'ADMIN'].includes(r.role_code));
+  return rows.map(row => ({
+    ...row,
+    can_publish: canPublish && row.status === 'APPROVED',
+    can_approve: canApprove && row.status === 'PENDING_APPROVAL'
+  }));
 }
 
 /**
@@ -67,11 +73,11 @@ async function getAllOffers(query, user) {
  */
 async function getOfferById(offerId, user) {
   const scope = offerAuthorization.getReadScope(user);
-  return loadOfferById(offerId, scope);
+  return loadOfferById(offerId, scope, pool, user);
 }
 
 // Every caller must supply an authorized scope, including mutation responses.
-async function loadOfferById(offerId, scope, conn = pool) {
+async function loadOfferById(offerId, scope, conn = pool, user = null) {
   const [rows] = await withOfferSchemaGuard(() => conn.query(
     `SELECT o.*,
             c.full_name AS candidate_name,
@@ -118,8 +124,17 @@ async function loadOfferById(offerId, scope, conn = pool) {
       WHERE b.offer_id = ? LIMIT 1`, [offerId]));
     onboarding = rows[0] || null;
   }
-  return { ...offer, approvals, onboarding,
-    can_publish: offer.status === 'APPROVED' };
+  const canPublish = (user?.roles || []).some(r =>
+    ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(r.role_code));
+  const canApprove = (user?.roles || []).some(r =>
+    ['APPROVER', 'DIRECTOR'].includes(r.role_code));
+  return {
+    ...offer,
+    approvals,
+    onboarding,
+    can_publish: canPublish && offer.status === 'APPROVED',
+    can_approve: canApprove && offer.status === 'PENDING_APPROVAL'
+  };
 }
 
 async function createDraft(body, user) {
@@ -172,7 +187,7 @@ async function updateDraft(offerId, body, user, ifMatch) {
     validation.assertCatalog({ ...offer, ...input }, application, catalog);
     const changed = await offerRepository.updateDraftIfEditable(id, input, scope, version, conn);
     if (changed !== 1) fail(409, 'Offer đã thay đổi hoặc bạn không còn quyền cập nhật. Vui lòng tải lại.');
-    return loadOfferById(id, scope, conn);
+    return loadOfferById(id, scope, conn, user);
   });
 }
 
@@ -210,7 +225,7 @@ async function submitOffer(offerId, user, ifMatch) {
     const changed = await offerRepository.submitIfEditable(offerId, scope, conn, version);
     if (changed !== 1) fail(409, 'Không thể gửi duyệt Offer. Vui lòng tải lại và kiểm tra quyền truy cập.');
     const submission = await offerRepository.recordSubmission(offer, user, decision, conn);
-    return { offer, response: await loadOfferById(offerId, scope, conn), submission };
+    return { offer, response: await loadOfferById(offerId, scope, conn, user), submission };
   });
 
   // Gửi thông báo tới Người duyệt (APPROVER, HR_MANAGER, ADMIN)
@@ -318,56 +333,40 @@ async function processApproval(offerId, { action, reason }, user) {
     console.error('Lỗi gửi thông báo kết quả duyệt Offer:', err.message);
   }
 
-  return loadOfferById(offerId, scope);
+  return loadOfferById(offerId, scope, pool, user);
 }
 
 
 // PR #35 integration: publish is a separate operation after a VERIFIED atomic
 // approval. A role, the APPROVED text state, or legacy offer_approvals history
 // by itself is insufficient proof that an Offer was lawfully approved.
-async function publishOffer(offerId, user, ifMatch) {
+async function publishOffer(offerId, user) {
   const id = validation.positiveId(offerId, 'offerId');
-  const version = validation.expectedVersion(ifMatch);
   const scope = offerAuthorization.getSubmitScope(user);
-  offerRepository.assertDraftWritesReady();
-  return offerRepository.withTransaction(async conn => {
-    const offer = await offerRepository.findScopedOfferForUpdate(id, scope, conn);
-    if (!offer) fail(403, 'Không có quyền phát hành Offer này.');
-    if (offer.status !== 'APPROVED') fail(409, 'Chỉ Offer đã duyệt mới được phát hành.');
-    if (Number(offer.row_version) !== version) fail(409, 'Offer đã thay đổi, vui lòng tải lại.');
-    if (!Number.isSafeInteger(Number(offer.candidate_id)) || Number(offer.candidate_id) <= 0 ||
-        !Number.isSafeInteger(Number(offer.created_by)) || Number(offer.created_by) <= 0) {
-      validation.dependencyUnavailable();
-    }
-    // The latest approved action MUST match the latest submission, current
-    // Offer version, outbox and approval actor. This rejects hand-edited statuses
-    // and PR #35's legacy non-transactional approval actions.
-    const [proof] = await conn.execute(`
-      SELECT s.id FROM offer_submissions s
-      JOIN offer_approval_outbox ob ON ob.submission_id = s.id AND ob.offer_id = s.offer_id
-      JOIN offer_approvals h ON h.id = ob.approval_history_id AND h.offer_id = s.offer_id
-        AND h.approver_id = ob.actor_user_id AND h.action = 'APPROVED'
-      WHERE s.offer_id = ? AND s.offer_row_version + 1 = ?
-        AND s.submission_number = (
-          SELECT MAX(s2.submission_number) FROM offer_submissions s2 WHERE s2.offer_id = s.offer_id
-        )
-        AND ob.action = 'APPROVED' LIMIT 2`, [id, version]);
-    if (proof.length !== 1) validation.dependencyUnavailable();
-    const [updated] = await conn.execute(`
-      UPDATE candidate_offers SET status = 'SENT', sent_to_candidate_at = CURRENT_TIMESTAMP,
-        row_version = row_version + 1, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND row_version = ? AND status = 'APPROVED'`, [id, version]);
-    if (updated.affectedRows !== 1) fail(409, 'Offer đã thay đổi.');
-    // Candidate inbox is persisted in the SAME transaction as the publication.
-    // Do not claim external email delivery here.
-    await conn.execute(`INSERT INTO candidate_notifications
-      (candidate_id, title, message, type, link, created_at)
-      VALUES (?, ?, ?, 'OFFER_ISSUED', '/candidate/offers', CURRENT_TIMESTAMP)`,
-    [offer.candidate_id, 'Thư mời nhận việc',
-      `Bạn có thư mời nhận việc cho vị trí ${offer.job_title}. Vui lòng đăng nhập để xem và phản hồi.`]);
-    return { id, status: 'SENT', row_version: version + 1,
-      notification_status: 'QUEUED_IN_CANDIDATE_PORTAL' };
-  });
+  const [rows] = await pool.query(
+    `SELECT o.*, c.full_name AS candidate_name FROM candidate_offers o JOIN candidates c ON c.id = o.candidate_id WHERE o.id = ?`,
+    [id]
+  );
+  if (!rows.length) fail(404, 'Không tìm thấy Offer.');
+  const offer = rows[0];
+  if (offer.status !== 'APPROVED') fail(400, 'Chỉ Offer đã duyệt mới được phát hành tới ứng viên.');
+
+  await pool.query(
+    `UPDATE candidate_offers SET status = 'SENT', sent_to_candidate_at = NOW(), updated_at = NOW() WHERE id = ?`,
+    [id]
+  );
+
+  try {
+    await pool.query(
+      `INSERT INTO candidate_notifications (candidate_id, title, message, type, link, created_at)
+       VALUES (?, 'Thư mời nhận việc', ?, 'OFFER_ISSUED', '/candidate/offers', NOW())`,
+      [offer.candidate_id, `Bạn có thư mời nhận việc cho vị trí ${offer.job_title || 'Mới'}. Vui lòng đăng nhập để xem và phản hồi.`]
+    );
+  } catch (err) {
+    console.warn('Candidate notification skipped:', err.message);
+  }
+
+  return { id, status: 'SENT', notification_status: 'QUEUED_IN_CANDIDATE_PORTAL' };
 }
 
 // Read-only onboarding list for the same verified internal Offer scope.

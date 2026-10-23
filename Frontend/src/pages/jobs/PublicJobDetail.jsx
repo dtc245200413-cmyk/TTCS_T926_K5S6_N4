@@ -266,7 +266,7 @@ const PublicJobDetail = () => {
           </div>
 
           {/* Two Columns Layout: Left Content, Right Sticky Application */}
-          <div className="pj-content-layout">
+          <div className="pj-detail-columns pj-content-layout">
             {/* Left Column: Job Description and Requirements */}
             <div className="pj-content-main">
               {/* Job Description */}
@@ -274,7 +274,7 @@ const PublicJobDetail = () => {
                 <h2 className="pj-section-title">
                   <FiFileText style={{ color: '#4f46e5' }} /> Mô tả công việc
                 </h2>
-                <div className="pj-section-text">
+                <div className="pj-section-body pj-section-text">
                   {job.description}
                 </div>
               </section>
@@ -285,7 +285,7 @@ const PublicJobDetail = () => {
                   <h2 className="pj-section-title">
                     <FiCheckSquare style={{ color: '#4f46e5' }} /> Yêu cầu ứng viên
                   </h2>
-                  <div className="pj-section-text">
+                  <div className="pj-section-body pj-section-text">
                     {job.requirements}
                   </div>
                 </section>
@@ -297,18 +297,18 @@ const PublicJobDetail = () => {
                   <h2 className="pj-section-title">
                     <FiGift style={{ color: '#4f46e5' }} /> Quyền lợi được hưởng
                   </h2>
-                  <div className="pj-section-text">
+                  <div className="pj-section-body pj-section-text">
                     {job.benefits}
                   </div>
                 </section>
               )}
 
               {/* Recruitment Notice */}
-              <section className="pj-section" style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <section className="pj-section" style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', marginTop: '16px' }}>
                 <h3 style={{ fontSize: '15px', color: '#1e293b', margin: '0 0 8px', fontWeight: 700 }}>
                   Quy trình tiếp nhận hồ sơ
                 </h3>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
+                <p style={{ margin: 0, fontSize: '13.5px', color: '#64748b', lineHeight: 1.6 }}>
                   Hồ sơ sau khi gửi thành công sẽ được hệ thống mã hóa và chuyển tự động đến Trưởng bộ phận tuyển dụng chuyên trách. 
                   Hội đồng tuyển dụng sẽ liên hệ trực tiếp với các ứng viên có hồ sơ phù hợp qua email và số điện thoại đã cung cấp.
                 </p>

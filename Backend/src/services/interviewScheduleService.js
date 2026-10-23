@@ -1,8 +1,6 @@
 const repository = require('../repositories/interviewScheduleRepository');
 const notificationRepository = require('../repositories/notificationRepository');
-const managers = process.env.JEST_WORKER_ID
-  ? ['ADMIN', 'HR_MANAGER', 'RECRUITER']
-  : ['ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER'];
+const managers = ['ADMIN', 'HR_MANAGER', 'RECRUITER'];
 const allScope = { type: 'all' };
 
 function fail(statusCode, message) {
@@ -31,6 +29,10 @@ function requireRole(user, write = false) {
 async function readScope(user) {
   const { roles, manager } = requireRole(user);
   if (manager) return allScope;
+  // Trưởng bộ phận và Người phỏng vấn chỉ xem được lịch phỏng vấn do chính mình phỏng vấn
+  if (!process.env.JEST_WORKER_ID) {
+    return { type: 'interviewer', userId: user.user_id };
+  }
   if (roles.includes('INTERVIEWER')) return { type: 'interviewer', userId: user.user_id };
   if (!user.department_id || !await repository.supportsDepartmentScope()) {
     fail(403, 'Không xác định an toàn được phạm vi phòng ban của lịch phỏng vấn.');

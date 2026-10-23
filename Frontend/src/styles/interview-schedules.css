@@ -159,17 +159,20 @@
 
 /* Table Scroll & Structure */
 .interview-schedules .is-table-scroll {
+  width: 100%;
   max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .interview-schedules .is-schedule-table {
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  min-width: 1200px;
+  min-width: 1450px;
   text-align: left;
 }
 .interview-schedules .is-schedule-table th {
@@ -186,8 +189,9 @@
   padding: 14px 12px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   box-sizing: border-box;
+  overflow: hidden;
 }
 .interview-schedules .is-schedule-table tbody tr:hover {
   background: #fafcff;
@@ -201,6 +205,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  width: 100%;
 }
 .is-candidate-avatar {
   width: 36px;
@@ -213,20 +219,40 @@
   font-size: 0.825rem;
   flex-shrink: 0;
 }
+.is-candidate-info {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
 .is-candidate-name {
   font-weight: 700;
   color: #0f172a;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .is-candidate-email {
   font-size: 0.8rem;
   color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.is-position-cell {
+  font-weight: 500;
+  color: #334155;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .is-interviewer-cell {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  width: 100%;
 }
 .is-interviewer-avatar {
   width: 32px;
@@ -240,14 +266,23 @@
   font-size: 0.85rem;
   flex-shrink: 0;
 }
+.is-interviewer-info {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
 .is-interviewer-name {
   font-weight: 600;
   color: #0f172a;
   font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .is-interviewer-role {
   font-size: 0.775rem;
   color: #64748b;
+  white-space: nowrap;
 }
 
 .is-room-name {

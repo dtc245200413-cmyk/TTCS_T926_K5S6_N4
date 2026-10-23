@@ -93,7 +93,7 @@ const CandidateEvaluationList = () => {
               backdropFilter: 'blur(4px)',
               letterSpacing: '0.5px'
             }}>
-              {isHiringManager ? 'DÀNH CHO TRƯỞNG BỘ PHẬN' : 'QUẢN LÝ ĐÁNH GIÁ TUYỂN CHỌN'}
+              QUẢN LÝ ĐÁNH GIÁ & QUYẾT ĐỊNH TUYỂN CHỌN
             </span>
             <span style={{ fontSize: '0.85rem', color: '#c7d2fe' }}>
               • Hệ thống phân quyền nội bộ
@@ -117,14 +117,14 @@ const CandidateEvaluationList = () => {
           gap: '4px'
         }}>
           <div style={{ fontSize: '0.75rem', color: '#cbd5e1', textTransform: 'uppercase', fontWeight: '600' }}>
-            Phạm vi quản lý
+            Phạm vi hiển thị
           </div>
           <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FiShield size={16} color="#38bdf8" />
-            {isHiringManager ? 'Bộ phận trực thuộc của bạn' : 'Toàn quyền quản trị'}
+            Toàn hệ thống
           </div>
           <div style={{ fontSize: '0.75rem', color: '#a5b4fc' }}>
-            Chỉ hiển thị ứng viên thuộc vị trí / bộ phận có quyền quản lý
+            Hiển thị đầy đủ tất cả ứng viên tuyển dụng
           </div>
         </div>
       </div>
@@ -325,9 +325,7 @@ const CandidateEvaluationList = () => {
             <FiUsers size={48} style={{ opacity: 0.3, marginBottom: '12px' }} />
             <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#334155' }}>Không có ứng viên nào phù hợp</div>
             <p style={{ margin: '6px 0 0', fontSize: '0.88rem' }}>
-              {isHiringManager
-                ? 'Không tìm thấy ứng viên trong bộ phận bạn quản lý phù hợp với điều kiện lọc.'
-                : 'Thử thay đổi từ khóa tìm kiếm hoặc chọn tab bộ lọc khác.'}
+              Thử thay đổi từ khóa tìm kiếm hoặc chọn tab bộ lọc khác.
             </p>
           </div>
         ) : (
@@ -340,7 +338,7 @@ const CandidateEvaluationList = () => {
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Tiến Độ Vòng</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Điểm Tổng Hợp</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Tình Trạng Phiếu</th>
-                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Quyết Định Trưởng BP</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Quyết Định</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Điều Kiện Offer</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Thao Tác</th>
                 </tr>
@@ -493,7 +491,7 @@ const CandidateEvaluationList = () => {
                           background: '#fef3c7',
                           color: '#d97706'
                         }}>
-                          ⏳ Chờ Trưởng BP duyệt
+                          ⏳ Chờ duyệt
                         </span>
                       )}
                     </td>

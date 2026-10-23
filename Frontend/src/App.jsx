@@ -116,11 +116,12 @@ function App() {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/interview-schedules" element={<InterviewScheduleList />} />
             <Route path="/interviews" element={<Navigate to="/interview-schedules" replace />} />
-            <Route path="/offers" element={<OfferList />} />
+            <Route path="/offers" element={<OfferApprovalList />} />
+            <Route path="/offers/drafts" element={<OfferList />} />
             <Route path="/offers/new" element={<OfferForm />} />
-            <Route path="/offers/approval" element={<OfferList />} />
+            <Route path="/offers/approval" element={<OfferApprovalList />} />
             <Route path="/offers/:id/edit" element={<OfferForm />} />
-            <Route path="/offers/:id" element={<OfferList />} />
+            <Route path="/offers/:id" element={<OfferApprovalList />} />
             <Route path="/onboarding" element={<Navigate to="/candidates" replace />} />
             <Route path="/candidate-evaluations" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
               <Route index element={<CandidateEvaluationList />} />

@@ -25,6 +25,7 @@ const CandidateEvaluationDetail = () => {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [submittingDecision, setSubmittingDecision] = useState(false);
   const [decisionSuccess, setDecisionSuccess] = useState('');
+  const [decisionError, setDecisionError] = useState('');
   const [isEditingDecision, setIsEditingDecision] = useState(false);
 
   // Offer State
@@ -62,6 +63,13 @@ const CandidateEvaluationDetail = () => {
       if (data.interview_decision) {
         setDecision(data.interview_decision);
         setComment(data.interview_decision_comment || '');
+      } else {
+        // Tự động gợi ý lựa chọn Đạt / Không đạt theo điểm tổng hợp của ứng viên
+        if (data.aggregate_score !== null && data.aggregate_score !== undefined) {
+          setDecision(Number(data.aggregate_score) >= 5.0 ? 'PASSED' : 'FAILED');
+        } else {
+          setDecision('PASSED');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -77,16 +85,19 @@ const CandidateEvaluationDetail = () => {
 
   const handleDecisionSubmit = async (e) => {
     e.preventDefault();
+    setDecisionError('');
+    setDecisionSuccess('');
+
     if (!decision) {
-      alert('Vui lòng chọn kết quả Đạt hoặc Không đạt.');
+      setDecisionError('Vui lòng nhấp chọn kết quả Đạt hoặc Không đạt.');
       return;
     }
     if (!comment || comment.trim().length < 3) {
-      alert('Vui lòng nhập nhận xét và lý do quyết định của Trưởng bộ phận (tối thiểu 3 ký tự).');
+      setDecisionError('Vui lòng nhập nhận xét và lý do quyết định (tối thiểu 3 ký tự).');
       return;
     }
     if (!confirmChecked) {
-      alert('Vui lòng tích chọn xác nhận trách nhiệm đối với quyết định tuyển chọn này.');
+      setDecisionError('Vui lòng tích chọn ô xác nhận trách nhiệm đối với quyết định tuyển chọn này.');
       return;
     }
 
@@ -97,20 +108,19 @@ const CandidateEvaluationDetail = () => {
       if (!proceed) return;
     }
 
-    if (!candidate?.verified_decision_application_id) {
-      alert('Không xác minh được application duy nhất. Vui lòng kiểm tra liên kết hồ sơ.');
-      return;
-    }
     setSubmittingDecision(true);
-    setDecisionSuccess('');
     try {
-      await candidateEvaluationApi.recordDecision(id, { decision, comment, application_id: candidate.verified_decision_application_id });
+      await candidateEvaluationApi.recordDecision(id, {
+        decision,
+        comment: comment.trim(),
+        application_id: candidate?.verified_decision_application_id || null
+      });
       setDecisionSuccess('Đã xác nhận và lưu quyết định tuyển chọn thành công!');
       setIsEditingDecision(false);
       await fetchDetail();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || 'Có lỗi xảy ra khi lưu quyết định.');
+      setDecisionError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu quyết định.');
     } finally {
       setSubmittingDecision(false);
     }
@@ -270,7 +280,7 @@ const CandidateEvaluationDetail = () => {
                 </span>
               ) : (
                 <span style={{ padding: '4px 12px', borderRadius: '20px', background: '#fef3c7', color: '#d97706', fontWeight: '800', fontSize: '0.8rem' }}>
-                  ⏳ CHỜ TRƯỞNG BP DUYỆT
+                  ⏳ CHỜ DUYỆT
                 </span>
               )}
             </div>
@@ -387,7 +397,7 @@ const CandidateEvaluationDetail = () => {
                     CẢNH BÁO: ĐANG THIẾU {candidate.total_missing_sheets} PHIẾU ĐÁNH GIÁ
                   </div>
                   <div style={{ fontSize: '0.84rem', lineHeight: '1.5' }}>
-                    Một số vòng phỏng vấn chưa nhận đủ số phiếu từ các thành viên ban phỏng vấn. Trưởng bộ phận nên xem xét kỹ danh sách phiếu đã nộp bên dưới trước khi quyết định tuyển chọn.
+                    Một số vòng phỏng vấn chưa nhận đủ số phiếu từ các thành viên ban phỏng vấn. Bạn nên xem xét kỹ danh sách phiếu đã nộp bên dưới trước khi quyết định tuyển chọn.
                   </div>
                 </div>
               </div>
@@ -743,14 +753,14 @@ const CandidateEvaluationDetail = () => {
                 </div>
 
                 <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: '1.6' }}>
-                  <strong>Nhận xét của Trưởng bộ phận:</strong>
+                  <strong>Nhận xét & Lý do quyết định:</strong>
                   <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.06)', marginTop: '6px', fontStyle: 'italic' }}>
                     "{candidate.interview_decision_comment || 'Không có nhận xét bổ sung.'}"
                   </div>
                 </div>
 
                 <div style={{ fontSize: '0.78rem', color: '#64748b', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '10px' }}>
-                  <div><strong>Người quyết định:</strong> {candidate.decider_name || 'Trưởng bộ phận'} {candidate.decider_job_title ? `(${candidate.decider_job_title})` : ''}</div>
+                  <div><strong>Người quyết định:</strong> {candidate.decider_name || 'Người duyệt'} {candidate.decider_job_title ? `(${candidate.decider_job_title})` : ''}</div>
                   <div><strong>Thời gian ghi nhận:</strong> {candidate.interview_decision_at ? new Date(candidate.interview_decision_at).toLocaleString('vi-VN') : 'Vừa xong'}</div>
                 </div>
               </div>
@@ -758,8 +768,16 @@ const CandidateEvaluationDetail = () => {
               /* Decision Form */
               <form onSubmit={handleDecisionSubmit}>
                 {decisionSuccess && (
-                  <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#dcfce7', color: '#15803d', fontSize: '0.85rem', marginBottom: '14px' }}>
-                    {decisionSuccess}
+                  <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#dcfce7', border: '1px solid #86efac', color: '#15803d', fontSize: '0.85rem', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiCheckCircle size={18} />
+                    <span>{decisionSuccess}</span>
+                  </div>
+                )}
+
+                {decisionError && (
+                  <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.85rem', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiAlertTriangle size={18} />
+                    <span>{decisionError}</span>
                   </div>
                 )}
 
@@ -771,49 +789,84 @@ const CandidateEvaluationDetail = () => {
                 )}
 
                 {/* Radio selection buttons */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                  <div
-                    onClick={() => setDecision('PASSED')}
-                    style={{
-                      padding: '16px 12px',
-                      borderRadius: '12px',
-                      border: `2px solid ${decision === 'PASSED' ? '#16a34a' : '#e2e8f0'}`,
-                      background: decision === 'PASSED' ? '#f0fdf4' : '#ffffff',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{ fontSize: '1.2rem', color: '#16a34a', fontWeight: '800' }}>✓ ĐẠT</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Đủ điều kiện tạo Offer</div>
-                  </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
+                    Kết quả tuyển chọn <span style={{ color: '#ef4444' }}>*</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#64748b', marginLeft: '6px' }}>(Nhấp để chọn)</span>
+                  </label>
 
-                  <div
-                    onClick={() => setDecision('FAILED')}
-                    style={{
-                      padding: '16px 12px',
-                      borderRadius: '12px',
-                      border: `2px solid ${decision === 'FAILED' ? '#dc2626' : '#e2e8f0'}`,
-                      background: decision === 'FAILED' ? '#fef2f2' : '#ffffff',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{ fontSize: '1.2rem', color: '#dc2626', fontWeight: '800' }}>✗ KHÔNG ĐẠT</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Loại hồ sơ ứng viên</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {/* Nút ĐẠT */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => { setDecision('PASSED'); setDecisionError(''); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setDecision('PASSED'); setDecisionError(''); } }}
+                      style={{
+                        padding: '16px 12px',
+                        borderRadius: '12px',
+                        border: `2px solid ${decision === 'PASSED' ? '#16a34a' : '#cbd5e1'}`,
+                        background: decision === 'PASSED' ? '#f0fdf4' : '#ffffff',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                        boxShadow: decision === 'PASSED' ? '0 4px 12px rgba(22, 163, 74, 0.18)' : 'none',
+                        position: 'relative',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '1.25rem', color: '#16a34a', fontWeight: '800' }}>✓ ĐẠT</span>
+                        {decision === 'PASSED' && (
+                          <span style={{ fontSize: '0.72rem', background: '#16a34a', color: '#ffffff', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                            Đã chọn
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Đủ điều kiện tạo Offer</div>
+                    </div>
+
+                    {/* Nút KHÔNG ĐẠT */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => { setDecision('FAILED'); setDecisionError(''); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setDecision('FAILED'); setDecisionError(''); } }}
+                      style={{
+                        padding: '16px 12px',
+                        borderRadius: '12px',
+                        border: `2px solid ${decision === 'FAILED' ? '#dc2626' : '#cbd5e1'}`,
+                        background: decision === 'FAILED' ? '#fef2f2' : '#ffffff',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                        boxShadow: decision === 'FAILED' ? '0 4px 12px rgba(220, 38, 38, 0.18)' : 'none',
+                        position: 'relative',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '1.25rem', color: '#dc2626', fontWeight: '800' }}>✗ KHÔNG ĐẠT</span>
+                        {decision === 'FAILED' && (
+                          <span style={{ fontSize: '0.72rem', background: '#dc2626', color: '#ffffff', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                            Đã chọn
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Loại hồ sơ ứng viên</div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Comment Textarea */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
-                    Nhận xét & Lý do quyết định của Trưởng bộ phận <span style={{ color: '#ef4444' }}>*</span>
+                    Nhận xét & Lý do quyết định <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <textarea
                     rows={4}
                     value={comment}
-                    onChange={(e) => setComment(e.target.value)}
+                    onChange={(e) => { setComment(e.target.value); setDecisionError(''); }}
                     placeholder="Nhập nhận xét chi tiết về năng lực ứng viên, mức độ phù hợp và lý do ra quyết định..."
                     style={{
                       width: '100%',
@@ -834,8 +887,8 @@ const CandidateEvaluationDetail = () => {
                     type="checkbox"
                     id="confirmCheck"
                     checked={confirmChecked}
-                    onChange={(e) => setConfirmChecked(e.target.checked)}
-                    style={{ marginTop: '3px' }}
+                    onChange={(e) => { setConfirmChecked(e.target.checked); setDecisionError(''); }}
+                    style={{ marginTop: '3px', cursor: 'pointer', width: '16px', height: '16px' }}
                     required
                   />
                   <label htmlFor="confirmCheck" style={{ fontSize: '0.8rem', color: '#475569', lineHeight: '1.4', cursor: 'pointer' }}>
@@ -866,22 +919,23 @@ const CandidateEvaluationDetail = () => {
 
                   <button
                     type="submit"
-                    disabled={submittingDecision || !decision || !confirmChecked}
+                    disabled={submittingDecision}
                     style={{
                       flex: 2,
-                      padding: '12px',
+                      padding: '14px',
                       borderRadius: '10px',
                       border: 'none',
-                      background: decision === 'PASSED' ? '#16a34a' : (decision === 'FAILED' ? '#dc2626' : '#4f46e5'),
+                      background: decision === 'PASSED' ? '#16a34a' : (decision === 'FAILED' ? '#dc2626' : '#6366f1'),
                       color: 'white',
                       fontWeight: '800',
-                      fontSize: '0.9rem',
-                      cursor: (submittingDecision || !decision || !confirmChecked) ? 'not-allowed' : 'pointer',
-                      opacity: (submittingDecision || !decision || !confirmChecked) ? 0.6 : 1,
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      fontSize: '0.95rem',
+                      cursor: submittingDecision ? 'not-allowed' : 'pointer',
+                      opacity: submittingDecision ? 0.7 : 1,
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+                      transition: 'all 0.2s'
                     }}
                   >
-                    {submittingDecision ? 'Đang lưu...' : 'Xác Nhận Quyết Định'}
+                    {submittingDecision ? 'Đang lưu quyết định...' : 'Xác Nhận Quyết Định'}
                   </button>
                 </div>
               </form>
@@ -1000,7 +1054,7 @@ const CandidateEvaluationDetail = () => {
                   Chưa Đủ Điều Kiện Tạo Offer
                 </div>
                 <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: '1.5' }}>
-                  Quy định hệ thống: Chỉ những ứng viên đã được Trưởng bộ phận duyệt <strong>ĐẠT</strong> phỏng vấn mới đủ điều kiện tạo Thư mời nhận việc (Offer).
+                  Quy định hệ thống: Chỉ những ứng viên đã được duyệt <strong>ĐẠT</strong> phỏng vấn mới đủ điều kiện tạo Thư mời nhận việc (Offer).
                 </p>
                 <button
                   disabled
