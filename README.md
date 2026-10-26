@@ -52,3 +52,27 @@ Dự án được chia thành 8 Sprints (mỗi Sprint kéo dài 1 tuần):
 - Khác: Git/GitHub, Jira
 kiến trúc, công nghệ và các chức năng của hệ thống.
 
+
+
+## Chạy dự án tại máy cá nhân
+
+Yêu cầu: Node.js (LTS), npm và MySQL.
+
+1. Tạo cơ sở dữ liệu MySQL theo cấu trúc trong `database.sql`.
+2. Sao chép `Backend/.env.example` thành `Backend/.env`, sau đó điền thông tin MySQL và một `JWT_SECRET` riêng.
+3. Trong thư mục `Backend`, chạy `npm install`, rồi `npm test` để chạy kiểm thử; khởi động API bằng `npm run dev`.
+4. Sao chép `Frontend/.env.example` thành `Frontend/.env`.
+5. Trong thư mục `Frontend`, chạy `npm install` và `npm run dev`.
+6. Mở địa chỉ local mà Vite hiển thị trong terminal. Đảm bảo API backend và MySQL đang chạy trước khi kiểm tra các chức năng cần dữ liệu.
+
+Không đưa file `.env`, mật khẩu thật, token hoặc dữ liệu cá nhân lên GitHub. Chỉ commit các file `.env.example` chứa giá trị mẫu.
+
+## Luồng yêu cầu tuyển dụng và đăng tin
+
+1. Người có quyền tạo yêu cầu tuyển dụng và gửi yêu cầu vào quy trình phê duyệt.
+2. Sau khi yêu cầu được duyệt, người phụ trách có thể tạo bản nháp tin tuyển dụng từ yêu cầu đó.
+3. Hệ thống kiểm tra yêu cầu đã được duyệt, tránh tạo nhiều tin đang hoạt động cho cùng một yêu cầu và kiểm tra hạn tuyển dụng.
+4. Tin được gửi duyệt trước khi xuất bản; trạng thái được cập nhật qua API backend.
+5. Các thao tác quan trọng cần được ghi nhật ký để phục vụ kiểm tra và truy vết.
+
+Tên biến môi trường và các bước thiết lập cụ thể có thể khác theo cấu hình của từng máy; hãy ưu tiên các file `.env.example` và thông báo lỗi từ ứng dụng.
