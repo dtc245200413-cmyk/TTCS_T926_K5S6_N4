@@ -151,8 +151,17 @@ async function review(id, approved, note, userId, ipAddress) {
 async function publish(id, userId, ipAddress) {
   const posting = await repository.findById(id);
   if (!posting) throw httpError('Không tìm thấy tin tuyển dụng.', 404);
-  if (posting.status !== 'APPROVED') throw httpError('Tin phải được duyệt trước khi xuất bản.', 400);
+  if (!['APPROVED', 'PENDING_REVIEW'].includes(posting.status)) {
+    throw httpError('Tin phải được duyệt hoặc đang chờ duyệt trước khi xuất bản.', 400);
+  }
   ensureDateIsValid(posting.deadline);
+  if (posting.status === 'PENDING_REVIEW') {
+    await repository.review(id, {
+      status: 'APPROVED',
+      note: null,
+      userId
+    });
+  }
   await repository.publish(id, userId);
   await auditRepository.createLog({
     userId,
