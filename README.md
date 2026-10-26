@@ -51,4 +51,27 @@ Dự án được chia thành 8 Sprints (mỗi Sprint kéo dài 1 tuần):
 - Database: SQL (SQL Server / MySQL)
 - Khác: Git/GitHub, Jira
 kiến trúc, công nghệ và các chức năng của hệ thống.
+## Hướng dẫn kiểm thử Backend
+
+Dự án sử dụng Jest để kiểm thử các chức năng Backend.
+
+### 1. Chạy toàn bộ kiểm thử
+
+Mở Terminal tại thư mục `Backend` và chạy:
+
+```bash
+npm test -- --runInBand
+```
+
+### 2. Chạy kiểm thử chức năng đăng tin tuyển dụng
+
+```bash
+npm test -- --runInBand src/services/jobPostingService.test.js
+```
+
+### 3. Lưu ý
+
+- Các lệnh kiểm thử cần được chạy tại thư mục `Backend`, nơi chứa file `package.json`.
+- Kiểm tra kết quả kiểm thử trước khi tạo Pull Request.
+- Nếu có kiểm thử thất bại, hãy xem thông báo lỗi để xác định nguyên nhân trước khi hợp nhất thay đổi. 
 
