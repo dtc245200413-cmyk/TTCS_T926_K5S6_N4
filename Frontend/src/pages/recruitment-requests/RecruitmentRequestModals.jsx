@@ -12,7 +12,8 @@ import {
   FiFilter 
 } from 'react-icons/fi';
 
-const API_BASE = 'http://localhost:5000/api/recruitment-requests';
+const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+const API_BASE = `${API_ROOT}/recruitment-requests`;
 
 // Helper to get initials & colors
 export const getAvatarColor = (name = '') => {
