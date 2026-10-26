@@ -363,11 +363,118 @@ async function updateRequest(id, data, userId, ipAddress) {
   return updatedRequest;
 }
 
+async function assignRecruiter(id, data, userId, ipAddress) {
+  const existing = await requestRepo.findById(id);
+  if (!existing) {
+    const error = new Error('Yêu cầu không tồn tại.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const { recruiter_id, assistant_recruiter_id, assignment_note } = data;
+  if (!recruiter_id) {
+    const error = new Error('Vui lòng chọn Recruiter chính.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const nextStatus = existing.status === 'DRAFT' ? 'IN_PROGRESS' : existing.status;
+  await requestRepo.assignRecruiter(id, {
+    recruiter_id,
+    assistant_recruiter_id,
+    assignment_note,
+    status: nextStatus
+  });
+
+  const updated = await requestRepo.findById(id);
+
+  let desc = `Phân công recruiter ${updated.recruiter_name || ''} làm recruiter chính`;
+  if (updated.assistant_recruiter_name) {
+    desc += `, ${updated.assistant_recruiter_name} làm recruiter hỗ trợ`;
+  }
+  if (assignment_note) {
+    desc += ` (Ghi chú: ${assignment_note})`;
+  }
+
+  await auditRepo.createLog({
+    userId,
+    performedBy: userId,
+    action: 'Phân công recruiter',
+    entityType: 'recruitment_requests',
+    entityId: String(id),
+    description: desc,
+    ipAddress
+  });
+
+  return updated;
+}
+
+async function updateStatusAction(id, data, userId, ipAddress) {
+  const existing = await requestRepo.findById(id);
+  if (!existing) {
+    const error = new Error('Yêu cầu không tồn tại.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const { status, reason, notify_recruiter } = data;
+  if (!['PAUSED', 'IN_PROGRESS', 'CLOSED', 'CANCELLED'].includes(status)) {
+    const error = new Error('Trạng thái thao tác không hợp lệ.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (['PAUSED', 'CLOSED', 'CANCELLED'].includes(status) && (!reason || !reason.trim())) {
+    const error = new Error('Vui lòng nhập lý do thực hiện thao tác.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await requestRepo.updateStatusAction(id, {
+    status,
+    reason: reason ? reason.trim() : null
+  });
+
+  const actionNameMap = {
+    PAUSED: 'Tạm dừng yêu cầu',
+    IN_PROGRESS: 'Tiếp tục yêu cầu',
+    CLOSED: 'Đóng yêu cầu',
+    CANCELLED: 'Hủy yêu cầu'
+  };
+
+  const actionLabel = actionNameMap[status] || status;
+  const description = reason ? `Lý do: ${reason.trim()}` : `Chuyển trạng thái yêu cầu sang ${actionLabel}`;
+
+  await auditRepo.createLog({
+    userId,
+    performedBy: userId,
+    action: actionLabel,
+    entityType: 'recruitment_requests',
+    entityId: String(id),
+    description,
+    ipAddress
+  });
+
+  return await requestRepo.findById(id);
+}
+
+async function getRequestLogs(id) {
+  return await requestRepo.getAuditLogsForRequest(id);
+}
+
+async function getRecruitersWorkload() {
+  return await requestRepo.getRecruitersWithWorkload();
+}
+
 module.exports = {
   createRequest,
   updateRequest,
   getMyRequests,
   getAllForApproval,
-  updateRequestStatus
+  updateRequestStatus,
+  assignRecruiter,
+  updateStatusAction,
+  getRequestLogs,
+  getRecruitersWorkload
 };
 
