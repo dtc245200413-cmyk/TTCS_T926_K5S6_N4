@@ -41,6 +41,23 @@ describe('jobPostingService tests', () => {
         .rejects.toThrow('Hạn tuyển dụng phải là ngày hiện tại hoặc trong tương lai.');
     });
 
+    test('Báo lỗi nếu hạn tuyển dụng không phải ngày hợp lệ', async () => {
+      repository.findApprovedRequest.mockResolvedValue({
+        id: 10,
+        status: 'APPROVED',
+        needed_by_date: tomorrow
+      });
+      repository.hasActivePostingForRequest.mockResolvedValue(false);
+
+      await expect(service.create({
+        recruitment_request_id: 10,
+        deadline: 'khong-phai-ngay'
+      }, 1, '127.0.0.1')).rejects.toThrow(
+        'Hạn tuyển dụng phải là ngày hiện tại hoặc trong tương lai.'
+      );
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
     test('Tạo bản nháp thành công từ yêu cầu đã duyệt', async () => {
       repository.findApprovedRequest.mockResolvedValue({
         id: 10,
