@@ -15,6 +15,12 @@ describe('jobPostingService tests', () => {
   });
 
   describe('1. Tạo bản nháp từ yêu cầu tuyển dụng đã duyệt', () => {
+    test('Báo lỗi rõ ràng nếu thiếu recruitment_request_id', async () => {
+      await expect(service.create({}, 1, '127.0.0.1'))
+        .rejects.toThrow('Vui lòng chọn yêu cầu tuyển dụng đã được duyệt.');
+      expect(repository.findApprovedRequest).not.toHaveBeenCalled();
+    });
+
     test('Báo lỗi nếu không chọn yêu cầu hoặc yêu cầu không tồn tại/chưa duyệt', async () => {
       repository.findApprovedRequest.mockResolvedValue(null);
       await expect(service.create({ recruitment_request_id: 99 }, 1, '127.0.0.1'))
